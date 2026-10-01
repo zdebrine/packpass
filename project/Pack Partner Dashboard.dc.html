@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/tokens/base.css">
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/components/pack-components.css">
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/styles.css">
+  <script src="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/_ds_bundle.js"></script>
+  <style>
+    body{margin:0;background:#fff}
+    a{color:var(--ink)}a:hover{color:var(--ink-muted)}
+    input,textarea{font:inherit;color:inherit}
+    input:focus,textarea:focus{outline:none;box-shadow:var(--focus-ring)}
+  </style>
+</helmet>
+<div data-theme="{{ theme }}" style="display:flex;min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--font-sans)">
+
+  <aside style="width:248px;flex:none;box-sizing:border-box;padding:28px 16px 20px;display:flex;flex-direction:column;gap:28px;position:sticky;top:0;height:100vh;background:var(--surface-raised)">
+    <div style="padding:0 10px;display:flex;flex-direction:column;gap:4px">
+      <span class="pk-wide" style="font-size:15px;font-weight:700">PackPass</span>
+      <span class="pk-caption pk-muted">Partner</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:20px;background:var(--bg)">
+      <span style="width:40px;height:40px;flex:none;border-radius:12px;background:var(--pitch);color:var(--on-pitch);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px">{{ partnerInitials }}</span>
+      <div style="min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span class="pk-label" style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ partnerName }}</span>
+        <span class="pk-caption pk-muted">{{ partnerSub }}</span>
+      </div>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:4px">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="8">
+        <button onClick="{{ n.go }}" style="{{ n.style }}">
+          <span style="{{ n.iconStyle }}"></span>
+          <span style="flex:1;text-align:left">{{ n.label }}</span>
+          <sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}"><span style="min-width:22px;height:22px;padding:0 7px;box-sizing:border-box;border-radius:9999px;background:{{ n.badgeBg }};color:{{ n.badgeInk }};font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center">{{ n.badge }}</span></sc-if>
+        </button>
+      </sc-for>
+    </nav>
+    <div style="margin-top:auto;display:flex;align-items:center;gap:12px;padding:0 10px">
+      <span style="width:36px;height:36px;border-radius:9999px;background:var(--surface-sunken);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">MO</span>
+      <div style="display:flex;flex-direction:column;gap:2px"><span class="pk-label" style="font-weight:600">Maya Okafor</span><span class="pk-caption pk-muted">Owner</span></div>
+    </div>
+  </aside>
+
+  <main style="flex:1;min-width:0;padding:36px 48px 64px;box-sizing:border-box">
+
+    <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="01 Overview" style="display:flex;flex-direction:column;gap:32px;max-width:1240px">
+        <header style="display:flex;flex-direction:column;gap:10px">
+          <span class="pk-wide pk-muted">Tuesday · Sep 29 · 11:20 am</span>
+          <h1 class="pk-display-xl" style="margin:0">5 sessions today. 34 dogs booked.</h1>
+        </header>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+          <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+            <div style="background:var(--surface-raised);border-radius:28px;padding:22px 24px;display:flex;flex-direction:column;gap:8px">
+              <span class="pk-caption pk-muted">{{ s.label }}</span>
+              <span class="pk-display-lg">{{ s.value }}</span>
+              <span class="pk-caption pk-muted">{{ s.sub }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+          <section style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:14px">
+            <h2 class="pk-title" style="margin:0">Today</h2>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ today }}" as="t" hint-placeholder-count="5">
+                <div style="display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;padding:18px 20px;border-radius:20px;background:var(--surface-raised)">
+                  <span style="font-family:var(--font-display);font-weight:800;font-stretch:112%;font-size:20px;letter-spacing:-.02em;width:92px;flex:none">{{ t.time }}</span>
+                  <div style="flex:1 1 200px;min-width:0;display:flex;flex-direction:column;gap:4px">
+                    <div style="display:flex;align-items:center;gap:8px"><span class="pk-heading" style="font-weight:600">{{ t.title }}</span><sc-if value="{{ t.premium }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" tone="premium" hint-size="70px,22px">Premium</x-import></sc-if></div>
+                    <span class="pk-caption pk-muted">{{ t.meta }}</span>
+                  </div>
+                  <div style="width:150px;flex:none;display:flex;flex-direction:column;gap:6px">
+                    <span class="pk-caption" style="font-weight:600">{{ t.fillLabel }}</span>
+                    <span style="height:6px;border-radius:9999px;background:var(--surface-sunken);overflow:hidden;display:block"><span style="{{ t.barStyle }}"></span></span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;justify-content:flex-end;margin-left:auto">
+                    <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" tone="{{ t.statusTone }}" hint-size="80px,24px">{{ t.status }}</x-import>
+                    <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" size="sm" onClick="{{ t.open }}" hint-size="80px,36px">Roster</x-import>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+          <aside style="flex:1 1 300px;max-width:420px;min-width:0;display:flex;flex-direction:column;gap:24px">
+            <div style="position:relative;height:340px;border-radius:28px;overflow:hidden;color:#fff">
+              <img src="photos/sprint.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+              <div style="position:absolute;inset:0;background:var(--scrim)"></div>
+              <div style="position:absolute;top:18px;left:18px;display:flex;gap:6px">
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" tone="glass" hint-size="90px,24px">Next up · 12:00 pm</x-import>
+              </div>
+              <div style="position:absolute;left:22px;right:22px;bottom:20px;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <h2 class="pk-display-lg" style="margin:0">Sprint Club</h2>
+                  <span class="pk-label" style="opacity:.92">{{ nextMeta }}</span>
+                </div>
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="glass" onClick="{{ openSprint }}" hint-size="140px,52px">Open roster</x-import>
+              </div>
+            </div>
+            <section style="display:flex;flex-direction:column;gap:12px">
+              <h2 class="pk-title" style="margin:0">Needs attention</h2>
+              <sc-for list="{{ attention }}" as="a" hint-placeholder-count="3">
+                <div style="display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border-radius:20px;background:var(--surface-raised)">
+                  <span style="{{ a.iconStyle }}"></span>
+                  <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+                    <span class="pk-label" style="text-wrap:pretty">{{ a.text }}</span>
+                    <button onClick="{{ a.go }}" style="align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;text-decoration:underline;text-underline-offset:3px">{{ a.action }}</button>
+                  </div>
+                </div>
+              </sc-for>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSchedule }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="02 Schedule" style="display:flex;flex-direction:column;gap:28px">
+        <header style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span class="pk-wide pk-muted">Schedule and capacity</span>
+            <h1 class="pk-display-xl" style="margin:0;white-space:nowrap">Sep 28 – Oct 4</h1>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="pk-label pk-muted">{{ weekSummary }}</span>
+            <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" size="sm" onClick="{{ openBlock }}" hint-size="110px,36px">Block dates</x-import>
+            <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" size="sm" onClick="{{ openAdd }}" hint-size="120px,36px">Add session</x-import>
+          </div>
+        </header>
+        <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+          <div style="flex:999 1 640px;min-width:0;overflow-x:auto"><div style="min-width:980px;display:grid;grid-template-columns:48px repeat(7,minmax(0,1fr));gap:8px">
+            <div></div>
+            <sc-for list="{{ week }}" as="d" hint-placeholder-count="7">
+              <div style="display:flex;align-items:center;gap:6px;padding:0 4px 6px">
+                <span class="pk-label" style="font-weight:600">{{ d.label }}</span>
+                <span class="pk-label pk-muted">{{ d.date }}</span>
+                <sc-if value="{{ d.isToday }}" hint-placeholder-val="{{ false }}"><span style="width:8px;height:8px;border-radius:9999px;background:var(--agility)"></span></sc-if>
+                <sc-if value="{{ d.blocked }}" hint-placeholder-val="{{ false }}"><span class="pk-caption" style="margin-left:auto;font-weight:600;color:var(--kennel-red)">Blocked</span></sc-if>
+              </div>
+            </sc-for>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ hours }}" as="h" hint-placeholder-count="13">
+                <span class="pk-caption pk-muted" style="height:64px;line-height:1">{{ h }}</span>
+              </sc-for>
+            </div>
+            <sc-for list="{{ week }}" as="d" hint-placeholder-count="7">
+              <div style="position:relative;height:832px;border-radius:20px;background:var(--surface-raised)">
+                <sc-for list="{{ d.blocks }}" as="b" hint-placeholder-count="2">
+                  <button onClick="{{ b.select }}" style="{{ b.style }}">
+                    <span style="{{ b.titleStyle }}">{{ b.title }}</span>
+                    <span style="font-size:11px;line-height:14px;opacity:.72;white-space:nowrap">{{ b.time }} · {{ b.fill }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div></div>
+          <aside style="flex:1 1 320px;max-width:420px;min-width:0;box-sizing:border-box;position:sticky;top:24px;background:var(--surface-raised);border-radius:28px;padding:24px;display:flex;flex-direction:column;gap:22px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span class="pk-wide pk-muted">{{ sel.when }}</span>
+              <h2 class="pk-display-md" style="margin:0">{{ sel.title }}</h2>
+              <span class="pk-caption pk-muted">{{ sel.meta }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span class="pk-label" style="font-weight:600">Capacity</span>
+              <div style="display:flex;align-items:center;gap:14px">
+                <button onClick="{{ sel.dec }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--bg);color:var(--ink);cursor:pointer;font-size:20px">−</button>
+                <span class="pk-display-lg" style="min-width:48px;text-align:center">{{ sel.cap }}</span>
+                <button onClick="{{ sel.inc }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--bg);color:var(--ink);cursor:pointer;font-size:20px">+</button>
+                <span class="pk-label pk-muted">{{ sel.bookedLabel }}</span>
+              </div>
+              <span class="pk-caption pk-muted" style="text-wrap:pretty">{{ sel.capNote }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span class="pk-label" style="font-weight:600">Spots open to PackPass</span>
+              <div style="display:flex;align-items:center;gap:14px">
+                <button onClick="{{ sel.ppDec }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--bg);color:var(--ink);cursor:pointer;font-size:20px">−</button>
+                <span class="pk-display-lg" style="min-width:48px;text-align:center">{{ sel.pp }}</span>
+                <button onClick="{{ sel.ppInc }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--bg);color:var(--ink);cursor:pointer;font-size:20px">+</button>
+                <span class="pk-label pk-muted">of {{ sel.cap }}</span>
+              </div>
+              <span class="pk-caption pk-muted" style="text-wrap:pretty">{{ sel.ppNote }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <sc-for list="{{ sel.toggles }}" as="tg" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                  <div style="display:flex;flex-direction:column;gap:2px"><span class="pk-label" style="font-weight:600">{{ tg.label }}</span><span class="pk-caption pk-muted">{{ tg.sub }}</span></div>
+                  <button onClick="{{ tg.toggle }}" style="{{ tg.track }}"><span style="{{ tg.knob }}"></span></button>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <sc-if value="{{ showTrainer }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;justify-content:space-between;gap:12px"><span class="pk-label pk-muted">Trainer</span><span class="pk-label" style="font-weight:600">{{ sel.trainer }}</span></div>
+              </sc-if>
+              <div style="display:flex;justify-content:space-between;gap:12px"><span class="pk-label pk-muted">Location</span><span class="pk-label" style="font-weight:600">{{ sel.loc }}</span></div>
+              <div style="display:flex;justify-content:space-between;gap:12px"><span class="pk-label pk-muted">Credit cost</span><span class="pk-label" style="font-weight:600">{{ sel.credits }}</span></div>
+              <span class="pk-caption pk-muted">Credit cost is set by PackPass.</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" block="{{ true }}" hint-size="100%,52px">Save changes</x-import>
+              <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" block="{{ true }}" hint-size="100%,52px">Cancel this session</x-import>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isClasses }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="03 Classes" style="display:flex;flex-direction:column;gap:28px;max-width:1240px">
+        <header style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span class="pk-wide pk-muted">Offering</span>
+            <h1 class="pk-display-xl" style="margin:0">Classes</h1>
+          </div>
+          <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" size="sm" onClick="{{ startNew }}" hint-size="110px,36px">New class</x-import>
+        </header>
+        <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+          <div style="flex:1 1 280px;max-width:380px;min-width:0;display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ classList }}" as="c" hint-placeholder-count="8">
+              <button onClick="{{ c.select }}" style="{{ c.style }}">
+                <img src="{{ c.photo }}" alt="" style="width:56px;height:56px;border-radius:12px;object-fit:cover;flex:none">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;text-align:left">
+                  <span style="font-size:15px;font-weight:600">{{ c.name }}</span>
+                  <span style="font-size:12px;opacity:.7">{{ c.meta }}</span>
+                </span>
+                <span style="font-size:12px;opacity:.7">{{ c.status }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="flex:999 1 480px;min-width:0;display:flex;flex-direction:column;gap:28px">
+            <div style="position:relative;height:260px;border-radius:28px;overflow:hidden;color:#fff">
+              <img src="{{ cls.photo }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+              <div style="position:absolute;inset:0;background:var(--scrim)"></div>
+              <div style="position:absolute;top:18px;left:18px;right:18px;display:flex;justify-content:space-between">
+                <div style="display:flex;gap:6px">
+                  <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" tone="glass" hint-size="80px,24px">{{ cls.discipline }}</x-import>
+                  <sc-if value="{{ cls.premium }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" tone="premium" hint-size="70px,24px">Premium</x-import></sc-if>
+                </div>
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="glass" size="sm" hint-size="120px,36px">Replace photo</x-import>
+              </div>
+              <div style="position:absolute;left:22px;bottom:20px"><h2 class="pk-display-lg" style="margin:0">{{ cls.name }}</h2></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px 32px">
+              <label style="display:flex;flex-direction:column;gap:8px">
+                <span class="pk-label" style="font-weight:600">Class name</span>
+                <input value="{{ cls.name }}" onChange="{{ cls.onName }}" style="height:48px;border:0;border-radius:9999px;background:var(--surface-raised);padding:0 20px;font-size:15px">
+              </label>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span class="pk-label" style="font-weight:600">Discipline</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ cls.disciplines }}" as="o" hint-placeholder-count="6"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="80px,38px">{{ o.label }}</x-import></sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span class="pk-label" style="font-weight:600">Duration</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ cls.durations }}" as="o" hint-placeholder-count="4"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="80px,38px">{{ o.label }}</x-import></sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span class="pk-label" style="font-weight:600">Intensity · {{ cls.intensity }} of 5</span>
+                <div style="display:flex;gap:6px">
+                  <sc-for list="{{ cls.intensityBars }}" as="o" hint-placeholder-count="5"><button onClick="{{ o.pick }}" style="{{ o.style }}"></button></sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span class="pk-label" style="font-weight:600">Max group size</span>
+                <div style="display:flex;align-items:center;gap:14px">
+                  <button onClick="{{ cls.dec }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--surface-raised);color:var(--ink);cursor:pointer;font-size:20px">−</button>
+                  <span class="pk-display-md" style="min-width:36px;text-align:center">{{ cls.group }}</span>
+                  <button onClick="{{ cls.inc }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--surface-raised);color:var(--ink);cursor:pointer;font-size:20px">+</button>
+                  <span class="pk-label pk-muted">dogs</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span class="pk-label" style="font-weight:600">Suitable for</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ cls.energy }}" as="o" hint-placeholder-count="4"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="80px,38px">{{ o.label }}</x-import></sc-for>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ cls.soc }}" as="o" hint-placeholder-count="3"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="80px,38px">{{ o.label }}</x-import></sc-for>
+                </div>
+              </div>
+              <label style="display:flex;flex-direction:column;gap:8px;grid-column:1/-1">
+                <span class="pk-label" style="font-weight:600">What happens in the session</span>
+                <textarea value="{{ cls.desc }}" onChange="{{ cls.onDesc }}" rows="4" style="border:0;border-radius:20px;background:var(--surface-raised);padding:16px 20px;font-size:15px;line-height:23px;resize:vertical"></textarea>
+              </label>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span class="pk-label" style="font-weight:600">Session type</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ cls.types }}" as="o" hint-placeholder-count="3"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="90px,38px">{{ o.label }}</x-import></sc-for>
+                </div>
+                <span class="pk-caption pk-muted" style="text-wrap:pretty">{{ cls.typeNote }}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span class="pk-label" style="font-weight:600">{{ cls.clrLabel }}</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ cls.clrs }}" as="o" hint-placeholder-count="5"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="90px,38px">{{ o.label }}</x-import></sc-for>
+                </div>
+                <span class="pk-caption pk-muted" style="text-wrap:pretty">{{ cls.clrNote }}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span class="pk-label" style="font-weight:600">Requirements</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ cls.reqs }}" as="o" hint-placeholder-count="5"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="80px,38px">{{ o.label }}</x-import></sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px;padding:20px 22px;border-radius:28px;background:var(--surface-raised)">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+                  <span class="pk-label" style="font-weight:600">Credit cost</span>
+                  <span class="pk-display-md">{{ cls.credits }}</span>
+                </div>
+                <span class="pk-caption pk-muted" style="text-wrap:pretty">{{ cls.creditNote }}</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" hint-size="140px,52px">Save changes</x-import>
+              <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" hint-size="160px,52px">Preview as member</x-import>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isNewClass }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="03b Create a class" style="display:flex;flex-direction:column;gap:28px;max-width:1240px">
+        <header style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span class="pk-wide pk-muted">Classes · New</span>
+            <h1 class="pk-display-xl" style="margin:0;white-space:nowrap">Create a class</h1>
+          </div>
+          <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" size="sm" onClick="{{ backToClasses }}" hint-size="90px,36px">Cancel</x-import>
+        </header>
+
+        <sc-if value="{{ nc.sent }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+            <div style="flex:999 1 480px;min-width:0;display:flex;flex-direction:column;gap:18px;padding:32px;border-radius:28px;background:var(--surface-raised)">
+              <span style="width:56px;height:56px;border-radius:9999px;background:var(--inverse);color:var(--on-inverse);display:flex;align-items:center;justify-content:center"><span style="width:26px;height:26px;display:inline-block;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.460.0/icons/check.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.460.0/icons/check.svg) center/contain no-repeat"></span></span>
+              <h2 class="pk-display-lg" style="margin:0">{{ nc.sentTitle }}</h2>
+              <p class="pk-body" style="margin:0;max-width:560px;text-wrap:pretty">PackPass reviews new classes and sets the credit cost within 2 business days. You can schedule sessions now. They open for booking once the class is live.</p>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:6px">
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" onClick="{{ nc.viewIt }}" hint-size="150px,52px">See it in Classes</x-import>
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" style="background:var(--bg)" onClick="{{ startNew }}" hint-size="170px,52px">Create another</x-import>
+              </div>
+            </div>
+            <div style="flex:1 1 280px;max-width:300px;min-width:0"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.ClassCard" dc-props="{{ nc.card }}" hint-size="260px,320px"></x-import></div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ nc.editing }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+            <nav style="flex:1 1 210px;max-width:250px;min-width:0;display:flex;flex-direction:column;gap:6px">
+              <sc-for list="{{ nc.steps }}" as="s" hint-placeholder-count="4">
+                <button onClick="{{ s.go }}" style="{{ s.style }}">
+                  <span style="{{ s.dot }}">{{ s.n }}</span>
+                  <span style="display:flex;flex-direction:column;gap:2px;text-align:left;min-width:0"><span style="font-size:14px;font-weight:600">{{ s.label }}</span><span style="font-size:12px;opacity:.7;white-space:nowrap">{{ s.sub }}</span></span>
+                </button>
+              </sc-for>
+            </nav>
+
+            <div style="flex:999 1 440px;min-width:0;display:flex;flex-direction:column;gap:28px">
+              <sc-if value="{{ nc.s0 }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <span class="pk-label" style="font-weight:600">Session type</span>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px">
+                    <sc-for list="{{ nc.types }}" as="o" hint-placeholder-count="3">
+                      <button onClick="{{ o.pick }}" style="{{ o.style }}">
+                        <span style="{{ o.iconStyle }}"></span>
+                        <span style="font-size:15px;font-weight:600">{{ o.label }}</span>
+                        <span style="font-size:12px;line-height:16px;opacity:.75;text-wrap:pretty">{{ o.note }}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                </div>
+                <label style="display:flex;flex-direction:column;gap:8px">
+                  <span class="pk-label" style="font-weight:600">Class name</span>
+                  <input value="{{ nc.name }}" onChange="{{ nc.onName }}" placeholder="Say what the dog does, like Scent Work I" style="height:48px;border:0;border-radius:9999px;background:var(--surface-raised);padding:0 20px;font-size:15px">
+                </label>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <span class="pk-label" style="font-weight:600">Discipline</span>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ nc.disciplines }}" as="o" hint-placeholder-count="6"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="80px,38px">{{ o.label }}</x-import></sc-for></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <span class="pk-label" style="font-weight:600">Cover photo</span>
+                  <span class="pk-caption pk-muted">Outdoor, in motion, one dog clearly in frame. Members see this first.</span>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:4px">
+                    <button style="aspect-ratio:1;border:0;border-radius:20px;background:var(--surface-raised);color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font:inherit;font-size:13px;font-weight:600"><span style="width:22px;height:22px;display:inline-block;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.460.0/icons/upload.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.460.0/icons/upload.svg) center/contain no-repeat"></span>Upload</button>
+                    <sc-for list="{{ nc.photos }}" as="p" hint-placeholder-count="6">
+                      <button onClick="{{ p.pick }}" style="{{ p.style }}"><img src="{{ p.src }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></button>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ nc.s1 }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 32px">
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <span class="pk-label" style="font-weight:600">Duration</span>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ nc.durations }}" as="o" hint-placeholder-count="4"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="80px,38px">{{ o.label }}</x-import></sc-for></div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <span class="pk-label" style="font-weight:600">Intensity · {{ nc.intensity }} of 5</span>
+                    <div style="display:flex;gap:6px"><sc-for list="{{ nc.intensityBars }}" as="o" hint-placeholder-count="5"><button onClick="{{ o.pick }}" style="{{ o.style }}"></button></sc-for></div>
+                    <span class="pk-caption pk-muted">{{ nc.intensityNote }}</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <span class="pk-label" style="font-weight:600">Max group size</span>
+                    <div style="display:flex;align-items:center;gap:14px">
+                      <button onClick="{{ nc.dec }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--surface-raised);color:var(--ink);cursor:pointer;font-size:20px">−</button>
+                      <span class="pk-display-md" style="min-width:36px;text-align:center">{{ nc.group }}</span>
+                      <button onClick="{{ nc.inc }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--surface-raised);color:var(--ink);cursor:pointer;font-size:20px">+</button>
+                      <span class="pk-label pk-muted">dogs</span>
+                    </div>
+                    <span class="pk-caption pk-muted">{{ nc.groupNote }}</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <span class="pk-label" style="font-weight:600">Location</span>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ nc.locs }}" as="o" hint-placeholder-count="3"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="130px,38px">{{ o.label }}</x-import></sc-for></div>
+                  </div>
+                  <sc-if value="{{ showTrainer }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                      <span class="pk-label" style="font-weight:600">Lead trainer</span>
+                      <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ nc.trainers }}" as="o" hint-placeholder-count="3"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="120px,38px">{{ o.label }}</x-import></sc-for></div>
+                    </div>
+                  </sc-if>
+                  <label style="display:flex;flex-direction:column;gap:8px;grid-column:1/-1">
+                    <span class="pk-label" style="font-weight:600">What happens in the session</span>
+                    <textarea value="{{ nc.desc }}" onChange="{{ nc.onDesc }}" rows="4" placeholder="Walk an owner through the hour. What does the dog do first, and how does it end?" style="border:0;border-radius:20px;background:var(--surface-raised);padding:16px 20px;font-size:15px;line-height:23px;resize:vertical"></textarea>
+                  </label>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ nc.s2 }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 32px">
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <span class="pk-label" style="font-weight:600">Energy</span>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ nc.energy }}" as="o" hint-placeholder-count="4"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="80px,38px">{{ o.label }}</x-import></sc-for></div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <span class="pk-label" style="font-weight:600">With other dogs</span>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ nc.soc }}" as="o" hint-placeholder-count="3"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="80px,38px">{{ o.label }}</x-import></sc-for></div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <span class="pk-label" style="font-weight:600">{{ nc.clrLabel }}</span>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ nc.clrs }}" as="o" hint-placeholder-count="3"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="90px,38px">{{ o.label }}</x-import></sc-for></div>
+                    <span class="pk-caption pk-muted" style="text-wrap:pretty">{{ nc.clrNote }}</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <span class="pk-label" style="font-weight:600">Requirements</span>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ nc.reqs }}" as="o" hint-placeholder-count="6"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="80px,38px">{{ o.label }}</x-import></sc-for></div>
+                    <span class="pk-caption pk-muted">Checked against each dog's Passport when they book.</span>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ nc.s3 }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ nc.review }}" as="r" hint-placeholder-count="3">
+                    <div style="padding:20px 22px;border-radius:28px;background:var(--surface-raised);display:flex;flex-direction:column;gap:12px">
+                      <div style="display:flex;justify-content:space-between;align-items:center"><span class="pk-title">{{ r.title }}</span><button onClick="{{ r.edit }}" style="border:0;background:none;padding:0;cursor:pointer;font:inherit;font-size:14px;font-weight:600;color:var(--ink);text-decoration:underline">Edit</button></div>
+                      <sc-for list="{{ r.rows }}" as="x" hint-placeholder-count="3">
+                        <div style="display:flex;justify-content:space-between;gap:16px"><span class="pk-label pk-muted">{{ x.k }}</span><span class="pk-label" style="font-weight:600;text-align:right">{{ x.v }}</span></div>
+                      </sc-for>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ nc.missing }}" hint-placeholder-val="{{ false }}">
+                <span class="pk-caption" style="color:var(--kennel-red);font-weight:600">{{ nc.missingText }}</span>
+              </sc-if>
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <sc-if value="{{ nc.hasBack }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" onClick="{{ nc.back }}" hint-size="100px,52px">Back</x-import></sc-if>
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" disabled="{{ nc.missing }}" onClick="{{ nc.next }}" hint-size="160px,52px">{{ nc.nextLabel }}</x-import>
+                <span class="pk-caption pk-muted">Saved as a draft</span>
+              </div>
+            </div>
+
+            <aside style="flex:1 1 280px;max-width:300px;min-width:0;display:flex;flex-direction:column;gap:16px;position:sticky;top:24px">
+              <span class="pk-wide pk-muted">Member preview</span>
+              <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.ClassCard" dc-props="{{ nc.card }}" hint-size="260px,320px"></x-import>
+              <div style="padding:20px;border-radius:28px;background:var(--surface-raised);display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><span class="pk-label" style="font-weight:600">Likely credit cost</span><span class="pk-display-md">{{ nc.estimate }}</span></div>
+                <span class="pk-caption pk-muted" style="text-wrap:pretty">Estimated from duration, intensity and group size. PackPass confirms it in review.</span>
+              </div>
+            </aside>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isRoster }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="04 Roster" style="display:flex;flex-direction:column;gap:28px;max-width:1240px">
+        <header style="display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <sc-for list="{{ rosterTabs }}" as="r" hint-placeholder-count="5"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ r.on }}" onClick="{{ r.pick }}" hint-size="140px,38px">{{ r.label }}</x-import></sc-for>
+          </div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span class="pk-wide pk-muted">{{ roster.when }}</span>
+              <h1 class="pk-display-xl" style="margin:0">{{ roster.title }}</h1>
+              <span class="pk-label pk-muted">{{ roster.meta }}</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center">
+              <span class="pk-display-md">{{ roster.checkedLabel }}</span>
+              <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" size="sm" onClick="{{ openQrSession }}" hint-size="140px,36px">Show check-in QR</x-import>
+            </div>
+          </div>
+        </header>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ roster.dogs }}" as="d" hint-placeholder-count="8">
+            <div style="display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;padding:14px 20px 14px 14px;border-radius:20px;background:var(--surface-raised)">
+              <img src="{{ d.photo }}" alt="" style="width:64px;height:64px;flex:none;border-radius:12px;object-fit:cover">
+              <div style="flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:3px">
+                <span class="pk-title" style="font-weight:600">{{ d.name }}</span>
+                <span class="pk-caption pk-muted">{{ d.breed }} · {{ d.age }} · {{ d.owner }}</span>
+              </div>
+              <div style="flex:2 1 220px;display:flex;flex-direction:column;gap:6px;min-width:0">
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" tone="neutral" hint-size="80px,22px">{{ d.energy }}</x-import>
+                  <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" tone="neutral" hint-size="80px,22px">{{ d.soc }}</x-import>
+                  <sc-for list="{{ d.clrs }}" as="k" hint-placeholder-count="1"><span style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 10px 0 8px;border-radius:9999px;background:var(--pitch);color:var(--on-pitch);font-size:12px;font-weight:600"><span style="width:12px;height:12px;display:inline-block;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.460.0/icons/shield-check.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.460.0/icons/shield-check.svg) center/contain no-repeat"></span>{{ k }}</span></sc-for>
+                </div>
+                <span class="pk-caption pk-muted" style="text-wrap:pretty">{{ d.note }}</span>
+                <sc-if value="{{ d.hasTraits }}" hint-placeholder-val="{{ false }}"><span class="pk-caption pk-muted" style="text-wrap:pretty">From owner · {{ d.traits }}</span></sc-if>
+              </div>
+              <span class="pk-caption" style="{{ d.vaxStyle }}">{{ d.vax }}</span>
+              <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="{{ d.btnVariant }}" size="sm" block="{{ true }}" onClick="{{ d.toggle }}" style="width:136px;flex:none" hint-size="136px,36px">{{ d.btnLabel }}</x-import>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ roster.hasWaitlist }}" hint-placeholder-val="{{ false }}">
+          <section style="display:flex;flex-direction:column;gap:12px">
+            <h2 class="pk-title" style="margin:0">Waitlist · 2</h2>
+            <sc-for list="{{ roster.waitlist }}" as="w" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;gap:16px;padding:12px 20px 12px 12px;border-radius:20px;background:var(--surface-raised)">
+                <img src="{{ w.photo }}" alt="" style="width:48px;height:48px;border-radius:12px;object-fit:cover">
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px"><span class="pk-label" style="font-weight:600">{{ w.name }}</span><span class="pk-caption pk-muted">{{ w.meta }}</span></div>
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" size="sm" onClick="{{ w.offer }}" hint-size="110px,36px">{{ w.label }}</x-import>
+              </div>
+            </sc-for>
+            <span class="pk-caption pk-muted">Offering a spot raises capacity by one. The owner has 30 minutes to accept.</span>
+          </section>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isNotes }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="05 Session notes" style="display:flex;flex-direction:column;gap:28px;max-width:1040px">
+        <header style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span class="pk-wide pk-muted">Session notes · Today 7:30 am</span>
+            <h1 class="pk-display-xl" style="margin:0">Herding Fundamentals</h1>
+            <span class="pk-label pk-muted">Notes appear in each dog's training log. Keep them short and specific.</span>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px"><span class="pk-caption pk-muted">Counts toward the week as</span><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" hint-size="80px,24px">Mental</x-import><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" hint-size="80px,24px">Physical</x-import></div>
+          </div>
+          <span class="pk-display-md">{{ notesSent }}</span>
+        </header>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{ noteRows }}" as="n" hint-placeholder-count="8">
+            <div style="display:grid;grid-template-columns:64px minmax(0,1fr);gap:18px;padding:18px;border-radius:28px;background:var(--surface-raised)">
+              <img src="{{ n.photo }}" alt="" style="width:64px;height:64px;border-radius:12px;object-fit:cover">
+              <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                  <div style="display:flex;flex-direction:column;gap:2px"><span class="pk-title" style="font-weight:600">{{ n.name }}</span><span class="pk-caption pk-muted">{{ n.breed }} · {{ n.owner }}</span></div>
+                  <sc-if value="{{ n.sent }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" tone="neutral" hint-size="80px,24px">Sent</x-import></sc-if>
+                </div>
+                <sc-if value="{{ n.sent }}" hint-placeholder-val="{{ false }}">
+                  <p class="pk-body" style="margin:0;text-wrap:pretty">“{{ n.note }}”</p>
+                </sc-if>
+                <sc-if value="{{ n.open }}" hint-placeholder-val="{{ true }}">
+                  <textarea value="{{ n.note }}" onChange="{{ n.onNote }}" rows="2" placeholder="{{ n.placeholder }}" style="border:0;border-radius:20px;background:var(--bg);padding:14px 18px;font-size:15px;line-height:23px;resize:vertical"></textarea>
+                </sc-if>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ n.skills }}" as="s" hint-placeholder-count="6"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ s.on }}" onClick="{{ s.pick }}" hint-size="80px,38px">{{ s.label }}</x-import></sc-for>
+                  <sc-if value="{{ n.open }}" hint-placeholder-val="{{ true }}"><span style="margin-left:auto"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" size="sm" onClick="{{ n.send }}" hint-size="120px,36px">Send to owner</x-import></span></sc-if>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isAssess }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="09 Assessments" style="display:flex;flex-direction:column;gap:28px;max-width:1240px">
+        <header style="display:flex;flex-direction:column;gap:10px">
+          <span class="pk-wide pk-muted">Assessments · Passport</span>
+          <h1 class="pk-display-xl" style="margin:0">Record results</h1>
+          <span class="pk-label pk-muted" style="text-wrap:pretty">Results go to the dog's Passport. Owners see Strengths, Working on and your note, word for word.</span>
+        </header>
+        <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+          <div style="flex:1 1 280px;max-width:380px;min-width:0;display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ asList }}" as="a" hint-placeholder-count="3">
+              <button onClick="{{ a.select }}" style="{{ a.style }}">
+                <img src="{{ a.photo }}" alt="" style="width:56px;height:56px;border-radius:12px;object-fit:cover;flex:none">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;text-align:left">
+                  <span style="font-size:15px;font-weight:600">{{ a.name }} · {{ a.type }}</span>
+                  <span style="font-size:12px;opacity:.7">{{ a.when }}</span>
+                </span>
+                <span style="font-size:12px;opacity:.7">{{ a.status }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:28px">
+            <div style="display:flex;align-items:center;gap:20px">
+              <img src="{{ as.photo }}" alt="" style="width:88px;height:88px;border-radius:20px;object-fit:cover;flex:none">
+              <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span class="pk-wide pk-muted">{{ as.when }} · {{ as.dur }}</span>
+                <h2 class="pk-display-lg" style="margin:0">{{ as.name }} · {{ as.type }} assessment</h2>
+                <span class="pk-caption pk-muted">{{ as.breed }} · {{ as.owner }}</span>
+              </div>
+            </div>
+            <div style="background:var(--surface-raised);border-radius:28px;padding:20px 22px;display:flex;flex-direction:column;gap:12px">
+              <span class="pk-label" style="font-weight:600">Passport</span>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <sc-for list="{{ as.clr }}" as="k" hint-placeholder-count="2"><span style="{{ k.style }}"><span style="{{ k.iconStyle }}"></span>{{ k.label }}</span></sc-for>
+                <sc-if value="{{ as.noClr }}" hint-placeholder-val="{{ false }}"><span class="pk-caption pk-muted">No clearances yet.</span></sc-if>
+              </div>
+              <span class="pk-caption pk-muted" style="text-wrap:pretty">From owner · {{ as.traits }}</span>
+            </div>
+            <section style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><h3 class="pk-title" style="margin:0">Rubric</h3><span class="pk-caption pk-muted">{{ as.rubricCount }}</span></div>
+              <sc-for list="{{ as.rubric }}" as="r" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 12px 10px 20px;border-radius:20px;background:var(--surface-raised)">
+                  <span class="pk-label" style="flex:1 1 200px;font-weight:600">{{ r.label }}</span>
+                  <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ r.isS }}" onClick="{{ r.pickS }}" hint-size="100px,38px">Strength</x-import>
+                  <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ r.isW }}" onClick="{{ r.pickW }}" hint-size="110px,38px">Working on</x-import>
+                </div>
+              </sc-for>
+            </section>
+            <section style="display:flex;flex-direction:column;gap:10px">
+              <h3 class="pk-title" style="margin:0">Outcome</h3>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ as.grant }}" onClick="{{ as.toggleGrant }}" hint-size="180px,38px">{{ as.grantLabel }}</x-import>
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ as.goal }}" onClick="{{ as.toggleGoal }}" hint-size="140px,38px">Create a goal</x-import>
+              </div>
+              <span class="pk-caption pk-muted" style="text-wrap:pretty">{{ as.outNote }}</span>
+            </section>
+            <label style="display:flex;flex-direction:column;gap:8px">
+              <span class="pk-label" style="font-weight:600">Note to owner</span>
+              <textarea value="{{ as.note }}" onChange="{{ as.onNote }}" rows="3" placeholder="Say what went well and what comes next. Describe behavior, not labels." style="border:0;border-radius:20px;background:var(--surface-raised);padding:16px 20px;font-size:15px;line-height:23px;resize:vertical"></textarea>
+            </label>
+            <sc-if value="{{ as.sent }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:12px;align-items:center;padding:16px 20px;border-radius:20px;background:var(--turf-soft)"><span class="pk-label" style="font-weight:600;color:var(--turf)">Sent.</span><span class="pk-label">{{ as.sentLine }}</span></div>
+            </sc-if>
+            <sc-if value="{{ as.open }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" onClick="{{ as.send }}" hint-size="140px,52px">Send result</x-import>
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" hint-size="130px,52px">Save draft</x-import>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isLocations }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="06 Locations" style="display:flex;flex-direction:column;gap:28px;max-width:1240px">
+        <header style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span class="pk-wide pk-muted">Where you train</span>
+            <h1 class="pk-display-xl" style="margin:0">Locations</h1>
+          </div>
+          <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" size="sm" hint-size="120px,36px">Add location</x-import>
+        </header>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px">
+          <sc-for list="{{ locations }}" as="l" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;border-radius:28px;overflow:hidden;background:var(--surface-raised)">
+              <div style="position:relative;height:200px;color:#fff">
+                <img src="{{ l.photo }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+                <div style="position:absolute;inset:0;background:var(--scrim)"></div>
+                <div style="position:absolute;top:16px;left:16px"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" tone="glass" hint-size="100px,24px">{{ l.type }}</x-import></div>
+                <div style="position:absolute;left:20px;right:20px;bottom:16px;display:flex;flex-direction:column;gap:4px">
+                  <h2 class="pk-display-md" style="margin:0">{{ l.name }}</h2>
+                  <span class="pk-caption" style="opacity:.92">{{ l.address }}</span>
+                </div>
+              </div>
+              <div style="padding:20px 22px 22px;display:flex;flex-direction:column;gap:12px">
+                <sc-for list="{{ l.rows }}" as="r" hint-placeholder-count="4">
+                  <div style="display:flex;justify-content:space-between;gap:16px"><span class="pk-label pk-muted">{{ r.k }}</span><span class="pk-label" style="font-weight:600;text-align:right">{{ r.v }}</span></div>
+                </sc-for>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:4px">
+                  <sc-for list="{{ l.tags }}" as="t" hint-placeholder-count="3"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" tone="neutral" hint-size="70px,22px">{{ t }}</x-import></sc-for>
+                </div>
+                <span class="pk-caption pk-muted">{{ l.classes }}</span>
+                <div style="display:flex;gap:8px;padding-top:4px">
+                  <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" size="sm" hint-size="70px,36px">Edit</x-import>
+                  <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" size="sm" onClick="{{ l.openQr }}" hint-size="140px,36px">Check-in QR</x-import>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isEarnings }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="07 Earnings" style="display:flex;flex-direction:column;gap:32px;max-width:1240px">
+        <header style="display:flex;flex-direction:column;gap:10px">
+          <span class="pk-wide pk-muted">Earnings · September</span>
+          <h1 class="pk-display-2xl" style="margin:0">$4,218</h1>
+          <span class="pk-label pk-muted">444 credits redeemed at $9.50 per credit. Rates are set by PackPass.</span>
+        </header>
+        <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+          <div style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:32px">
+            <section style="background:var(--surface-raised);border-radius:28px;padding:24px;display:flex;flex-direction:column;gap:18px">
+              <h2 class="pk-title" style="margin:0">By week</h2>
+              <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;align-items:end;height:200px">
+                <sc-for list="{{ weeks }}" as="w" hint-placeholder-count="4">
+                  <div style="display:flex;flex-direction:column;gap:8px;justify-content:flex-end;height:100%">
+                    <span class="pk-label" style="font-weight:600">{{ w.amt }}</span>
+                    <span style="{{ w.bar }}"></span>
+                    <span class="pk-caption pk-muted">{{ w.label }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </section>
+            <section style="display:flex;flex-direction:column;gap:12px">
+              <h2 class="pk-title" style="margin:0">By class</h2>
+              <div style="display:grid;grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr));gap:12px;padding:0 20px">
+                <span class="pk-caption pk-muted">Class</span><span class="pk-caption pk-muted" style="text-align:right">Dogs</span><span class="pk-caption pk-muted" style="text-align:right">Credits</span><span class="pk-caption pk-muted" style="text-align:right">Earned</span>
+              </div>
+              <sc-for list="{{ byClass }}" as="c" hint-placeholder-count="6">
+                <div style="display:grid;grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr));gap:12px;padding:14px 20px;border-radius:20px;background:var(--surface-raised);align-items:center">
+                  <span class="pk-label" style="font-weight:600">{{ c.name }}</span>
+                  <span class="pk-label" style="text-align:right">{{ c.dogs }}</span>
+                  <span class="pk-label" style="text-align:right">{{ c.credits }}</span>
+                  <span class="pk-label" style="text-align:right;font-weight:600">{{ c.earned }}</span>
+                </div>
+              </sc-for>
+            </section>
+          </div>
+          <aside style="flex:1 1 300px;max-width:420px;min-width:0;display:flex;flex-direction:column;gap:24px">
+            <div style="background:var(--pitch);color:var(--on-pitch);border-radius:28px;padding:24px;display:flex;flex-direction:column;gap:12px">
+              <span class="pk-wide" style="color:var(--on-pitch-muted)">Next payout · Oct 1</span>
+              <span class="pk-display-xl">$4,218</span>
+              <span class="pk-label" style="color:var(--on-pitch-muted)">{{ payoutLine }}</span>
+            </div>
+            <div style="background:var(--surface-raised);border-radius:28px;padding:24px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+                <h2 class="pk-title" style="margin:0">Payout method</h2>
+                <sc-if value="{{ payPending }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" tone="warning" hint-size="80px,22px">Verifying</x-import></sc-if>
+              </div>
+              <sc-if value="{{ payConnected }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;align-items:center;gap:14px">
+                  <span style="width:44px;height:44px;flex:none;border-radius:9999px;background:var(--bg);display:flex;align-items:center;justify-content:center"><span style="width:20px;height:20px;display:inline-block;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.460.0/icons/landmark.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.460.0/icons/landmark.svg) center/contain no-repeat"></span></span>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span class="pk-label" style="font-weight:600">Chase checking ••4821</span><span class="pk-caption pk-muted">Through Stripe · Monthly on the 1st</span></div>
+                </div>
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" block="{{ true }}" style="background:var(--bg)" hint-size="100%,52px">Manage in Stripe</x-import>
+              </sc-if>
+              <sc-if value="{{ payNone }}" hint-placeholder-val="{{ false }}">
+                <p class="pk-label" style="margin:0;text-wrap:pretty">Add a bank account through Stripe to get paid. September's $4,218 is held until then.</p>
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" block="{{ true }}" onClick="{{ openStripe }}" hint-size="100%,52px">Set up payouts</x-import>
+              </sc-if>
+              <sc-if value="{{ payPending }}" hint-placeholder-val="{{ false }}">
+                <p class="pk-label" style="margin:0;text-wrap:pretty">Stripe is checking your details. This usually takes one business day. Maya gets an email when payouts are on.</p>
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" block="{{ true }}" style="background:var(--bg)" hint-size="100%,52px">Continue in Stripe</x-import>
+              </sc-if>
+            </div>
+            <div style="background:var(--surface-raised);border-radius:28px;padding:24px;display:flex;flex-direction:column;gap:8px">
+              <span class="pk-wide pk-muted">New dogs this month</span>
+              <span class="pk-display-xl">23</span>
+              <span class="pk-label pk-muted" style="text-wrap:pretty">First visit to Northside Barn through PackPass. 9 have booked again.</span>
+            </div>
+            <section style="display:flex;flex-direction:column;gap:12px">
+              <h2 class="pk-title" style="margin:0">Payout history</h2>
+              <sc-for list="{{ payouts }}" as="p" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-radius:20px;background:var(--surface-raised)">
+                  <div style="display:flex;flex-direction:column;gap:2px"><span class="pk-label" style="font-weight:600">{{ p.date }}</span><span class="pk-caption pk-muted">{{ p.sub }}</span></div>
+                  <span class="pk-label" style="font-weight:600">{{ p.amt }}</span>
+                </div>
+              </sc-for>
+            </section>
+            <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" block="{{ true }}" hint-size="100%,52px">Download statement</x-import>
+          </aside>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="08 Trainer profile" style="display:flex;flex-direction:column;gap:28px;max-width:1240px">
+        <header style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span class="pk-wide pk-muted">{{ profileEyebrow }}</span>
+            <h1 class="pk-display-xl" style="margin:0">{{ tr.name }}</h1>
+          </div>
+          <sc-if value="{{ showTrainer }}" hint-placeholder-val="{{ true }}"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" size="sm" hint-size="130px,36px">Invite trainer</x-import></sc-if>
+        </header>
+        <sc-if value="{{ showTrainer }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <sc-for list="{{ team }}" as="t" hint-placeholder-count="3">
+              <button onClick="{{ t.select }}" style="{{ t.style }}">
+                <span style="{{ t.avatarStyle }}">{{ t.initials }}</span>
+                <span style="display:flex;flex-direction:column;gap:2px;text-align:left"><span style="font-size:14px;font-weight:600">{{ t.name }}</span><span style="font-size:12px;opacity:.7">{{ t.role }}</span></span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+          <div style="flex:999 1 480px;min-width:0;display:flex;flex-direction:column;gap:24px">
+            <div style="display:flex;align-items:center;gap:20px">
+              <span style="width:112px;height:112px;border-radius:9999px;background:var(--surface-sunken);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:36px">{{ tr.initials }}</span>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span class="pk-label pk-muted">Photo shows on class pages and booking confirmations.</span>
+                <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" size="sm" hint-size="120px,36px">Upload photo</x-import>
+              </div>
+            </div>
+            <label style="display:flex;flex-direction:column;gap:8px">
+              <span class="pk-label" style="font-weight:600">Bio</span>
+              <textarea value="{{ tr.bio }}" onChange="{{ tr.onBio }}" rows="4" style="border:0;border-radius:20px;background:var(--surface-raised);padding:16px 20px;font-size:15px;line-height:23px;resize:vertical"></textarea>
+            </label>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span class="pk-label" style="font-weight:600">Credentials</span>
+              <sc-for list="{{ tr.creds }}" as="c" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-radius:20px;background:var(--surface-raised)">
+                  <span class="pk-label" style="font-weight:600">{{ c.name }}</span>
+                  <span class="pk-caption pk-muted">{{ c.status }}</span>
+                </div>
+              </sc-for>
+              <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" size="sm" hint-size="140px,36px">Add credential</x-import>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span class="pk-label" style="font-weight:600">Teaches</span>
+              <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ tr.teaches }}" as="t" hint-placeholder-count="3"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" tone="neutral" hint-size="80px,24px">{{ t }}</x-import></sc-for></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span class="pk-label" style="font-weight:600">Specialties</span>
+              <span class="pk-caption pk-muted" style="text-wrap:pretty">Owners find you through specialties on training paths. PackPass checks credentials before Behaviorist goes live.</span>
+              <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ tr.specs }}" as="o" hint-placeholder-count="8"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="100px,38px">{{ o.label }}</x-import></sc-for></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-radius:20px;background:var(--surface-raised)">
+              <div style="display:flex;flex-direction:column;gap:2px"><span class="pk-label" style="font-weight:600">Private 1:1 sessions</span><span class="pk-caption pk-muted">Listed as Private on Book and on training paths. Credit cost set by PackPass.</span></div>
+              <button onClick="{{ tr.togglePriv }}" style="{{ tr.privTrack }}"><span style="{{ tr.privKnob }}"></span></button>
+            </div>
+          </div>
+          <aside style="flex:1 1 300px;max-width:420px;min-width:0;display:flex;flex-direction:column;gap:24px">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span class="pk-wide pk-muted">How members see it</span>
+              <div style="display:flex;align-items:center;gap:14px;padding:18px;border-radius:28px;background:var(--surface-raised)">
+                <span style="width:56px;height:56px;flex:none;border-radius:9999px;background:var(--surface-sunken);display:flex;align-items:center;justify-content:center;font-weight:600">{{ tr.initials }}</span>
+                <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span class="pk-heading" style="font-weight:600">{{ tr.name }}</span><span class="pk-caption pk-muted">{{ tr.credLine }}</span><span class="pk-caption" style="font-weight:600">{{ tr.specLine }}</span></div>
+                <span class="pk-label" style="font-weight:600">{{ tr.rating }}</span>
+              </div>
+            </div>
+            <section style="display:flex;flex-direction:column;gap:12px">
+              <h2 class="pk-title" style="margin:0">{{ tr.reviewsTitle }}</h2>
+              <sc-for list="{{ tr.reviews }}" as="r" hint-placeholder-count="2">
+                <div style="padding:18px;border-radius:20px;background:var(--surface-raised);display:flex;flex-direction:column;gap:8px">
+                  <p class="pk-body" style="margin:0;text-wrap:pretty">“{{ r.text }}”</p>
+                  <span class="pk-caption pk-muted">{{ r.by }}</span>
+                </div>
+              </sc-for>
+            </section>
+          </aside>
+        </div>
+        <div style="display:flex;gap:10px"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" hint-size="140px,52px">Save profile</x-import></div>
+      </div>
+    </sc-if>
+
+  </main>
+
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:32px;box-sizing:border-box">
+      <div onClick="{{ stop }}" style="{{ sheetStyle }}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
+          <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+            <span class="pk-wide pk-muted">{{ modalEyebrow }}</span>
+            <h2 class="pk-display-lg" style="margin:0">{{ modalTitle }}</h2>
+          </div>
+          <button onClick="{{ closeModal }}" style="width:44px;height:44px;flex:none;border:0;border-radius:9999px;background:var(--surface-raised);color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center"><span style="width:20px;height:20px;display:inline-block;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.460.0/icons/x.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.460.0/icons/x.svg) center/contain no-repeat"></span></button>
+        </div>
+
+        <sc-if value="{{ mBlock }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-wrap:wrap;gap:28px;margin-top:24px">
+            <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span class="pk-title">October 2026</span>
+                <span class="pk-caption pk-muted">{{ blk.hint }}</span>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px">
+                <sc-for list="{{ blk.wd }}" as="w" hint-placeholder-count="7"><span class="pk-caption pk-muted" style="text-align:center;padding-bottom:4px">{{ w }}</span></sc-for>
+                <sc-for list="{{ blk.cells }}" as="c" hint-placeholder-count="35"><button onClick="{{ c.pick }}" style="{{ c.style }}">{{ c.d }}</button></sc-for>
+              </div>
+            </div>
+            <div style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:20px">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span class="pk-label" style="font-weight:600">Where</span>
+                <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ blk.locs }}" as="o" hint-placeholder-count="4"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="110px,38px">{{ o.label }}</x-import></sc-for></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span class="pk-label" style="font-weight:600">Reason</span>
+                <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ blk.reasons }}" as="o" hint-placeholder-count="4"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="100px,38px">{{ o.label }}</x-import></sc-for></div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:24px;padding:20px;border-radius:20px;background:var(--surface-raised);display:flex;flex-direction:column;gap:6px">
+            <span class="pk-display-md">{{ blk.impact }}</span>
+            <span class="pk-caption pk-muted" style="text-wrap:pretty">Booked members get their credits back and the message below. Blocked sessions stop showing on Book.</span>
+          </div>
+          <textarea placeholder="Message to booked members (optional)" style="margin-top:12px;width:100%;box-sizing:border-box;min-height:84px;padding:14px 16px;border:0;border-radius:20px;background:var(--surface-raised);resize:vertical"></textarea>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+            <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" onClick="{{ closeModal }}" hint-size="100px,52px">Cancel</x-import>
+            <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" onClick="{{ blk.confirm }}" hint-size="180px,52px">{{ blk.cta }}</x-import>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ mAdd }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:22px;margin-top:24px">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span class="pk-label" style="font-weight:600">Class</span>
+              <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ ns.classes }}" as="o" hint-placeholder-count="8"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="140px,38px">{{ o.label }}</x-import></sc-for></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span class="pk-label" style="font-weight:600">Day</span>
+              <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ ns.days }}" as="o" hint-placeholder-count="7"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="76px,38px">{{ o.label }}</x-import></sc-for></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span class="pk-label" style="font-weight:600">Start</span>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <button onClick="{{ ns.tDec }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--surface-raised);color:var(--ink);cursor:pointer;font-size:20px">−</button>
+                  <span class="pk-display-md" style="min-width:96px;text-align:center;white-space:nowrap">{{ ns.time }}</span>
+                  <button onClick="{{ ns.tInc }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--surface-raised);color:var(--ink);cursor:pointer;font-size:20px">+</button>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span class="pk-label" style="font-weight:600">Capacity</span>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <button onClick="{{ ns.cDec }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--surface-raised);color:var(--ink);cursor:pointer;font-size:20px">−</button>
+                  <span class="pk-display-md" style="min-width:40px;text-align:center">{{ ns.cap }}</span>
+                  <button onClick="{{ ns.cInc }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--surface-raised);color:var(--ink);cursor:pointer;font-size:20px">+</button>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span class="pk-label" style="font-weight:600">Open to PackPass</span>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <button onClick="{{ ns.pDec }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--surface-raised);color:var(--ink);cursor:pointer;font-size:20px">−</button>
+                  <span class="pk-display-md" style="min-width:40px;text-align:center">{{ ns.pp }}</span>
+                  <button onClick="{{ ns.pInc }}" style="width:44px;height:44px;border-radius:9999px;border:0;background:var(--surface-raised);color:var(--ink);cursor:pointer;font-size:20px">+</button>
+                </div>
+              </div>
+            </div>
+            <sc-if value="{{ showTrainer }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span class="pk-label" style="font-weight:600">Trainer</span>
+                <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ ns.trainers }}" as="o" hint-placeholder-count="3"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="120px,38px">{{ o.label }}</x-import></sc-for></div>
+              </div>
+            </sc-if>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span class="pk-label" style="font-weight:600">Location</span>
+              <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ ns.locs }}" as="o" hint-placeholder-count="3"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="140px,38px">{{ o.label }}</x-import></sc-for></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:2px"><span class="pk-label" style="font-weight:600">Repeats weekly</span><span class="pk-caption pk-muted">{{ ns.repeatSub }}</span></div>
+              <button onClick="{{ ns.toggleRepeat }}" style="{{ ns.track }}"><span style="{{ ns.knob }}"></span></button>
+            </div>
+            <sc-if value="{{ ns.hasConflict }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:14px 16px;border-radius:20px;background:var(--kennel-red-soft);color:var(--kennel-red)"><span class="pk-label" style="font-weight:600">{{ ns.conflict }}</span></div>
+            </sc-if>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;margin-top:24px;padding-top:20px">
+            <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span class="pk-label" style="font-weight:600">{{ ns.summary }}</span><span class="pk-caption pk-muted">{{ ns.creditLine }}</span></div>
+            <div style="display:flex;gap:8px">
+              <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" onClick="{{ closeModal }}" hint-size="100px,52px">Cancel</x-import>
+              <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" onClick="{{ ns.add }}" hint-size="140px,52px">Add session</x-import>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ mQr }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-wrap:wrap;gap:32px;margin-top:24px;align-items:flex-start">
+            <div style="flex:none;width:300px;max-width:100%;box-sizing:border-box;padding:24px;border-radius:28px;background:#fff;color:#0e0f0e;display:flex;flex-direction:column;gap:16px;align-items:center">
+              <div style="width:252px;height:252px">{{ qrSvg }}</div>
+              <span class="pk-wide" style="font-size:12px">Scan with the PackPass app</span>
+            </div>
+            <div style="flex:1 1 240px;min-width:0;display:flex;flex-direction:column;gap:22px">
+              <p class="pk-body" style="margin:0;text-wrap:pretty">{{ qr.body }}</p>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span class="pk-caption pk-muted">No camera? Members enter this code</span>
+                <span class="pk-display-lg" style="letter-spacing:.2em">7316</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span class="pk-label" style="font-weight:600">{{ qr.countLabel }}</span>
+                <sc-for list="{{ qr.recent }}" as="r" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <img src="{{ r.photo }}" alt="" style="width:36px;height:36px;border-radius:9999px;object-fit:cover">
+                    <span class="pk-label" style="flex:1;font-weight:600">{{ r.name }}</span>
+                    <span class="pk-caption pk-muted">{{ r.time }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:24px">
+            <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" hint-size="130px,52px">Print poster</x-import>
+            <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" hint-size="150px,52px">Open full screen</x-import>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ mStripe }}" hint-placeholder-val="{{ false }}">
+          <p class="pk-body" style="margin:16px 0 0;text-wrap:pretty">PackPass pays partners through Stripe. Stripe verifies your business and holds your bank details. PackPass never sees your account number.</p>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:24px">
+            <sc-for list="{{ stripeSteps }}" as="x" hint-placeholder-count="3">
+              <div style="display:flex;gap:14px;align-items:center;padding:14px 16px 14px 14px;border-radius:20px;background:var(--surface-raised)">
+                <span style="width:36px;height:36px;flex:none;border-radius:9999px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px">{{ x.n }}</span>
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span class="pk-label" style="font-weight:600">{{ x.title }}</span><span class="pk-caption pk-muted">{{ x.sub }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+          <p class="pk-caption pk-muted" style="margin:16px 0 0;text-wrap:pretty">Takes about 5 minutes. Stripe opens in a new tab and sends you back here when you're done.</p>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:24px">
+            <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" onClick="{{ closeModal }}" hint-size="110px,52px">Not now</x-import>
+            <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" onClick="{{ goStripe }}" hint-size="180px,52px">Continue to Stripe</x-import>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;partnerType&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;gym&quot;,&quot;solo&quot;],&quot;default&quot;:&quot;gym&quot;,&quot;tsType&quot;:&quot;'gym'|'solo'&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light'|'dark'&quot;},&quot;payout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;connected&quot;,&quot;none&quot;,&quot;pending&quot;],&quot;default&quot;:&quot;connected&quot;,&quot;tsType&quot;:&quot;'connected'|'none'|'pending'&quot;,&quot;label&quot;:&quot;Payout method state&quot;}}">
+const IC = n => `https://unpkg.com/lucide-static@0.460.0/icons/${n}.svg`;
+const icon = (n, s = 18) => ({ width: s + 'px', height: s + 'px', flex: 'none', display: 'inline-block', background: 'currentColor', WebkitMask: `url(${IC(n)}) center/contain no-repeat`, mask: `url(${IC(n)}) center/contain no-repeat` });
+const NOW = 11.33;
+const fmt = h => { const hr = Math.floor(h), m = Math.round((h - hr) * 60); const ap = hr >= 12 ? 'pm' : 'am'; const h12 = hr % 12 || 12; return `${h12}:${String(m).padStart(2, '0')} ${ap}`; };
+const TR = { maya: 'Maya Okafor', dev: 'Dev Patel', sam: 'Sam Reyes' };
+const LOC = { barn: 'Northside Barn', harbor: 'Harbor Street Gym', cedar: 'Cedar Park field' };
+const T = (title, trainer, loc, dur, credits, premium) => ({ title, trainer, loc, dur, credits, premium: !!premium });
+const HF = T('Herding Fundamentals', 'maya', 'barn', 60, 2), HA = T('Herding Advanced', 'maya', 'barn', 90, 4, 1), S1 = T('Scent Work I', 'sam', 'harbor', 45, 2), S2 = T('Scent Work II', 'sam', 'harbor', 45, 3), SC = T('Sprint Club', 'dev', 'cedar', 45, 2), AF = T('Agility Foundations', 'dev', 'harbor', 60, 2), FR = T('Free roam', 'dev', 'cedar', 90, 1), BC = T('Calm in crowds', 'sam', 'harbor', 60, 2);
+const SESS = [
+  [0, 7.5, HF, 10, 10], [0, 17.5, AF, 8, 8],
+  [1, 7.5, HF, 8, 10], [1, 9, S1, 6, 6, 2], [1, 12, SC, 9, 12], [1, 17.5, AF, 7, 8], [1, 18.5, HA, 4, 6],
+  [2, 9, S1, 5, 6], [2, 12, SC, 6, 12], [2, 18, FR, 11, 16],
+  [3, 7.5, HF, 7, 10], [3, 17.5, AF, 3, 8],
+  [4, 9, S2, 4, 6], [4, 12, SC, 5, 12],
+  [5, 8, HF, 10, 10], [5, 9.5, FR, 14, 16], [5, 11, S1, 6, 6],
+  [6, 9, FR, 9, 16], [6, 10.5, BC, 3, 8]
+].map(([day, start, t, booked, cap, wl], i) => ({ id: 's' + i, day, start, booked, cap, wl: wl || 0, ...t }));
+const qrMatrix = (n, seed) => {
+  let h = seed; const rnd = () => { h = (h * 1103515245 + 12345) & 0x7fffffff; return h / 0x7fffffff; };
+  const fin = (r, c) => [[0, 0], [0, n - 7], [n - 7, 0]].find(([a, b]) => r >= a - 1 && r <= a + 7 && c >= b - 1 && c <= b + 7);
+  return Array.from({ length: n }, (_, r) => Array.from({ length: n }, (_, c) => {
+    const f = fin(r, c);
+    if (f) { const y = r - f[0], x = c - f[1]; if (y < 0 || x < 0 || y > 6 || x > 6) return 0; return (y === 0 || y === 6 || x === 0 || x === 6 || (y >= 2 && y <= 4 && x >= 2 && x <= 4)) ? 1 : 0; }
+    if (r === 6) return c % 2 === 0 ? 1 : 0; if (c === 6) return r % 2 === 0 ? 1 : 0;
+    return rnd() > 0.52 ? 1 : 0;
+  }));
+};
+const DAYS = [['Mon', '28'], ['Tue', '29'], ['Wed', '30'], ['Thu', '1'], ['Fri', '2'], ['Sat', '3'], ['Sun', '4']];
+const TODAY = SESS.filter(s => s.day === 1);
+const DOGS = [
+  { name: 'Juno', breed: 'Border collie mix', age: '3 yrs', owner: 'Alex Kim', photo: 'juno', energy: 'Working dog', soc: 'Loves dogs', vax: 'Bordetella expires Oct 12', warn: true, note: 'Fixates on moving things. Reward the look-away.', clrs: ['Social'], traits: 'Pulls on the leash · Nervous with new dogs' },
+  { name: 'Weave', breed: 'Australian shepherd', age: '2 yrs', owner: 'Priya Shah', photo: 'weave', energy: 'High', soc: 'Selective', vax: 'Vaccines verified', note: 'Needs space at the gate.', clrs: ['Social'], traits: 'Nervous with strangers' },
+  { name: 'Moss', breed: 'Border collie', age: '5 yrs', owner: 'Jordan Lee', photo: 'collie', energy: 'Working dog', soc: 'Loves dogs', vax: 'Vaccines verified', note: 'Strong on flanks. Rushes the stop.', clrs: ['Social', 'Herding'] },
+  { name: 'Tank', breed: 'Labrador', age: '4 yrs', owner: 'Chris Moreno', photo: 'lab', energy: 'Medium', soc: 'Loves dogs', vax: 'Vaccines verified', note: 'Food motivated. Bring treats.', clrs: ['Social'] },
+  { name: 'Pepper', breed: 'Whippet', age: '2 yrs', owner: 'Dana Wright', photo: 'sprint', energy: 'High', soc: 'Selective', vax: 'Vaccines verified', note: 'No notes yet.', clrs: [] },
+  { name: 'Otis', breed: 'Kelpie', age: '1 yr', owner: 'Sam Ortiz', photo: 'leap', energy: 'Working dog', soc: 'Loves dogs', vax: 'Vaccines verified', note: 'First month with PackPass.', clrs: ['Social'], traits: 'Slow to come when called' },
+  { name: 'Blue', breed: 'Cattle dog', age: '6 yrs', owner: 'Morgan Hill', photo: 'tunnel', energy: 'High', soc: 'Prefers solo', vax: 'Vaccines verified', note: 'Keep off-leash work to the end.', clrs: ['Social'], traits: 'Guards food or toys' },
+  { name: 'Rook', breed: 'Malinois', age: '3 yrs', owner: 'Taylor Brooks', photo: 'hurdle', energy: 'Working dog', soc: 'Selective', vax: 'Vaccines verified', note: 'Works best first in the rotation.', clrs: ['Social'] },
+  { name: 'Fern', breed: 'Vizsla', age: '4 yrs', owner: 'Riley Chen', photo: 'rail', energy: 'High', soc: 'Loves dogs', vax: 'Vaccines verified', note: 'No notes yet.', clrs: ['Social'] },
+  { name: 'Scout', breed: 'Mixed breed', age: '2 yrs', owner: 'Jamie Fox', photo: 'grass', energy: 'Medium', soc: 'Loves dogs', vax: 'Rabies expires Oct 3', warn: true, note: 'Nervous with new dogs for the first ten minutes.', clrs: [], traits: 'Nervous with new dogs' }
+];
+const CLR = ['Social', 'Herding'];
+const SPECS = ['Reactivity', 'Separation', 'Puppy foundations', 'Fitness and conditioning', 'Recall', 'Scent work', 'Herding', 'Behaviorist'];
+const RUBRIC = { Social: ['Greets new dogs calmly', 'Reads and respects signals', 'Recovers after a startle', 'Play stays balanced', 'Comes away from play when called'], Herding: ['Stock awareness', 'Responds to a stop', 'Takes direction off stock', 'Pressure on stock', 'Calm at the gate'] };
+const ASSESS = [
+  { dog: 9, type: 'Social', rub: 'Social', when: 'Today · 10:00 am', dur: '30 min', status: 'Needs result', clr: [], note: '' },
+  { dog: 4, type: 'Social re-check', rub: 'Social', when: 'Today · 9:00 am', dur: '20 min', status: 'Needs result', clr: [['Social · Expired Sep 2026', 'exp']], note: '' },
+  { dog: 5, type: 'Herding', rub: 'Herding', when: 'Thu 1 · 6:45 pm', dur: '30 min', status: 'Booked', clr: [['Social · Eastside Dog Club · Mar 2026', 'ok']], note: '', discipline: true }
+];
+const CLASSES = [
+  { name: 'Herding Fundamentals', discipline: 'Herding', dur: 60, intensity: 3, group: 10, credits: 2, photo: 'collie', perWeek: 4, status: 'Live', energy: ['High', 'Working dog'], soc: ['Loves dogs', 'Selective'], reqs: ['Rabies', 'DHPP', 'Bordetella', '6 months+'], desc: 'Dogs learn to move stock calmly with the trainer on a long line. Each dog works a small flock of ducks for two short rounds, then rests while the next dog works. The session ends with a cool-down walk around the field.' },
+  { name: 'Herding Advanced', discipline: 'Herding', dur: 90, intensity: 5, group: 6, credits: 4, premium: true, photo: 'weave', perWeek: 1, status: 'Live', energy: ['Working dog'], soc: ['Loves dogs', 'Selective'], reqs: ['Rabies', 'DHPP', 'Bordetella', '1 year+'], desc: 'Outruns, drives and sheep work for dogs with a Level 2 herding rating. Four rounds per dog with individual coaching between rounds.' },
+  { name: 'Scent Work I', discipline: 'Scent', dur: 45, intensity: 2, group: 6, credits: 2, photo: 'lab', perWeek: 4, status: 'Live', energy: ['Couch', 'Medium', 'High', 'Working dog'], soc: ['Loves dogs', 'Selective', 'Prefers solo'], reqs: ['Rabies', 'DHPP'], desc: 'Dogs search boxes for a target odor, one at a time. Owners learn to read the change in behavior when their dog finds it.' },
+  { name: 'Scent Work II', discipline: 'Scent', dur: 45, intensity: 3, group: 6, credits: 3, photo: 'wall', perWeek: 1, status: 'Live', energy: ['Medium', 'High', 'Working dog'], soc: ['Loves dogs', 'Selective', 'Prefers solo'], reqs: ['Rabies', 'DHPP'], desc: 'Interior and vehicle searches with two odors. For dogs who have finished Scent Work I.' },
+  { name: 'Sprint Club', discipline: 'Sprint', dur: 45, intensity: 5, group: 12, credits: 2, photo: 'sprint', perWeek: 4, status: 'Live', energy: ['High', 'Working dog'], soc: ['Loves dogs'], reqs: ['Rabies', 'DHPP', 'Bordetella', '1 year+'], desc: 'Warm-up, lure sprints in heats of three, then recall drills on the long lawn. Times are logged to each dog\u2019s profile.' },
+  { name: 'Agility Foundations', discipline: 'Agility', dur: 60, intensity: 4, group: 8, credits: 2, photo: 'tunnel', perWeek: 3, status: 'Live', energy: ['Medium', 'High', 'Working dog'], soc: ['Loves dogs', 'Selective'], reqs: ['Rabies', 'DHPP', 'Bordetella', '1 year+'], desc: 'Tunnels, low jumps and the table. Dogs rotate through three stations with a trainer at each.' },
+  { name: 'Free roam', discipline: 'Free roam', dur: 90, intensity: 2, group: 16, credits: 1, photo: 'grass', perWeek: 3, status: 'Live', energy: ['Medium', 'High', 'Working dog'], soc: ['Loves dogs'], reqs: ['Rabies', 'DHPP', 'Bordetella'], desc: 'Supervised off-leash time on the field. A trainer watches play and steps in early.' },
+  { name: 'Calm in crowds', discipline: 'Behavior', dur: 60, intensity: 1, group: 8, credits: null, photo: 'rail', perWeek: 1, status: 'In review', energy: ['Couch', 'Medium', 'High', 'Working dog'], soc: ['Selective', 'Prefers solo'], reqs: ['Rabies', 'DHPP'], desc: 'Dogs practice settling on a mat while other dogs and people move around them. Distance shrinks over the hour.' },
+  { name: 'Herding assessment', discipline: 'Herding', type: 'Assessment', clr: ['Herding'], dur: 30, intensity: 2, group: 1, credits: 2, photo: 'leap', perWeek: 3, status: 'Live', energy: ['High', 'Working dog'], soc: ['Loves dogs', 'Selective', 'Prefers solo'], reqs: ['Rabies', 'DHPP', 'Bordetella', '6 months+'], desc: 'One dog at a time on a small flock of ducks. The trainer scores the herding rubric and sends the result to the dog\u2019s Passport the same day.' },
+  { name: 'Reactivity 1:1', discipline: 'Behavior', type: 'Private', clr: [], dur: 60, intensity: 1, group: 1, credits: 3, photo: 'hurdle', perWeek: 5, status: 'Live', energy: ['Couch', 'Medium', 'High', 'Working dog'], soc: ['Selective', 'Prefers solo'], reqs: ['Rabies', 'DHPP'], desc: 'A private session for dogs who lunge or bark at other dogs. Starts at a distance the dog can handle and ends with a plan for walks at home.' }
+];
+CLASSES.forEach(c => { if (!c.type) c.type = 'Class'; if (!c.clr) c.clr = ['Herding', 'Sprint', 'Agility', 'Free roam'].includes(c.discipline) ? (c.premium ? ['Social', 'Herding'] : ['Social']) : []; });
+const DISC = ['Herding', 'Scent', 'Sprint', 'Agility', 'Behavior', 'Free roam'];
+const ENERGY = ['Couch', 'Medium', 'High', 'Working dog'], SOC = ['Loves dogs', 'Selective', 'Prefers solo'];
+const REQS = ['Rabies', 'DHPP', 'Bordetella', '6 months+', '1 year+', 'Leash until release'];
+const SKILLS = ['Recall', 'Stop', 'Flanks', 'Gate wait', 'Focus', 'Confidence'];
+const TEAM = [
+  { key: 'maya', name: 'Maya Okafor', initials: 'MO', role: 'Head trainer · Herding', bio: 'Maya has trained working breeds for eight years and runs the herding program at Northside Barn. She keeps sessions short and specific so every dog leaves with one clear win.', creds: [['CPDT-KA', 'Verified'], ['AKC herding instinct tester', 'Verified'], ['Pet first aid', 'Expires Mar 2027']], teaches: ['Herding'], specs: ['Herding', 'Recall'], rating: '4.9', reviews: 186, quotes: [['Great recall today. Maya spotted what Juno was doing at the gate in about a minute.', 'Alex K. · Juno'], ['Moss finally holds a stop. Four sessions in.', 'Jordan L. · Moss']] },
+  { key: 'dev', name: 'Dev Patel', initials: 'DP', role: 'Trainer · Agility, Sprint', bio: 'Dev competed at agility nationals with his kelpie and now coaches speed and handling. Expect timed runs and a lot of recall work.', creds: [['CPDT-KA', 'Verified'], ['Canine fitness trainer (CCFT)', 'Pending review']], teaches: ['Agility', 'Sprint', 'Free roam'], specs: ['Recall', 'Puppy foundations'], rating: '4.8', reviews: 142, quotes: [['Pepper ran a personal best and slept the whole afternoon.', 'Dana W. · Pepper']] },
+  { key: 'sam', name: 'Sam Reyes', initials: 'SR', role: 'Trainer · Scent, Behavior', bio: 'Sam works with nervous and reactive dogs through scent games and calm, structured exposure.', creds: [['Certified Nose Work instructor', 'Verified'], ['Fear Free certified', 'Verified']], teaches: ['Scent', 'Behavior'], specs: ['Reactivity', 'Separation', 'Scent work'], rating: '4.9', reviews: 97, quotes: [['Scout used to shut down around other dogs. Last week he searched the whole room.', 'Jamie F. · Scout']] }
+];
+
+class Component extends DCLogic {
+  state = { page: 'overview', sel: 's4', cap: {}, pp: {}, tg: {}, cls: 0, edits: {}, rIdx: 2, checked: {}, offered: {}, notes: { 0: 'Great recall today. Work on waiting at the gate.', 1: 'Held a stop at distance twice. Build duration next week.' }, skills: { 0: ['Recall', 'Gate wait'], 1: ['Stop'] }, sent: { 0: true, 1: true }, trainer: 0, bios: {}, asSel: 0, rub: { 0: { 'Greets new dogs calmly': 's', 'Recovers after a startle': 'w' } }, out: {}, asNote: {}, asSent: {}, specs: {}, priv: {}, modal: null, qrCtx: null, blk: { from: 3, to: 4, pe: false, loc: 'harbor', reason: 'Maintenance' }, blocked: null, added: [], ns: { cls: 0, day: 3, start: 9, trainer: 'maya', loc: 'barn', cap: null, pp: null, repeat: true }, payout: null, nc: null };
+
+  go = page => () => this.setState({ page });
+  toggleIn(key, arr, val) { const a = arr || []; return a.includes(val) ? a.filter(x => x !== val) : [...a, val]; }
+
+  renderVals() {
+    const st = this.state, solo = this.props.partnerType === 'solo', showTrainer = !solo;
+    const trName = k => TR[k];
+    const P = n => `photos/${n}.jpg`;
+    const page = st.page;
+    const ALL = SESS.concat(st.added);
+    const navDef = [['overview', 'Overview', 'layout-dashboard'], ['schedule', 'Schedule', 'calendar-days'], ['classes', 'Classes', 'layers'], ['roster', 'Roster', 'clipboard-check'], ['notes', 'Session notes', 'notebook-pen'], ['assess', 'Assessments', 'shield-check'], ['locations', 'Locations', 'map-pin'], ['earnings', 'Earnings', 'wallet'], ['profile', solo ? 'Profile' : 'Trainers', 'user-round']];
+    const notesDue = 8 - Object.values(st.sent).filter(Boolean).length;
+    const asDue = ASSESS.filter((a, i) => a.status === 'Needs result' && !st.asSent[i]).length;
+    const nav = navDef.map(([k, label, ic]) => {
+      const on = page === k || (k === 'classes' && page === 'newclass');
+      const badge = k === 'notes' && notesDue ? String(notesDue) : (k === 'assess' && asDue ? String(asDue) : '');
+      return { label, go: this.go(k), badge, badgeBg: k === 'notes' ? 'var(--agility)' : 'var(--surface-sunken)', badgeInk: k === 'notes' ? 'var(--on-agility)' : 'var(--ink)', iconStyle: icon(ic),
+        style: { display: 'flex', alignItems: 'center', gap: '12px', height: '44px', padding: '0 14px', border: 0, borderRadius: '9999px', cursor: 'pointer', font: 'inherit', fontSize: '14px', fontWeight: on ? 600 : 500, background: on ? 'var(--inverse)' : 'transparent', color: on ? 'var(--on-inverse)' : 'var(--ink)', transition: 'background 140ms cubic-bezier(.2,.8,.2,1)' } };
+    });
+
+    const capOf = s => st.cap[s.id] ?? s.cap;
+    const meta = s => [showTrainer ? trName(s.trainer) : null, LOC[s.loc], s.dur + ' min', s.credits + ' credits'].filter(Boolean).join(' · ');
+    const statusOf = s => s.start + s.dur / 60 < NOW ? 'Done' : (s.start <= NOW ? 'In session' : (s.id === 's4' ? 'Next up' : 'Upcoming'));
+    const today = TODAY.map((s, i) => {
+      const cap = capOf(s), full = s.booked >= cap, status = statusOf(s);
+      return { time: fmt(s.start), title: s.title, premium: s.premium, meta: meta(s), fillLabel: full ? `Full${s.wl ? ' · ' + s.wl + ' waitlist' : ''}` : `${s.booked} of ${cap}`,
+        barStyle: { display: 'block', height: '100%', width: Math.min(100, s.booked / cap * 100) + '%', background: 'var(--turf)', borderRadius: '9999px' },
+        status, statusTone: 'neutral', open: () => this.setState({ page: 'roster', rIdx: i }) };
+    });
+    const ppOf = x => Math.min(capOf(x), st.pp[x.id] ?? Math.ceil(capOf(x) / 2));
+    const ppFilled = x => Math.min(ppOf(x), Math.round(x.booked * 0.6));
+    const stats = [
+      { label: 'Dogs booked this week', value: String(SESS.reduce((a, s) => a + s.booked, 0)), sub: '19 sessions' },
+      { label: 'PackPass spots filled', value: Math.round(SESS.reduce((a, s) => a + ppFilled(s), 0) / SESS.reduce((a, s) => a + ppOf(s), 0) * 100) + '%', sub: SESS.reduce((a, s) => a + ppFilled(s), 0) + ' of ' + SESS.reduce((a, s) => a + ppOf(s), 0) + ' opened this week' },
+      { label: 'Earned in September', value: '$4,218', sub: 'Payout Oct 1' },
+      { label: solo ? 'Your rating' : 'Average rating', value: solo ? '4.9' : '4.9', sub: solo ? '186 reviews' : '425 reviews · 3 trainers' }
+    ];
+    const attention = [
+      { iconStyle: icon('notebook-pen', 20), text: `${notesDue} session notes due from Herding Fundamentals at 7:30 am.`, action: 'Write notes', go: this.go('notes') },
+      { iconStyle: icon('shield-check', 20), text: `${asDue} assessment results to record. Scout and Pepper's owners are waiting on them.`, action: 'Record results', go: this.go('assess') },
+      { iconStyle: icon('users', 20), text: 'Scent Work I on Saturday is full. The waitlist is closed.', action: 'Adjust capacity', go: () => this.setState({ page: 'schedule', sel: 's16' }) },
+      { iconStyle: { ...icon('syringe', 20), color: 'var(--kennel-red)' }, text: 'Scout\u2019s rabies vaccine expires Oct 3. Scout is booked for Sprint Club today.', action: 'View roster', go: () => this.setState({ page: 'roster', rIdx: 2 }) }
+    ];
+
+    // schedule
+    const hours = Array.from({ length: 13 }, (_, i) => fmt(7 + i).replace(':00', ''));
+    const B = st.blocked;
+    const isBlk = (d, loc) => { if (!B || d < 3) return false; const dt = d - 2; return dt >= B.from && dt <= B.to && (loc === null || B.loc === 'all' || B.loc === loc); };
+    const week = DAYS.map(([label, date], d) => ({ label, date, isToday: d === 1,
+      blocked: isBlk(d, null),
+      blocks: ALL.filter(s => s.day === d).map(s => {
+        const on = st.sel === s.id, cap = capOf(s), full = s.booked >= cap, bl = isBlk(d, s.loc);
+        return { titleStyle: { fontSize: '12px', fontWeight: 600, lineHeight: '15px', display: '-webkit-box', WebkitLineClamp: s.dur < 60 ? 1 : 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'anywhere' }, time: fmt(s.start).replace(':00', '').replace(' am', 'a').replace(' pm', 'p'), title: s.title, fill: full ? 'Full' : `${s.booked}/${cap}`, select: () => this.setState({ sel: s.id }),
+          style: { position: 'absolute', left: '4px', right: '4px', top: (s.start - 7) * 64 + 2 + 'px', height: s.dur / 60 * 64 - 4 + 'px', boxSizing: 'border-box', padding: '5px 8px', border: 0, borderRadius: '12px', background: on ? 'var(--inverse)' : bl ? 'repeating-linear-gradient(135deg,var(--surface-sunken) 0 6px,var(--bg) 6px 12px)' : 'var(--bg)', color: on ? 'var(--on-inverse)' : bl ? 'var(--ink-muted)' : 'var(--ink)', textDecoration: bl ? 'line-through' : 'none', boxShadow: s.id.startsWith('a') && !on ? 'inset 0 0 0 2px var(--ink)' : 'none', display: 'flex', flexDirection: 'column', gap: '1px', alignItems: 'flex-start', textAlign: 'left', cursor: 'pointer', overflow: 'hidden', font: 'inherit', zIndex: on ? 2 : 1 } };
+      }) }));
+    const s = ALL.find(x => x.id === st.sel) || SESS[4];
+    const sCap = capOf(s), tgs = st.tg[s.id] || {};
+    const tgDef = [['waitlist', 'Waitlist', 'Open when the session is full', true], ['promote', 'Auto-promote', 'Fill cancellations from the waitlist', true], ['repeat', 'Repeats weekly', `Every ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][s.day]} at ${fmt(s.start)}`, true]];
+    const sel = { when: `${DAYS[s.day][0]} ${DAYS[s.day][1]} · ${fmt(s.start)} · ${s.dur} min`, title: s.title, meta: s.premium ? 'Premium class' : `${s.booked} booked${s.wl ? ' · ' + s.wl + ' on waitlist' : ''}`, cap: sCap,
+      bookedLabel: `${s.booked} booked`, capNote: sCap <= s.booked ? `Can't go below ${s.booked}. Cancel bookings from the roster first.` : `${sCap - s.booked} spots open.`,
+      dec: () => this.setState(p => ({ cap: { ...p.cap, [s.id]: Math.max(s.booked, sCap - 1) } })),
+      inc: () => this.setState(p => ({ cap: { ...p.cap, [s.id]: Math.min(20, sCap + 1) } })),
+      pp: ppOf(s), ppNote: `${ppFilled(s)} of ${ppOf(s)} filled by PackPass members. The rest stay for your direct clients.`,
+      ppDec: () => this.setState(p => ({ pp: { ...p.pp, [s.id]: Math.max(0, ppOf(s) - 1) } })),
+      ppInc: () => this.setState(p => ({ pp: { ...p.pp, [s.id]: Math.min(sCap, ppOf(s) + 1) } })),
+      trainer: trName(s.trainer), loc: LOC[s.loc], credits: `${s.credits} credits`,
+      toggles: tgDef.map(([k, label, sub, def]) => { const on = tgs[k] ?? def; return { label, sub, toggle: () => this.setState(p => ({ tg: { ...p.tg, [s.id]: { ...(p.tg[s.id] || {}), [k]: !on } } })),
+        track: { width: '48px', height: '28px', flex: 'none', border: 0, padding: '3px', borderRadius: '9999px', cursor: 'pointer', background: on ? 'var(--inverse)' : 'var(--surface-sunken)', display: 'flex', justifyContent: on ? 'flex-end' : 'flex-start', transition: 'background 140ms' },
+        knob: { width: '22px', height: '22px', borderRadius: '9999px', background: on ? 'var(--on-inverse)' : 'var(--bg)' } }; }) };
+    const totalBooked = ALL.reduce((a, x) => a + x.booked, 0), totalCap = ALL.reduce((a, x) => a + capOf(x), 0);
+
+    // create a class
+    const NC0 = { step: 0, type: 'Class', name: '', discipline: null, photo: null, dur: 60, intensity: 3, group: 8, loc: 'barn', trainer: 'maya', desc: '', energy: [], soc: [], clr: [], reqs: ['Rabies', 'DHPP'], sent: false };
+    const n = st.nc || NC0;
+    const setNC = patch => this.setState(p => ({ nc: { ...(p.nc || NC0), ...patch } }));
+    const tog = (key, o) => () => setNC({ [key]: this.toggleIn(null, n[key], o) });
+    const isPriv = n.type !== 'Class';
+    const grp = isPriv ? 1 : n.group;
+    const est = Math.max(1, Math.round(n.dur / 30 * 0.5 + n.intensity * 0.3 + (grp <= 1 ? 1.5 : grp <= 6 ? 0.5 : 0)));
+    const need = [[!n.name.trim(), 'Add a class name'], [!n.discipline, 'Pick a discipline'], [!n.photo, 'Choose a cover photo']];
+    const need1 = [[n.desc.trim().length < 20, 'Describe the session in a sentence or two']];
+    const need2 = [[!n.energy.length, 'Pick at least one energy level'], [!n.soc.length, 'Pick who it suits around other dogs']];
+    const stepNeeds = [need, need1, need2, []].map(a => a.filter(x => x[0]).map(x => x[1]));
+    const cur = stepNeeds[n.step] || [];
+    const stepDef = [['Basics', 'Type, name, photo'], ['Format', 'Length, size, where'], ['Who it\u2019s for', 'Fit and requirements'], ['Review', 'Send to PackPass']];
+    const maxReach = stepNeeds.findIndex(a => a.length); const reach = maxReach === -1 ? 3 : maxReach;
+    const typeIc = { Class: 'users', Private: 'user-round', Assessment: 'shield-check' };
+    const nc = { ...n, group: grp, editing: !n.sent, s0: n.step === 0, s1: n.step === 1, s2: n.step === 2, s3: n.step === 3,
+      steps: stepDef.map(([label, sub], i) => { const on = i === n.step, done = i < n.step && !stepNeeds[i].length; return { n: done ? '\u2713' : String(i + 1), label, sub, go: () => { if (i <= reach) setNC({ step: i }); },
+        style: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px 10px 10px', border: 0, borderRadius: '20px', cursor: i <= reach ? 'pointer' : 'default', font: 'inherit', background: on ? 'var(--inverse)' : 'transparent', color: on ? 'var(--on-inverse)' : i <= reach ? 'var(--ink)' : 'var(--ink-faint)' },
+        dot: { width: '32px', height: '32px', flex: 'none', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600, background: on ? 'rgba(255,255,255,.16)' : 'var(--surface-raised)' } }; }),
+      types: ['Class', 'Private', 'Assessment'].map(o => { const on = n.type === o; return { label: o, note: { Class: 'A group session on Book under Sport, Scent, Play or Skills.', Private: 'One dog with a trainer. Shows on training paths.', Assessment: 'Scores a rubric and updates the dog\u2019s Passport.' }[o], pick: () => setNC({ type: o, clr: [] }), iconStyle: icon(typeIc[o], 20),
+        style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', padding: '16px', border: 0, borderRadius: '20px', cursor: 'pointer', font: 'inherit', textAlign: 'left', background: on ? 'var(--inverse)' : 'var(--surface-raised)', color: on ? 'var(--on-inverse)' : 'var(--ink)' } }; }),
+      onName: e => setNC({ name: e.target.value }), onDesc: e => setNC({ desc: e.target.value }),
+      disciplines: DISC.map(o => ({ label: o, on: n.discipline === o, pick: () => setNC({ discipline: o }) })),
+      photos: ['collie', 'grass', 'sprint', 'tunnel', 'weave', 'hurdle', 'leap', 'wall'].map(ph => ({ src: P(ph), pick: () => setNC({ photo: ph }), style: { aspectRatio: '1', padding: 0, border: 0, borderRadius: '20px', overflow: 'hidden', cursor: 'pointer', boxShadow: n.photo === ph ? '0 0 0 3px var(--bg),0 0 0 5px var(--ink)' : 'none' } })),
+      durations: [30, 45, 60, 90].map(o => ({ label: o + ' min', on: n.dur === o, pick: () => setNC({ dur: o }) })),
+      intensityBars: [1, 2, 3, 4, 5].map(o => ({ pick: () => setNC({ intensity: o }), style: { width: '44px', height: '44px', border: 0, borderRadius: '9999px', cursor: 'pointer', background: o <= n.intensity ? 'var(--inverse)' : 'var(--surface-raised)' } })),
+      intensityNote: ['', 'Calm. Settling, sniffing, slow work.', 'Light. Short bursts with long rests.', 'Steady. Moving most of the hour.', 'Hard. Running and jumping with short rests.', 'Max. Sprints or long outruns.'][n.intensity],
+      dec: () => setNC({ group: Math.max(2, n.group - 1) }), inc: () => setNC({ group: Math.min(24, n.group + 1) }),
+      groupNote: isPriv ? `${n.type} sessions are always one dog.` : 'Smaller groups usually cost more credits.',
+      locs: Object.entries(LOC).map(([k, label]) => ({ label, on: n.loc === k, pick: () => setNC({ loc: k }) })),
+      trainers: Object.entries(TR).map(([k, label]) => ({ label, on: n.trainer === k, pick: () => setNC({ trainer: k }) })),
+      energy: ENERGY.map(o => ({ label: o, on: n.energy.includes(o), pick: tog('energy', o) })),
+      soc: SOC.map(o => ({ label: o, on: n.soc.includes(o), pick: tog('soc', o) })),
+      reqs: REQS.map(o => ({ label: o, on: n.reqs.includes(o), pick: tog('reqs', o) })),
+      clrLabel: n.type === 'Assessment' ? 'Grants clearance' : 'Requires clearance',
+      clrs: [{ label: 'None', on: !n.clr.length, pick: () => setNC({ clr: [] }) }].concat(CLR.map(o => ({ label: o === 'Herding' ? 'Herding · assessed here' : o, on: n.clr.includes(o), pick: tog('clr', o) }))),
+      clrNote: n.type === 'Assessment' ? 'Social transfers to every partner. Herding stays with your facility.' : (n.clr.length ? 'Dogs without these see Needs assessment and are sent to book one.' : 'Any dog with current vaccines can book.'),
+      review: [
+        { title: 'Basics', edit: () => setNC({ step: 0 }), rows: [['Type', n.type], ['Name', n.name || '\u2014'], ['Discipline', n.discipline || '\u2014']] },
+        { title: 'Format', edit: () => setNC({ step: 1 }), rows: [['Duration', n.dur + ' min'], ['Intensity', n.intensity + ' of 5'], ['Group size', grp + (grp === 1 ? ' dog' : ' dogs')], ['Location', LOC[n.loc]]].concat(showTrainer ? [['Lead trainer', TR[n.trainer]]] : []) },
+        { title: 'Who it\u2019s for', edit: () => setNC({ step: 2 }), rows: [['Energy', n.energy.join(', ') || '\u2014'], ['With other dogs', n.soc.join(', ') || '\u2014'], [n.type === 'Assessment' ? 'Grants' : 'Requires', n.clr.join(', ') || 'No clearance'], ['Requirements', n.reqs.join(', ') || 'None']] }
+      ].map(r => ({ ...r, rows: r.rows.map(([k, v]) => ({ k, v })) })),
+      missing: cur.length > 0, missingText: cur.join(' · '),
+      hasBack: n.step > 0, back: () => setNC({ step: n.step - 1 }),
+      nextLabel: n.step === 3 ? 'Send for review' : 'Continue',
+      next: () => { if (cur.length) return; if (n.step < 3) return setNC({ step: n.step + 1 });
+        CLASSES.push({ name: n.name.trim(), discipline: n.discipline, type: n.type, clr: n.clr, dur: n.dur, intensity: n.intensity, group: grp, credits: null, photo: n.photo, perWeek: 0, status: 'In review', energy: n.energy, soc: n.soc, reqs: n.reqs, desc: n.desc });
+        setNC({ sent: true }); },
+      sentTitle: `${n.name.trim() || 'Your class'} is in review.`,
+      viewIt: () => this.setState({ page: 'classes', cls: CLASSES.length - 1, nc: null }),
+      estimate: `${est} credit${est > 1 ? 's' : ''}`,
+      card: { image: n.photo ? P(n.photo) : P('grass'), discipline: n.discipline || n.type, title: n.name.trim() || 'Class name', partner: solo ? 'Maya Okafor Training' : LOC[n.loc], time: `${n.dur} min`, credits: est, spotsLeft: grp } };
+
+    // modals
+    const close = () => this.setState({ modal: null });
+    const bk = st.blk, mo = (a, b) => a === b ? `Oct ${a}` : `Oct ${a} – ${b}`;
+    const setB = patch => this.setState(p => ({ blk: { ...p.blk, ...patch } }));
+    const affected = []; for (let dt = bk.from; dt <= bk.to; dt++) { const wd = (dt + 2) % 7; SESS.filter(x => x.day === wd && (bk.loc === 'all' || x.loc === bk.loc)).forEach(x => affected.push(x)); }
+    const nDogs = affected.reduce((a, x) => a + x.booked, 0);
+    const blk = { wd: ['M', 'T', 'W', 'T', 'F', 'S', 'S'], hint: bk.pe ? 'Pick the last day' : 'Pick the first day',
+      cells: Array.from({ length: 3 }, () => null).concat(Array.from({ length: 31 }, (_, i) => i + 1)).map(d => {
+        if (!d) return { d: '', pick: () => {}, style: { height: '44px', border: 0, background: 'transparent' } };
+        const end = d === bk.from || d === bk.to, mid = d > bk.from && d < bk.to;
+        return { d, pick: () => setB(bk.pe ? (d < bk.from ? { from: d, to: d } : { to: d, pe: false }) : { from: d, to: d, pe: true }),
+          style: { height: '44px', border: 0, borderRadius: '9999px', cursor: 'pointer', font: 'inherit', fontSize: '14px', fontWeight: end ? 600 : 500, background: end ? 'var(--inverse)' : mid ? 'var(--surface-raised)' : 'transparent', color: end ? 'var(--on-inverse)' : 'var(--ink)' } }; }),
+      locs: [['all', 'All locations']].concat(Object.entries(LOC)).map(([k, label]) => ({ label, on: bk.loc === k, pick: () => setB({ loc: k }) })),
+      reasons: ['Holiday', 'Weather', 'Maintenance', 'Private event', 'Trainer away'].map(label => ({ label, on: bk.reason === label, pick: () => setB({ reason: label }) })),
+      impact: affected.length ? `${affected.length} session${affected.length > 1 ? 's' : ''} · ${nDogs} dogs booked` : 'No sessions affected',
+      cta: 'Block ' + mo(bk.from, bk.to), confirm: () => this.setState({ blocked: { ...bk }, modal: null, page: 'schedule' }) };
+    const n0 = st.ns, liveCls = CLASSES.filter(x => x.status === 'Live'), ncl = liveCls[n0.cls];
+    const setN = patch => this.setState(p => ({ ns: { ...p.ns, ...patch } }));
+    const nCap = n0.cap ?? ncl.group, nPP = Math.min(nCap, n0.pp ?? Math.ceil(nCap / 2));
+    const conflict = ALL.find(x => x.day === n0.day && (x.trainer === n0.trainer || x.loc === n0.loc) && x.start < n0.start + ncl.dur / 60 && n0.start < x.start + x.dur / 60);
+    const dayFull = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][n0.day];
+    const ns = {
+      classes: liveCls.map((x, i) => ({ label: x.name, on: i === n0.cls, pick: () => { const ex = SESS.find(y => y.title === x.name); setN({ cls: i, cap: null, pp: null, ...(ex ? { trainer: ex.trainer, loc: ex.loc } : {}) }); } })),
+      days: DAYS.map(([d, n], i) => ({ label: `${d} ${n}`, on: i === n0.day, pick: () => setN({ day: i }) })),
+      time: fmt(n0.start), tDec: () => setN({ start: Math.max(6, n0.start - 0.5) }), tInc: () => setN({ start: Math.min(19, n0.start + 0.5) }),
+      cap: nCap, cDec: () => setN({ cap: Math.max(1, nCap - 1) }), cInc: () => setN({ cap: Math.min(24, nCap + 1) }),
+      pp: nPP, pDec: () => setN({ pp: Math.max(0, nPP - 1) }), pInc: () => setN({ pp: Math.min(nCap, nPP + 1) }),
+      trainers: Object.entries(TR).map(([k, label]) => ({ label, on: n0.trainer === k, pick: () => setN({ trainer: k }) })),
+      locs: Object.entries(LOC).map(([k, label]) => ({ label, on: n0.loc === k, pick: () => setN({ loc: k }) })),
+      repeatSub: n0.repeat ? `Every ${dayFull} at ${fmt(n0.start)}` : 'One time only',
+      toggleRepeat: () => setN({ repeat: !n0.repeat }),
+      track: { width: '48px', height: '28px', flex: 'none', border: 0, padding: '3px', borderRadius: '9999px', cursor: 'pointer', background: n0.repeat ? 'var(--inverse)' : 'var(--surface-sunken)', display: 'flex', justifyContent: n0.repeat ? 'flex-end' : 'flex-start' },
+      knob: { width: '22px', height: '22px', borderRadius: '9999px', background: n0.repeat ? 'var(--on-inverse)' : 'var(--bg)' },
+      hasConflict: !!conflict, conflict: conflict ? `${conflict.trainer === n0.trainer && showTrainer ? TR[conflict.trainer] + ' is' : LOC[conflict.loc] + ' is'} already booked for ${conflict.title} at ${fmt(conflict.start)}.` : '',
+      summary: `${DAYS[n0.day][0]} ${DAYS[n0.day][1]} · ${fmt(n0.start)} – ${fmt(n0.start + ncl.dur / 60)} · ${LOC[n0.loc]}`,
+      creditLine: ncl.credits ? `${ncl.credits} credits per dog. Set by PackPass.` : 'Credit cost pending review.',
+      add: () => { const id = 'a' + st.added.length; this.setState(p => ({ added: [...p.added, { id, day: n0.day, start: n0.start, booked: 0, cap: nCap, wl: 0, title: ncl.name, trainer: n0.trainer, loc: n0.loc, dur: ncl.dur, credits: ncl.credits, premium: !!ncl.premium }], pp: { ...p.pp, [id]: nPP }, sel: id, modal: null, page: 'schedule' })); } };
+    const qc = st.qrCtx || { kind: 'session' };
+    const qrSvg = React.createElement('svg', { viewBox: '-2 -2 29 29', width: '100%', height: '100%', shapeRendering: 'crispEdges', style: { display: 'block' } },
+      qrMatrix(25, qc.kind === 'loc' ? 97 + qc.i : 31 + st.rIdx).flatMap((row, r) => row.map((v, c) => v ? React.createElement('rect', { key: r + '-' + c, x: c, y: r, width: 1, height: 1, fill: '#0e0f0e' }) : null)));
+    const qrLoc = qc.kind === 'loc' ? Object.keys(LOC)[qc.i] : null;
+    const payout = st.payout ?? this.props.payout ?? 'connected';
+
+    // classes
+    const ci = st.cls, base = CLASSES[ci], ed = st.edits[ci] || {}, c = { ...base, ...ed };
+    const setE = patch => this.setState(p => ({ edits: { ...p.edits, [ci]: { ...(p.edits[ci] || {}), ...patch } } }));
+    const multi = (key, opts) => opts.map(o => ({ label: o, on: c[key].includes(o), pick: () => setE({ [key]: this.toggleIn(null, c[key], o) }) }));
+    const reviewChanged = ['dur', 'intensity', 'group', 'type'].some(k => ed[k] !== undefined && ed[k] !== base[k]);
+    const classList = CLASSES.map((x, i) => { const on = i === ci; const ty = (st.edits[i] || {}).type ?? x.type; return { name: (st.edits[i] || {}).name ?? x.name, photo: P(x.photo), meta: `${ty === 'Class' ? x.discipline : ty} · ${x.perWeek} per week`, status: x.status, select: () => this.setState({ cls: i }),
+      style: { display: 'flex', alignItems: 'center', gap: '14px', padding: '10px 16px 10px 10px', border: 0, borderRadius: '20px', cursor: 'pointer', font: 'inherit', background: on ? 'var(--inverse)' : 'var(--surface-raised)', color: on ? 'var(--on-inverse)' : 'var(--ink)' } }; });
+    const cls = { name: c.name, photo: P(c.photo), discipline: c.discipline, premium: !!c.premium, intensity: c.intensity, group: c.group, desc: c.desc,
+      onName: e => setE({ name: e.target.value }), onDesc: e => setE({ desc: e.target.value }),
+      disciplines: DISC.map(o => ({ label: o, on: c.discipline === o, pick: () => setE({ discipline: o }) })),
+      durations: [30, 45, 60, 90].map(o => ({ label: o + ' min', on: c.dur === o, pick: () => setE({ dur: o }) })),
+      intensityBars: [1, 2, 3, 4, 5].map(o => ({ pick: () => setE({ intensity: o }), style: { width: '44px', height: '44px', border: 0, borderRadius: '9999px', cursor: 'pointer', background: o <= c.intensity ? 'var(--inverse)' : 'var(--surface-raised)' } })),
+      dec: () => setE({ group: Math.max(1, c.group - 1) }), inc: () => setE({ group: Math.min(24, c.group + 1) }),
+      energy: multi('energy', ENERGY), soc: multi('soc', SOC), reqs: multi('reqs', REQS),
+      types: ['Class', 'Private', 'Assessment'].map(o => ({ label: o, on: c.type === o, pick: () => setE({ type: o }) })),
+      typeNote: { Class: 'Group session. Shows on Book under Sport, Scent, Play or Skills.', Private: 'One dog. Private sessions cost more credits and appear on training paths.', Assessment: 'Records a rubric result to the dog\u2019s Passport. Can grant a clearance, create a goal, or both.' }[c.type],
+      clrLabel: c.type === 'Assessment' ? 'Grants clearance' : 'Requires clearance',
+      clrs: [{ label: 'None', on: !c.clr.length, pick: () => setE({ clr: [] }) }].concat(CLR.map(o => ({ label: o === 'Herding' ? 'Herding · assessed here' : o, on: c.clr.includes(o), pick: () => setE({ clr: this.toggleIn(null, c.clr, o) }) }))),
+      clrNote: c.type === 'Assessment' ? 'Social transfers to every partner. Herding stays with your facility.' : (c.clr.length ? 'Dogs without these see Needs assessment and are sent to book one.' : 'Any dog with current vaccines can book.'),
+      credits: c.credits == null ? 'Pending' : (reviewChanged ? 'Review' : `${c.credits} credits`),
+      creditNote: c.credits == null ? 'PackPass is reviewing this class. Credit cost is set within 2 business days, then the class goes live.' : (reviewChanged ? 'You changed duration, intensity or group size. Saving sends the class to PackPass for a credit review. Current bookings keep their price.' : `Set by PackPass from duration, intensity and group size.${c.premium ? ' Premium status is also set by PackPass.' : ''}`) };
+
+    // roster
+    const rs = TODAY[st.rIdx] || TODAY[0], rCap = capOf(rs), off = st.rIdx * 3, done = statusOf(rs) === 'Done';
+    const rosterDogs = Array.from({ length: rs.booked }, (_, i) => {
+      const d = DOGS[(i + off) % DOGS.length], key = rs.id + '-' + i;
+      const def = done ? true : (rs.id === 's4' && i < 3);
+      const on = st.checked[key] ?? def;
+      return { ...d, photo: P(d.photo), clrs: d.clrs || [], hasTraits: !!d.traits, traits: d.traits || '', vaxStyle: { flex: '1 1 140px', color: d.warn ? 'var(--kennel-red)' : 'var(--ink-muted)', fontWeight: d.warn ? 600 : 400 },
+        btnVariant: on ? 'quiet' : 'primary', btnLabel: on ? 'Checked in' : 'Check in', toggle: () => this.setState(p => ({ checked: { ...p.checked, [key]: !on } })), _on: on };
+    });
+    const nChecked = rosterDogs.filter(d => d._on).length;
+    const roster = { when: `Today · ${fmt(rs.start)} · ${rs.dur} min`, title: rs.title, meta: meta(rs), checkedLabel: `${nChecked} of ${rs.booked} checked in`, dogs: rosterDogs,
+      hasWaitlist: rs.wl > 0,
+      waitlist: [DOGS[8], DOGS[3]].slice(0, rs.wl).map((d, i) => { const k = rs.id + '-w' + i, o = !!st.offered[k]; return { name: d.name, photo: P(d.photo), meta: `${d.breed} · Joined waitlist ${i ? 'yesterday' : '2 days ago'}`, label: o ? 'Spot offered' : 'Offer spot', offer: () => this.setState(p => ({ offered: { ...p.offered, [k]: true } })) }; }) };
+    const qr = qrLoc ? { eyebrow: 'Check-in · ' + LOC[qrLoc], title: 'One code for today', body: `Works for every session at ${LOC[qrLoc]} today. Print it once and post it at the entrance. Dogs show as checked in on each roster.`, countLabel: `${TODAY.filter(x => x.loc === qrLoc).length} sessions here today`, recent: [] }
+      : { eyebrow: `Check-in · Today · ${fmt(rs.start)}`, title: rs.title, body: `Owners scan this with the PackPass app when they arrive. It opens 30 minutes before start and closes 15 minutes after. Each scan checks the dog in on the roster.`, countLabel: `${nChecked} of ${rs.booked} checked in`, recent: rosterDogs.filter(d => d._on).slice(0, 3).map((d, i) => ({ name: d.name, photo: d.photo, time: fmt(rs.start - 0.1 - i * 0.07) })) };
+    const rosterTabs = TODAY.map((x, i) => ({ label: `${fmt(x.start)} · ${x.title}`, on: i === st.rIdx, pick: () => this.setState({ rIdx: i }) }));
+
+    // notes
+    const noteRows = DOGS.slice(0, 8).map((d, i) => {
+      const sent = !!st.sent[i], note = st.notes[i] || '', sk = st.skills[i] || [];
+      return { name: d.name, breed: d.breed, owner: d.owner, photo: P(d.photo), sent, open: !sent, note, placeholder: `What did ${d.name} do well? What should ${d.name} work on?`,
+        onNote: e => { const v = e.target.value; this.setState(p => ({ notes: { ...p.notes, [i]: v } })); },
+        send: () => this.setState(p => ({ sent: { ...p.sent, [i]: true } })),
+        skills: SKILLS.map(o => ({ label: o, on: sk.includes(o), pick: () => this.setState(p => ({ skills: { ...p.skills, [i]: this.toggleIn(null, p.skills[i], o) } })) })) };
+    });
+    const nSent = noteRows.filter(r => r.sent).length;
+
+    // assessments
+    const ai = st.asSel, A = ASSESS[ai], ad = DOGS[A.dog], rb = st.rub[ai] || {}, oc = st.out[ai] || {}, aSent = !!st.asSent[ai];
+    const pillBase = { display: 'inline-flex', alignItems: 'center', gap: '6px', height: '28px', padding: '0 12px 0 10px', borderRadius: '9999px', fontSize: '13px', fontWeight: 600 };
+    const asList = ASSESS.map((x, i) => { const on = i === ai, d = DOGS[x.dog]; return { name: d.name, type: x.type, when: x.when, photo: P(d.photo), status: st.asSent[i] ? 'Sent' : x.status, select: () => this.setState({ asSel: i }),
+      style: { display: 'flex', alignItems: 'center', gap: '14px', padding: '10px 16px 10px 10px', border: 0, borderRadius: '20px', cursor: 'pointer', font: 'inherit', background: on ? 'var(--inverse)' : 'var(--surface-raised)', color: on ? 'var(--on-inverse)' : 'var(--ink)' } }; });
+    const rItems = RUBRIC[A.rub];
+    const setR = (item, v) => () => this.setState(p => ({ rub: { ...p.rub, [ai]: { ...(p.rub[ai] || {}), [item]: (p.rub[ai] || {})[item] === v ? undefined : v } } }));
+    const setO = k => () => this.setState(p => ({ out: { ...p.out, [ai]: { ...(p.out[ai] || {}), [k]: !(p.out[ai] || {})[k] } } }));
+    const nScored = rItems.filter(r => rb[r]).length;
+    const as = { name: ad.name, breed: ad.breed, owner: ad.owner, photo: P(ad.photo), type: A.type, when: A.when, dur: A.dur, traits: ad.traits || 'None added',
+      clr: A.clr.map(([label, k]) => ({ label, style: { ...pillBase, background: k === 'exp' ? 'var(--kennel-red-soft)' : 'var(--pitch)', color: k === 'exp' ? 'var(--kennel-red)' : 'var(--on-pitch)' }, iconStyle: icon(k === 'exp' ? 'shield-alert' : 'shield-check', 14) })), noClr: !A.clr.length,
+      rubric: rItems.map(r => ({ label: r, isS: rb[r] === 's', isW: rb[r] === 'w', pickS: setR(r, 's'), pickW: setR(r, 'w') })), rubricCount: `${nScored} of ${rItems.length} scored`,
+      grant: !!oc.grant, goal: !!oc.goal, toggleGrant: setO('grant'), toggleGoal: setO('goal'),
+      grantLabel: A.discipline ? 'Mark as assessed here' : `Grant ${A.rub} clearance`,
+      outNote: A.discipline ? 'Herding results show as Assessed at Northside Barn and do not transfer to other partners.' : `${A.rub} clearances transfer to every PackPass partner and expire after 12 months. A goal adds a training path to ${ad.name}\u2019s Passport.`,
+      note: st.asNote[ai] ?? A.note, onNote: e => { const v = e.target.value; this.setState(p => ({ asNote: { ...p.asNote, [ai]: v } })); },
+      sent: aSent, open: !aSent, send: () => this.setState(p => ({ asSent: { ...p.asSent, [ai]: true } })),
+      sentLine: `${ad.name}\u2019s Passport is updated. ${ad.owner.split(' ')[0]} gets the result now.` };
+
+    // locations
+    const locations = [
+      { name: 'Northside Barn', type: 'Barn arena', address: '1420 Riverside Rd', photo: P('collie'), rows: [{ k: 'Max dogs on site', v: '12' }, { k: 'Surface', v: 'Sand arena, grass field' }, { k: 'Parking', v: '14 spaces by the barn' }, { k: 'Hours', v: 'Daily 7 am – 8 pm' }], tags: ['Fenced', 'Water', 'Shade', 'Livestock on site'], classes: 'Herding Fundamentals · Herding Advanced' },
+      { name: 'Harbor Street Gym', type: 'Indoor gym', address: '88 Harbor St, Unit 4', photo: P('tunnel'), rows: [{ k: 'Max dogs on site', v: '10' }, { k: 'Surface', v: 'Rubber turf' }, { k: 'Parking', v: 'Street, 2 hour limit' }, { k: 'Hours', v: 'Daily 6 am – 9 pm' }], tags: ['Climate controlled', 'Water', 'Wash station'], classes: 'Scent Work I and II · Agility Foundations · Calm in crowds' },
+      { name: 'Cedar Park field', type: 'Outdoor field', address: 'Cedar Park, east lawn', photo: P('sprint'), rows: [{ k: 'Max dogs on site', v: '16' }, { k: 'Surface', v: 'Grass' }, { k: 'Parking', v: 'Lot on Cedar Ave' }, { k: 'Hours', v: 'Daylight only' }], tags: ['Unfenced', 'Long lines required', 'Rain cancels'], classes: 'Sprint Club · Free roam' }
+    ].map((l, i) => ({ ...l, openQr: () => this.setState({ modal: 'qr', qrCtx: { kind: 'loc', i } }) }));
+
+    // earnings
+    const wk = [['Sep 1–7', 962], ['Sep 8–14', 1083], ['Sep 15–21', 1121], ['Sep 22–28', 1052]];
+    const weeks = wk.map(([label, a]) => ({ label, amt: '$' + a.toLocaleString(), bar: { display: 'block', height: Math.round(a / 1121 * 120) + 'px', borderRadius: '12px', background: 'var(--turf)' } }));
+    const byClass = [['Herding Fundamentals', 60, 120], ['Sprint Club', 50, 100], ['Scent Work I', 44, 88], ['Herding Advanced', 18, 72], ['Agility Foundations', 22, 44], ['Free roam', 20, 20]].map(([name, dogs, cr]) => ({ name, dogs, credits: cr, earned: '$' + (cr * 9.5).toLocaleString() }));
+    const payouts = [['Sep 1', 'August · 408 credits', '$3,876'], ['Aug 1', 'July · 372 credits', '$3,534'], ['Jul 1', 'June · 326 credits', '$3,097']].map(([date, sub, amt]) => ({ date, sub, amt }));
+
+    // profile
+    const ti = solo ? 0 : st.trainer, t = TEAM[ti];
+    const bio = st.bios[ti] ?? t.bio;
+    const team = TEAM.map((x, i) => { const on = i === ti; return { name: x.name, role: x.role, initials: x.initials, select: () => this.setState({ trainer: i }),
+      style: { display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 18px 8px 8px', border: 0, borderRadius: '9999px', cursor: 'pointer', font: 'inherit', background: on ? 'var(--inverse)' : 'var(--surface-raised)', color: on ? 'var(--on-inverse)' : 'var(--ink)' },
+      avatarStyle: { width: '40px', height: '40px', borderRadius: '9999px', background: on ? 'rgba(255,255,255,.16)' : 'var(--surface-sunken)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 600 } }; });
+    const tr = { name: t.name, initials: t.initials, bio, onBio: e => { const v = e.target.value; this.setState(p => ({ bios: { ...p.bios, [ti]: v } })); },
+      specs: SPECS.map(o => { const cur = st.specs[ti] ?? t.specs; return { label: o, on: cur.includes(o), pick: () => this.setState(p => ({ specs: { ...p.specs, [ti]: this.toggleIn(null, p.specs[ti] ?? t.specs, o) } })) }; }),
+      specLine: (st.specs[ti] ?? t.specs).join(' · '),
+      togglePriv: () => this.setState(p => ({ priv: { ...p.priv, [ti]: !(p.priv[ti] ?? true) } })),
+      privTrack: { width: '48px', height: '28px', flex: 'none', border: 0, padding: '3px', borderRadius: '9999px', cursor: 'pointer', background: (st.priv[ti] ?? true) ? 'var(--inverse)' : 'var(--surface-sunken)', display: 'flex', justifyContent: (st.priv[ti] ?? true) ? 'flex-end' : 'flex-start', transition: 'background 140ms' },
+      privKnob: { width: '22px', height: '22px', borderRadius: '9999px', background: (st.priv[ti] ?? true) ? 'var(--on-inverse)' : 'var(--bg)' },
+      creds: t.creds.map(([name, status]) => ({ name, status })), teaches: t.teaches, credLine: t.creds.filter(x => x[1] === 'Verified').map(x => x[0]).join(' · '),
+      rating: t.rating, reviewsTitle: `${t.rating} from ${t.reviews} reviews`, reviews: t.quotes.map(([text, by]) => ({ text, by })) };
+
+    return {
+      theme: this.props.theme ?? 'light', showTrainer,
+      partnerName: solo ? 'Maya Okafor Training' : 'Northside Dog Athletics', partnerSub: solo ? 'Independent trainer' : 'Gym · 3 trainers', partnerInitials: solo ? 'MO' : 'ND',
+      nav, isOverview: page === 'overview', isSchedule: page === 'schedule', isClasses: page === 'classes', isRoster: page === 'roster', isNotes: page === 'notes', isAssess: page === 'assess', as, asList, isLocations: page === 'locations', isEarnings: page === 'earnings', isProfile: page === 'profile',
+      stats, today, attention, nextMeta: meta(TODAY[2]) + ' · 9 of 12 booked', openSprint: () => this.setState({ page: 'roster', rIdx: 2 }),
+      hours, week, sel, weekSummary: `${totalBooked} of ${totalCap} spots booked`,
+      classList, cls, rosterTabs, roster, noteRows, notesSent: `${nSent} of 8 sent`,
+      locations, weeks, byClass, payouts, team, tr, profileEyebrow: solo ? 'Your profile' : 'Trainers · Profile',
+      modalOpen: !!st.modal, isNewClass: page === 'newclass', nc, startNew: () => this.setState({ page: 'newclass', nc: null }), backToClasses: () => this.setState({ page: 'classes', nc: null }), mBlock: st.modal === 'block', mAdd: st.modal === 'add', mQr: st.modal === 'qr', mStripe: st.modal === 'stripe',
+      closeModal: close, stop: e => e.stopPropagation(),
+      sheetStyle: { width: st.modal === 'add' || st.modal === 'block' ? '760px' : '680px', maxWidth: '100%', maxHeight: 'calc(100vh - 64px)', overflowY: 'auto', boxSizing: 'border-box', padding: '28px', borderRadius: '32px', background: 'var(--bg)', color: 'var(--ink)', boxShadow: 'var(--shadow-float)' },
+      modalEyebrow: { block: 'Schedule · Block dates', add: 'Schedule · New session', qr: qr.eyebrow, stripe: 'Payouts · Stripe Connect' }[st.modal] || '',
+      modalTitle: { block: mo(bk.from, bk.to), add: ncl.name, qr: qr.title, stripe: 'Set up payouts' }[st.modal] || '',
+      openBlock: () => this.setState({ modal: 'block' }), openAdd: () => this.setState({ modal: 'add' }),
+      openQrSession: () => this.setState({ modal: 'qr', qrCtx: { kind: 'session' } }), openStripe: () => this.setState({ modal: 'stripe' }),
+      goStripe: () => this.setState({ modal: null, payout: 'pending' }),
+      blk, ns, qr, qrSvg,
+      stripeSteps: [['1', 'Business details', solo ? 'Legal name, address and date of birth' : 'Legal business name, address and EIN'], ['2', 'Verify identity', 'Photo ID for the account owner'], ['3', 'Bank account', 'Routing and account number for payouts']].map(([n, title, sub]) => ({ n, title, sub })),
+      payConnected: payout === 'connected', payNone: payout === 'none', payPending: payout === 'pending',
+      payoutLine: { connected: 'To Chase checking ••4821', none: 'Held until payouts are set up', pending: 'Pays out once Stripe verifies you' }[payout]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+:root{
+--font-sans:"Geist",system-ui,-apple-system,sans-serif;
+--font-display:"Archivo",system-ui,sans-serif;
+/* Display: Archivo semi-expanded, heavy, tight */
+--display-width:112;/* @kind other */--display-tracking:-0.025em;
+--display-2xl-size:64px;--display-2xl-line:58px;
+--display-xl-size:44px;--display-xl-line:42px;
+--display-lg-size:32px;--display-lg-line:32px;
+--display-md-size:22px;--display-md-line:24px;
+--display-weight:800;
+/* Wide caps: Archivo 125 width, for eyebrows, wordmark, capsules */
+--wide-width:125;/* @kind other */--wide-tracking:0.08em;--wide-size:11px;--wide-weight:600;
+/* Text: Geist */
+--title-size:20px;--title-line:26px;--title-weight:600;
+--heading-size:17px;--heading-line:22px;--heading-weight:600;
+--body-size:16px;--body-line:23px;--body-weight:400;
+--label-size:14px;--label-line:20px;--label-weight:500;
+--caption-size:12px;--caption-line:16px;--caption-weight:500;
+}

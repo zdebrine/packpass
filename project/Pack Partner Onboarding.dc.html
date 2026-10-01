@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/tokens/base.css">
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/components/pack-components.css">
+  <link rel="stylesheet" href="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/styles.css">
+  <script src="_ds/pack-athletic-club-design-system-ad379be9-f744-4562-b404-cf3339b8925a/_ds_bundle.js"></script>
+  <style>
+    body{margin:0;background:#0e0f0e}
+    a{color:var(--ink)}a:hover{color:var(--ink-muted)}
+    input{font:inherit;color:inherit;outline:none}input::placeholder{color:var(--ink-faint)}
+    input:focus{box-shadow:var(--focus-ring)}
+  </style>
+</helmet>
+<div data-theme="{{ theme }}" style="min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--font-sans)">
+
+  <sc-if value="{{ isWelcome }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="P0 Welcome" style="min-height:100vh;padding:16px;box-sizing:border-box;display:flex">
+      <div data-theme="dark" style="position:relative;flex:1;min-height:760px;border-radius:32px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;gap:32px;padding:32px 40px 40px;box-sizing:border-box;color:#fff">
+        <img src="photos/leap.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,.1) 45%,rgba(0,0,0,.8) 100%)"></div>
+        <header style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px">
+          <div style="display:flex;align-items:center;gap:14px">
+            <span class="pk-wide" style="font-size:15px;font-weight:700;white-space:nowrap">PackPass</span>
+            <span class="pk-wide" style="height:28px;padding:0 12px;border-radius:9999px;background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);display:flex;align-items:center;font-size:11px;white-space:nowrap;flex:none">For partners</span>
+          </div>
+          <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="glass" size="sm" hint-size="90px,40px">Sign in</x-import>
+        </header>
+        <div style="position:relative;display:flex;flex-wrap:wrap;gap:40px;align-items:flex-end;justify-content:space-between">
+          <div style="flex:1 1 520px;max-width:680px;display:flex;flex-direction:column;gap:18px">
+            <span class="pk-wide" style="opacity:.9">Trainers · Sport clubs · Scent instructors · Outdoor spaces</span>
+            <h1 class="pk-display-2xl" style="margin:0;font-size:84px;line-height:.94;text-wrap:balance">Bring more dogs through your door.</h1>
+            <p class="pk-body" style="margin:0;max-width:520px;color:rgba(255,255,255,.88);text-wrap:pretty">PackPass members fill the open spots in your classes. List the sessions you want filled and get paid for every dog that shows up.</p>
+            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:8px">
+              <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" wide="{{ true }}" onClick="{{ start }}" hint-size="220px,52px">Apply to partner</x-import>
+              <span class="pk-label" style="color:rgba(255,255,255,.82)">About 10 minutes. Have your license and insurance ready.</span>
+            </div>
+          </div>
+          <div style="flex:0 1 380px;display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ values }}" as="v" hint-placeholder-count="3">
+              <div style="display:flex;gap:14px;align-items:flex-start;padding:18px 20px;border-radius:28px;background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4)">
+                <span style="width:40px;height:40px;flex:none;border-radius:9999px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><span style="{{ v.icon }}"></span></span>
+                <div style="display:flex;flex-direction:column;gap:3px"><span class="pk-heading">{{ v.title }}</span><span class="pk-label" style="color:rgba(255,255,255,.82);text-wrap:pretty">{{ v.body }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ inFlow }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="{{ screenLabel }}" style="min-height:100vh;padding:16px;box-sizing:border-box;display:flex;gap:16px">
+      <aside data-theme="dark" style="flex:0 0 40%;max-width:600px;position:sticky;top:16px;height:calc(100vh - 32px);min-height:680px;border-radius:32px;overflow:hidden;color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:28px 32px 32px;box-sizing:border-box">
+        <div role="img" aria-label="" style="position:absolute;inset:0;background:#222322 center/cover no-repeat;background-image:{{ photoBg }}"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.42) 0%,rgba(0,0,0,0) 24%,rgba(0,0,0,0) 40%,rgba(0,0,0,.72) 100%)"></div>
+        <div style="position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px">
+          <span class="pk-wide" style="font-size:15px;font-weight:700;white-space:nowrap">PackPass</span>
+          <span class="pk-wide" style="height:28px;padding:0 12px;border-radius:9999px;background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);display:flex;align-items:center;font-size:11px;white-space:nowrap;flex:none">For partners</span>
+        </div>
+        <div style="position:relative;display:flex;flex-direction:column;gap:18px">
+          <h2 class="pk-display-lg" style="margin:0;text-wrap:balance">{{ sideLine }}</h2>
+          <div style="padding:10px;border-radius:28px;background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);display:flex;flex-direction:column;gap:2px">
+            <sc-for list="{{ stepList }}" as="s" hint-placeholder-count="5">
+              <div style="{{ s.row }}">
+                <span style="{{ s.dot }}"><sc-if value="{{ s.done }}" hint-placeholder-val="{{ false }}"><span style="width:14px;height:14px;display:inline-block;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.460.0/icons/check.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.460.0/icons/check.svg) center/contain no-repeat"></span></sc-if><sc-if value="{{ s.notDone }}" hint-placeholder-val="{{ true }}">{{ s.n }}</sc-if></span>
+                <span class="pk-label" style="flex:1;font-weight:600">{{ s.label }}</span>
+                <span class="pk-caption" style="opacity:.8">{{ s.state }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </aside>
+
+      <main style="flex:1;min-width:0;display:flex;flex-direction:column;padding:12px 32px 0">
+        <div style="display:flex;align-items:center;gap:16px;height:56px">
+          <button onClick="{{ back }}" aria-label="Back" style="width:44px;height:44px;flex:none;border:0;border-radius:9999px;background:var(--surface-raised);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="width:20px;height:20px;display:inline-block;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.460.0/icons/chevron-left.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.460.0/icons/chevron-left.svg) center/contain no-repeat"></span></button>
+          <sc-if value="{{ showProgress }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;max-width:360px;display:flex;gap:4px"><sc-for list="{{ segs }}" as="g" hint-placeholder-count="5"><span style="{{ g }}"></span></sc-for></div>
+          </sc-if>
+          <a href="#" onClick="{{ exit }}" style="margin-left:auto;font-size:14px;font-weight:600;text-underline-offset:3px">Save and finish later</a>
+        </div>
+
+        <div style="flex:1;width:100%;max-width:580px;margin:0 auto;padding:48px 0 40px;display:flex;flex-direction:column;gap:28px">
+
+          <sc-if value="{{ is1 }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:24px">
+              <div>
+                <p class="pk-wide pk-muted" style="margin:0">Step 1 of 5 · Account</p>
+                <h1 class="pk-display-xl" style="margin:10px 0 0">Create your partner account.</h1>
+                <p class="pk-body pk-muted" style="margin:10px 0 0;text-wrap:pretty">Use the email your business uses. You can add trainers and staff once you're approved.</p>
+              </div>
+              <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" block="{{ true }}" hint-size="100%,52px">Continue with Google</x-import>
+              <p class="pk-caption pk-muted" style="margin:-4px 0;text-align:center">Or use your email</p>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+                <label style="display:flex;flex-direction:column;gap:8px"><span class="pk-label" style="font-weight:600">Your name</span><input value="{{ f.name }}" onChange="{{ set.name }}" autocomplete="name" style="height:52px;border:0;border-radius:9999px;background:var(--surface-raised);padding:0 20px;font-size:16px;box-sizing:border-box;width:100%"></label>
+                <label style="display:flex;flex-direction:column;gap:8px"><span class="pk-label" style="font-weight:600">Mobile</span><input value="{{ f.phone }}" onChange="{{ set.phone }}" type="tel" style="height:52px;border:0;border-radius:9999px;background:var(--surface-raised);padding:0 20px;font-size:16px;box-sizing:border-box;width:100%"></label>
+              </div>
+              <label style="display:flex;flex-direction:column;gap:8px"><span class="pk-label" style="font-weight:600">Work email</span><input value="{{ f.email }}" onChange="{{ set.email }}" type="email" style="height:52px;border:0;border-radius:9999px;background:var(--surface-raised);padding:0 20px;font-size:16px;box-sizing:border-box;width:100%"></label>
+              <label style="display:flex;flex-direction:column;gap:8px"><span class="pk-label" style="font-weight:600">Password</span>
+                <div style="display:flex;align-items:center;height:52px;border-radius:9999px;background:var(--surface-raised);padding:0 8px 0 20px">
+                  <input type="{{ pwType }}" value="{{ f.pw }}" onChange="{{ set.pw }}" style="flex:1;min-width:0;height:100%;border:0;background:none;font-size:16px;box-shadow:none">
+                  <button onClick="{{ togglePw }}" style="height:36px;padding:0 14px;border:0;border-radius:9999px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer">{{ pwToggle }}</button>
+                </div>
+                <span class="pk-caption pk-muted">At least 10 characters.</span>
+              </label>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ is2 }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:26px">
+              <div>
+                <p class="pk-wide pk-muted" style="margin:0">Step 2 of 5 · Business</p>
+                <h1 class="pk-display-xl" style="margin:10px 0 0">Tell us about your business.</h1>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span class="pk-label" style="font-weight:600">What kind of partner are you?</span>
+                <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ types }}" as="o" hint-placeholder-count="5"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="140px,38px">{{ o.label }}</x-import></sc-for></div>
+              </div>
+              <label style="display:flex;flex-direction:column;gap:8px"><span class="pk-label" style="font-weight:600">Business name</span><input value="{{ f.biz }}" onChange="{{ set.biz }}" style="height:52px;border:0;border-radius:9999px;background:var(--surface-raised);padding:0 20px;font-size:16px;box-sizing:border-box;width:100%"></label>
+              <label style="display:flex;flex-direction:column;gap:8px"><span class="pk-label" style="font-weight:600">Address</span>
+                <div style="display:flex;align-items:center;gap:10px;height:52px;border-radius:9999px;background:var(--surface-raised);padding:0 20px">
+                  <span style="width:18px;height:18px;flex:none;display:inline-block;background:var(--ink-muted);-webkit-mask:url(https://unpkg.com/lucide-static@0.460.0/icons/map-pin.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.460.0/icons/map-pin.svg) center/contain no-repeat"></span>
+                  <input value="{{ f.addr }}" onChange="{{ set.addr }}" style="flex:1;min-width:0;height:100%;border:0;background:none;font-size:16px;box-shadow:none">
+                </div>
+                <span class="pk-caption pk-muted">Members see this on your classes and the map. Add more locations later.</span>
+              </label>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span class="pk-label" style="font-weight:600">Where do sessions happen?</span>
+                <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ wheres }}" as="o" hint-placeholder-count="3"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="140px,38px">{{ o.label }}</x-import></sc-for></div>
+              </div>
+              <label style="display:flex;flex-direction:column;gap:8px"><span class="pk-label" style="font-weight:600">Website or Instagram <span class="pk-muted" style="font-weight:400">· Optional</span></span><input value="{{ f.web }}" onChange="{{ set.web }}" style="height:52px;border:0;border-radius:9999px;background:var(--surface-raised);padding:0 20px;font-size:16px;box-sizing:border-box;width:100%"></label>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ is3 }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:28px">
+              <div>
+                <p class="pk-wide pk-muted" style="margin:0">Step 3 of 5 · Services</p>
+                <h1 class="pk-display-xl" style="margin:10px 0 0">What does {{ bizName }} offer?</h1>
+                <p class="pk-body pk-muted" style="margin:10px 0 0;text-wrap:pretty">Members filter by what their dog needs. Pick everything you teach or provide.</p>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="pk-label" style="font-weight:600">Services</span><span class="pk-caption pk-muted">{{ offerCount }}</span></div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ offers }}" as="o" hint-placeholder-count="12"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="110px,38px">{{ o.label }}</x-import></sc-for></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span class="pk-label" style="font-weight:600">Session formats</span>
+                <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ formats }}" as="o" hint-placeholder-count="3"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="130px,38px">{{ o.label }}</x-import></sc-for></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span class="pk-label" style="font-weight:600">Typical group size</span>
+                <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ sizes }}" as="o" hint-placeholder-count="4"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Chip" selected="{{ o.on }}" onClick="{{ o.pick }}" hint-size="90px,38px">{{ o.label }}</x-import></sc-for></div>
+              </div>
+              <div style="padding:18px 20px;border-radius:20px;background:var(--surface-raised);display:flex;gap:14px;align-items:flex-start">
+                <span style="width:20px;height:20px;flex:none;margin-top:1px;display:inline-block;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.460.0/icons/calendar-plus.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.460.0/icons/calendar-plus.svg) center/contain no-repeat"></span>
+                <span class="pk-label" style="text-wrap:pretty">You'll build individual classes, set times and choose credits per session in your dashboard after approval.</span>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ is4 }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:24px">
+              <div>
+                <p class="pk-wide pk-muted" style="margin:0">Step 4 of 5 · Credentials</p>
+                <h1 class="pk-display-xl" style="margin:10px 0 0">Upload your credentials.</h1>
+                <p class="pk-body pk-muted" style="margin:10px 0 0;text-wrap:pretty">PackPass checks every partner before classes go live. Verified credentials show as a badge on your profile and every class.</p>
+              </div>
+              <button onClick="{{ dropAll }}" style="border:2px dashed var(--surface-sunken);border-radius:28px;background:none;color:var(--ink);padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;font:inherit">
+                <span style="width:48px;height:48px;border-radius:9999px;background:var(--surface-raised);display:flex;align-items:center;justify-content:center"><span style="width:22px;height:22px;display:inline-block;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.460.0/icons/upload.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.460.0/icons/upload.svg) center/contain no-repeat"></span></span>
+                <span class="pk-heading">Drop files here or browse</span>
+                <span class="pk-caption pk-muted">PDF, JPG or PNG · up to 10 MB each</span>
+              </button>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+                <h2 class="pk-title" style="margin:0">Documents</h2>
+                <span class="pk-label pk-muted">{{ reqCount }}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:-12px">
+                <sc-for list="{{ docs }}" as="d" hint-placeholder-count="5">
+                  <div style="padding:18px 20px;border-radius:20px;background:var(--surface-raised);display:flex;flex-direction:column;gap:12px">
+                    <div style="display:flex;gap:14px;align-items:flex-start">
+                      <span style="{{ d.badge }}"><span style="{{ d.icon }}"></span></span>
+                      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="pk-heading">{{ d.name }}</span><sc-if value="{{ d.req }}" hint-placeholder-val="{{ true }}"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Tag" hint-size="80px,22px">Required</x-import></sc-if></div>
+                        <span class="pk-caption pk-muted" style="text-wrap:pretty">{{ d.desc }}</span>
+                      </div>
+                      <sc-if value="{{ d.isEmpty }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" size="sm" onClick="{{ d.upload }}" hint-size="90px,36px">Upload</x-import></sc-if>
+                      <sc-if value="{{ d.canAdd }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" size="sm" onClick="{{ d.upload }}" hint-size="110px,36px">Add another</x-import></sc-if>
+                    </div>
+                    <sc-if value="{{ d.isUploading }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;align-items:center;gap:12px;padding-left:54px">
+                        <div style="flex:1;height:6px;border-radius:9999px;background:var(--surface-sunken);overflow:hidden"><div style="{{ d.bar }}"></div></div>
+                        <span class="pk-caption pk-muted pk-num">Uploading {{ d.pct }}</span>
+                      </div>
+                    </sc-if>
+                    <sc-for list="{{ d.files }}" as="x" hint-placeholder-count="0">
+                      <div style="margin-left:54px;display:flex;align-items:center;gap:12px;padding:10px 10px 10px 14px;border-radius:14px;background:var(--bg)">
+                        <span style="width:16px;height:16px;flex:none;display:inline-block;background:var(--ink-muted);-webkit-mask:url(https://unpkg.com/lucide-static@0.460.0/icons/file-text.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.460.0/icons/file-text.svg) center/contain no-repeat"></span>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span class="pk-label" style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ x.name }}</span><span class="pk-caption pk-muted">{{ x.meta }}</span></div>
+                        <button onClick="{{ x.remove }}" aria-label="Remove file" style="width:32px;height:32px;flex:none;border:0;border-radius:9999px;background:none;color:var(--ink-muted);display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="width:16px;height:16px;display:inline-block;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.460.0/icons/x.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.460.0/icons/x.svg) center/contain no-repeat"></span></button>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ d.isError }}" hint-placeholder-val="{{ false }}">
+                      <div style="margin-left:54px;display:flex;align-items:center;gap:12px;padding:12px 12px 12px 16px;border-radius:14px;background:var(--kennel-red-soft)">
+                        <span class="pk-label" style="flex:1;color:var(--kennel-red);font-weight:600;text-wrap:pretty">{{ d.error }}</span>
+                        <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" size="sm" onClick="{{ d.upload }}" hint-size="90px,36px">Replace</x-import>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+              <p class="pk-caption pk-muted" style="margin:0;text-wrap:pretty">Documents are only seen by the PackPass partner team. Add each trainer's certifications from Team once you're approved.</p>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ is5 }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:24px">
+              <div>
+                <p class="pk-wide pk-muted" style="margin:0">Step 5 of 5 · Payouts</p>
+                <h1 class="pk-display-xl" style="margin:10px 0 0">Get paid for every booking.</h1>
+              </div>
+              <div style="background:var(--pitch);color:var(--on-pitch);border-radius:28px;padding:24px;display:flex;flex-direction:column;gap:10px">
+                <span class="pk-wide" style="color:var(--on-pitch-muted)">Partner rate</span>
+                <div style="display:flex;align-items:baseline;gap:10px"><span class="pk-display-xl">$9.50</span><span class="pk-label" style="color:var(--on-pitch-muted)">per credit redeemed</span></div>
+                <span class="pk-label" style="color:var(--on-pitch-muted);text-wrap:pretty">Members spend 1 to 4 credits per session depending on length and format. Payouts go out on the 1st of each month. Rates are set by PackPass.</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span class="pk-label" style="font-weight:600">Payout account</span>
+                <div style="padding:16px 16px 16px 20px;border-radius:20px;background:var(--surface-raised);display:flex;align-items:center;gap:14px">
+                  <span style="width:40px;height:40px;flex:none;border-radius:9999px;background:var(--surface-sunken);display:flex;align-items:center;justify-content:center"><span style="width:18px;height:18px;display:inline-block;background:currentColor;-webkit-mask:url(https://unpkg.com/lucide-static@0.460.0/icons/landmark.svg) center/contain no-repeat;mask:url(https://unpkg.com/lucide-static@0.460.0/icons/landmark.svg) center/contain no-repeat"></span></span>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span class="pk-heading">{{ bankTitle }}</span><span class="pk-caption pk-muted">{{ bankSub }}</span></div>
+                  <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="{{ bankBtnVariant }}" size="sm" onClick="{{ toggleBank }}" hint-size="100px,36px">{{ bankBtn }}</x-import>
+                </div>
+              </div>
+              <label style="display:flex;flex-direction:column;gap:8px"><span class="pk-label" style="font-weight:600">Legal business name</span><input value="{{ f.legal }}" onChange="{{ set.legal }}" style="height:52px;border:0;border-radius:9999px;background:var(--surface-raised);padding:0 20px;font-size:16px;box-sizing:border-box;width:100%"></label>
+              <label style="display:flex;flex-direction:column;gap:8px"><span class="pk-label" style="font-weight:600">EIN or tax ID</span><input value="{{ f.ein }}" onChange="{{ set.ein }}" style="height:52px;border:0;border-radius:9999px;background:var(--surface-raised);padding:0 20px;font-size:16px;box-sizing:border-box;width:100%"><span class="pk-caption pk-muted">Used for your year-end 1099. Never shown to members.</span></label>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ is6 }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:28px">
+              <div>
+                <p class="pk-wide pk-muted" style="margin:0">Application sent</p>
+                <h1 class="pk-display-xl" style="margin:10px 0 0">{{ bizName }} is in review.</h1>
+                <p class="pk-body pk-muted" style="margin:10px 0 0;text-wrap:pretty">The partner team checks every document by hand. We'll email {{ f.email }} when you're approved.</p>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0">
+                <sc-for list="{{ timeline }}" as="t" hint-placeholder-count="3">
+                  <div style="display:flex;gap:16px">
+                    <div style="display:flex;flex-direction:column;align-items:center;width:32px;flex:none">
+                      <span style="{{ t.dot }}"><span style="{{ t.icon }}"></span></span>
+                      <span style="{{ t.line }}"></span>
+                    </div>
+                    <div style="flex:1;padding:4px 0 26px;display:flex;flex-direction:column;gap:3px">
+                      <span class="pk-heading">{{ t.title }}</span>
+                      <span class="pk-label pk-muted" style="text-wrap:pretty">{{ t.sub }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="padding:22px;border-radius:28px;background:var(--surface-raised);display:flex;flex-direction:column;gap:14px">
+                <span class="pk-wide pk-muted">While you wait</span>
+                <span class="pk-title">Draft your first class so it's ready to publish the day you're approved.</span>
+                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                  <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" hint-size="170px,52px">Draft a class</x-import>
+                  <a href="Pack Partner Dashboard.dc.html" style="text-decoration:none"><x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" variant="quiet" hint-size="170px,52px">Go to dashboard</x-import></a>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ showFooter }}" hint-placeholder-val="{{ true }}">
+          <div style="position:sticky;bottom:0;background:var(--bg);padding:16px 0 28px">
+            <div style="max-width:580px;margin:0 auto;display:flex;flex-direction:column;gap:10px">
+              <x-import component-from-global-scope="PackAthleticClubDesignSystem_ad379b.Button" block="{{ true }}" disabled="{{ blocked }}" onClick="{{ next }}" hint-size="100%,52px">{{ nextLabel }}</x-import>
+              <p class="pk-caption pk-muted" style="margin:0;text-align:center;text-wrap:pretty">{{ footNote }}</p>
+            </div>
+          </div>
+        </sc-if>
+      </main>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startStep&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;welcome&quot;,&quot;account&quot;,&quot;business&quot;,&quot;services&quot;,&quot;credentials&quot;,&quot;payouts&quot;,&quot;submitted&quot;],&quot;default&quot;:&quot;welcome&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;docScenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;inprogress&quot;,&quot;empty&quot;,&quot;complete&quot;],&quot;default&quot;:&quot;inprogress&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const L = n => `url(https://unpkg.com/lucide-static@0.460.0/icons/${n}.svg) center/contain no-repeat`;
+const ic = (n, s = 20) => ({ width: s + 'px', height: s + 'px', flex: 'none', display: 'inline-block', background: 'currentColor', WebkitMask: L(n), mask: L(n) });
+const STEPS = ['Account', 'Business', 'Services', 'Credentials', 'Payouts'];
+const PHOTOS = ['leap', 'weave', 'rail', 'grass', 'hurdle', 'lab', 'sprint'];
+const SIDE = ['', 'PackPass members book with monthly credits. You get paid for every one they spend with you.', 'Members search by neighborhood. Your address puts you on their map.', 'Dogs come to PackPass for sport, scent, play and skills. Show up for all of it.', 'Verified partners carry a badge on every class and profile.', 'Paid on the 1st of every month. No invoices to chase.', 'Most partners publish their first class the week they\u2019re approved.'];
+const DOCS = [
+  ['license', 'Business license or registration', true, false, 'State or city registration in your business name.', 'Northside-Barn-LLC-registration.pdf'],
+  ['insurance', 'Liability insurance certificate', true, false, 'Current general liability policy with your business as the named insured.', 'Northside-Barn-COI-2026.pdf'],
+  ['certs', 'Trainer certifications', true, true, 'CPDT-KA, IAABC, KPA-CTP, AKC CGC Evaluator, NDGAA or equivalent. One per trainer.', 'Sam-Reyes-IAABC.pdf'],
+  ['firstaid', 'Pet first aid and CPR', false, false, 'Shown on your profile once verified.', 'Pet-CPR-certificate.pdf'],
+  ['photos', 'Photos of your space', false, true, 'Shown on your classes so members know where they\u2019re going.', 'Barn-arena.jpg']
+];
+const SCEN = {
+  inprogress: { license: { s: 'done', files: [['Northside-Barn-LLC-registration.pdf', 'PDF · 1.2 MB']] }, insurance: { s: 'error', files: [['COI-2025.pdf', 'PDF · 880 KB']], err: 'This policy expired Mar 31, 2026. Upload your current certificate.' }, certs: { s: 'done', files: [['Maya-Okafor-CPDT-KA.pdf', 'PDF · 640 KB'], ['Dev-Patel-KPA-CTP.pdf', 'PDF · 410 KB']] }, firstaid: { s: 'empty', files: [] }, photos: { s: 'empty', files: [] } },
+  empty: {},
+  complete: { license: { s: 'done', files: [['Northside-Barn-LLC-registration.pdf', 'PDF · 1.2 MB']] }, insurance: { s: 'done', files: [['Northside-Barn-COI-2026.pdf', 'PDF · 910 KB']] }, certs: { s: 'done', files: [['Maya-Okafor-CPDT-KA.pdf', 'PDF · 640 KB'], ['Dev-Patel-KPA-CTP.pdf', 'PDF · 410 KB']] }, firstaid: { s: 'done', files: [['Pet-CPR-certificate.pdf', 'PDF · 300 KB']] }, photos: { s: 'empty', files: [] } }
+};
+const seedDocs = k => { const sc = SCEN[k] || {}; const o = {}; DOCS.forEach(([key]) => { const d = sc[key] || { s: 'empty', files: [] }; o[key] = { s: d.s, files: d.files.slice(), err: d.err, pct: 0 }; }); return o; };
+const STEP_OF = { welcome: 0, account: 1, business: 2, services: 3, credentials: 4, payouts: 5, submitted: 6 };
+
+class Component extends DCLogic {
+  state = {
+    step: STEP_OF[this.props.startStep ?? 'welcome'] ?? 0,
+    docs: seedDocs(this.props.docScenario ?? 'inprogress'),
+    f: { name: 'Maya Okafor', phone: '(512) 555-0142', email: 'maya@northsidebarn.com', pw: 'barnyard-2026', biz: 'Northside Barn', addr: '1180 Hollis Rd, Austin, TX', web: 'northsidebarn.com', legal: 'Northside Barn LLC', ein: '84-2931147' },
+    showPw: false, type: 'Training facility', wheres: ['At my facility', 'Outdoors'],
+    offers: ['Agility', 'Scent work', 'Sprint and lure', 'Herding'], formats: ['Group drop-in', 'Private'], size: '5 to 8', bank: true
+  };
+  timers = {};
+  componentDidUpdate(pp) {
+    if (pp.startStep !== this.props.startStep) this.setState({ step: STEP_OF[this.props.startStep] ?? 0 });
+    if (pp.docScenario !== this.props.docScenario) this.setState({ docs: seedDocs(this.props.docScenario) });
+  }
+  componentWillUnmount() { Object.values(this.timers).forEach(clearInterval); }
+  upload(key) {
+    const def = DOCS.find(d => d[0] === key);
+    clearInterval(this.timers[key]);
+    this.setState(s => ({ docs: { ...s.docs, [key]: { ...s.docs[key], s: 'uploading', pct: 0, files: def[3] ? s.docs[key].files : [] } } }));
+    this.timers[key] = setInterval(() => {
+      const d = this.state.docs[key];
+      if (d.pct >= 100) {
+        clearInterval(this.timers[key]);
+        const n = def[3] && d.files.length ? def[5] : def[5];
+        this.setState(s => ({ docs: { ...s.docs, [key]: { s: 'done', pct: 0, files: [...s.docs[key].files, [n, n.endsWith('.jpg') ? 'JPG · 2.4 MB' : 'PDF · 720 KB']] } } }));
+      } else this.setState(s => ({ docs: { ...s.docs, [key]: { ...s.docs[key], pct: d.pct + 20 } } }));
+    }, 160);
+  }
+  renderVals() {
+    const st = this.state, step = st.step;
+    const go = n => { this.setState({ step: Math.max(0, Math.min(6, n)) }); window.scrollTo(0, 0); };
+    const toggleIn = (k, v) => this.setState(s => ({ [k]: s[k].includes(v) ? s[k].filter(x => x !== v) : [...s[k], v] }));
+    const many = (k, list) => list.map(label => ({ label, on: st[k].includes(label), pick: () => toggleIn(k, label) }));
+    const one = (k, list) => list.map(label => ({ label, on: st[k] === label, pick: () => this.setState({ [k]: label }) }));
+    const set = {}; Object.keys(st.f).forEach(k => { set[k] = e => { const v = e.target.value; this.setState(s => ({ f: { ...s.f, [k]: v } })); }; });
+
+    const outdoor = st.type === 'Outdoor space';
+    const docs = DOCS.filter(d => !(outdoor && d[0] === 'certs')).map(([key, name, req, multi, desc]) => {
+      if (outdoor && key === 'photos') { req = true; desc = 'Required for outdoor spaces. Members see the site before they book.'; }
+      const d = st.docs[key], s = d.s;
+      const tone = s === 'done' ? ['var(--turf)', 'var(--on-turf)', 'check'] : s === 'error' ? ['var(--kennel-red)', 'var(--bg)', 'alert-circle'] : ['var(--surface-sunken)', 'var(--ink)', 'file-up'];
+      return {
+        name, req, desc, isEmpty: s === 'empty', isUploading: s === 'uploading', isError: s === 'error', canAdd: multi && s === 'done', error: d.err,
+        pct: d.pct + '%', bar: { width: d.pct + '%', height: '100%', borderRadius: '9999px', background: 'var(--ink)', transition: 'width 160ms cubic-bezier(.2,.8,.2,1)' },
+        badge: { width: '40px', height: '40px', flex: 'none', borderRadius: '9999px', background: tone[0], color: tone[1], display: 'flex', alignItems: 'center', justifyContent: 'center' },
+        icon: ic(tone[2], 18),
+        files: s === 'error' ? [] : d.files.map(([n, m], i) => ({ name: n, meta: m + ' · Uploaded', remove: () => this.setState(ss => { const files = ss.docs[key].files.filter((_, j) => j !== i); return { docs: { ...ss.docs, [key]: { ...ss.docs[key], files, s: files.length ? 'done' : 'empty' } } }; }) })),
+        upload: () => this.upload(key), key
+      };
+    });
+    const reqKeys = docs.filter(d => d.req).map(d => d.key);
+    const reqDone = reqKeys.filter(k => st.docs[k].s === 'done').length;
+    const allReq = reqDone === reqKeys.length;
+
+    const blocked = step === 1 ? !(st.f.name && st.f.email && st.f.pw.length >= 10)
+      : step === 2 ? !(st.f.biz && st.f.addr)
+      : step === 3 ? st.offers.length === 0
+      : step === 4 ? !allReq
+      : step === 5 ? !(st.bank && st.f.legal && st.f.ein) : false;
+    const notes = ['', 'By continuing you agree to the Partner terms and Privacy policy.', 'You can edit these details any time.', 'You can change services later from your profile.', allReq ? 'All required documents are in.' : 'Upload every required document to continue.', 'Your application goes to the partner team next.', ''];
+
+    const stepList = STEPS.map((label, i) => {
+      const n = i + 1, done = step > n || step === 6, cur = step === n;
+      return {
+        label, n: String(n), done, notDone: !done, state: done ? 'Done' : cur ? 'Now' : '',
+        row: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '9999px', background: cur ? 'rgba(255,255,255,.18)' : 'transparent', opacity: done || cur ? 1 : .72 },
+        dot: { width: '26px', height: '26px', flex: 'none', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, background: done ? '#fff' : cur ? '#fff' : 'rgba(255,255,255,.18)', color: done || cur ? '#0e0f0e' : '#fff' }
+      };
+    });
+    const segs = STEPS.map((_, i) => ({ flex: 1, height: '4px', borderRadius: '9999px', background: i < step ? 'var(--ink)' : 'var(--surface-sunken)', transition: 'background 260ms' }));
+
+    const tl = [
+      ['done', 'Application submitted', 'Today · Account, business, services and payouts'],
+      ['now', 'Credentials verified', 'Usually 2 business days. We\u2019ll ask if anything needs a second look.'],
+      ['next', 'Go live on PackPass', 'Publish classes and members near Austin can book.']
+    ];
+    const timeline = tl.map(([k, title, sub], i) => ({
+      title, sub,
+      dot: { width: '32px', height: '32px', flex: 'none', borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: k === 'done' ? 'var(--turf)' : k === 'now' ? 'var(--ink)' : 'var(--surface-raised)', color: k === 'done' ? 'var(--on-turf)' : k === 'now' ? 'var(--bg)' : 'var(--ink-muted)' },
+      icon: ic(k === 'done' ? 'check' : k === 'now' ? 'loader' : 'rocket', 16),
+      line: { width: '2px', flex: 1, minHeight: '16px', background: i < tl.length - 1 ? 'var(--surface-sunken)' : 'transparent' }
+    }));
+
+    return {
+      theme: this.props.theme ?? 'dark',
+      isWelcome: step === 0, inFlow: step > 0, is1: step === 1, is2: step === 2, is3: step === 3, is4: step === 4, is5: step === 5, is6: step === 6,
+      screenLabel: 'P' + step + ' ' + (STEPS[step - 1] || 'Submitted'),
+      photoBg: 'url("photos/' + PHOTOS[step] + '.jpg")', sideLine: SIDE[step],
+      values: [
+        ['users', 'Fill open spots', 'You choose how many spots open to PackPass per session.'],
+        ['calendar-check', 'Bookings run themselves', 'Rosters, waitlists, reminders and dog profiles in one dashboard.'],
+        ['banknote', '$9.50 per credit', 'For every credit redeemed, paid out on the 1st of each month.']
+      ].map(([i, title, body]) => ({ icon: ic(i, 18), title, body })),
+      start: () => go(1), back: () => go(step === 6 ? 5 : step - 1), next: () => go(step + 1),
+      exit: e => { e.preventDefault(); go(0); },
+      stepList, segs, showProgress: step < 6, showFooter: step < 6, blocked, footNote: notes[step],
+      nextLabel: step === 5 ? 'Submit application' : 'Continue',
+      f: st.f, set, pwType: st.showPw ? 'text' : 'password', pwToggle: st.showPw ? 'Hide' : 'Show', togglePw: () => this.setState(s => ({ showPw: !s.showPw })),
+      bizName: st.f.biz || 'your business',
+      types: one('type', ['Independent trainer', 'Training facility', 'Dog sport club', 'Behavior specialist', 'Outdoor space']),
+      wheres: many('wheres', ['At my facility', 'Outdoors', 'At members\u2019 homes']),
+      offers: many('offers', ['Agility', 'Scent work', 'Sprint and lure', 'Herding', 'Dock diving', 'Open play', 'Fitness and conditioning', 'Recall', 'Reactivity', 'Puppy foundations', 'Behavior consult']),
+      offerCount: st.offers.length + ' selected',
+      formats: many('formats', ['Group drop-in', 'Small group', 'Private', 'Open session']),
+      sizes: one('size', ['1 to 4', '5 to 8', '9 to 12', '13 or more']),
+      docs, reqCount: reqDone + ' of ' + reqKeys.length + ' required',
+      dropAll: () => DOCS.forEach(([k]) => { const s = st.docs[k].s; if (s === 'empty' || s === 'error') this.upload(k); }),
+      bankTitle: st.bank ? 'Chase checking ••4821' : 'Connect a bank account', bankSub: st.bank ? 'Connected · Maya Okafor' : 'Secure connection. Takes about a minute.',
+      bankBtn: st.bank ? 'Change' : 'Connect', bankBtnVariant: st.bank ? 'quiet' : 'primary', toggleBank: () => this.setState(s => ({ bank: !s.bank })),
+      timeline
+    };
+  }
+}
+</script>
+</body>
+</html>
