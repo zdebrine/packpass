@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "PackPass",
+    "slug": "packpass-member",
+    "scheme": "packpass",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.packpass.member",
+      "infoPlist": {
+        "NSCameraUsageDescription": "PackPass uses the camera to scan the check-in code at a partner's entrance."
+      }
+    },
+    "android": {
+      "package": "com.packpass.member",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0e0f0e"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-font",
+        {
+          "fonts": []
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "backgroundColor": "#0e0f0e"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "PackPass uses the camera to scan the check-in code at a partner's entrance.",
+          "recordAudioAndroid": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
