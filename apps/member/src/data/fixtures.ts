@@ -27,11 +27,11 @@ export const dogs: Record<string, Dog> = {
 };
 
 export const partners: Record<string, Partner> = {
-  ridgeline: { id: 'ridgeline', name: 'Ridgeline Dog Sport', short: 'Ridgeline', street: 'Manor Rd', address: '4410 Manor Rd', distanceMi: 2.4, rating: 4.9, parking: 'Park in the gravel lot by the gate' },
-  northside: { id: 'northside', name: 'Northside Canine', short: 'Northside', street: 'Burnet Rd', address: '5701 Burnet Rd', distanceMi: 1.1, rating: 4.8, parking: 'Street parking on Burnet' },
-  eastfield: { id: 'eastfield', name: 'Eastfield Park', short: 'Eastfield', street: 'Webberville Rd', address: '2200 Webberville Rd', distanceMi: 3.0, rating: 4.7, parking: 'Lot at the north field' },
-  eastside: { id: 'eastside', name: 'Eastside Dog Club', short: 'Eastside', street: 'E Cesar Chavez St', address: '1914 E Cesar Chavez St', distanceMi: 1.8, rating: 4.9, parking: 'Back lot, use the side gate' },
-  southfork: { id: 'southfork', name: 'South Fork Yard', short: 'South Fork', street: 'S Lamar Blvd', address: '3600 S Lamar Blvd', distanceMi: 2.8, rating: 4.6, parking: 'Two spots by the yard gate' },
+  ridgeline: { id: 'ridgeline', name: 'Ridgeline Dog Sport', short: 'Ridgeline', street: 'Manor Rd', address: '4410 Manor Rd', distanceMi: 2.4, rating: 4.9, parking: 'Park in the gravel lot by the gate', lat: 30.2905, lng: -97.6985 },
+  northside: { id: 'northside', name: 'Northside Canine', short: 'Northside', street: 'Burnet Rd', address: '5701 Burnet Rd', distanceMi: 1.1, rating: 4.8, parking: 'Street parking on Burnet', lat: 30.329, lng: -97.739 },
+  eastfield: { id: 'eastfield', name: 'Eastfield Park', short: 'Eastfield', street: 'Webberville Rd', address: '2200 Webberville Rd', distanceMi: 3.0, rating: 4.7, parking: 'Lot at the north field', lat: 30.269, lng: -97.702 },
+  eastside: { id: 'eastside', name: 'Eastside Dog Club', short: 'Eastside', street: 'E Cesar Chavez St', address: '1914 E Cesar Chavez St', distanceMi: 1.8, rating: 4.9, parking: 'Back lot, use the side gate', lat: 30.258, lng: -97.723 },
+  southfork: { id: 'southfork', name: 'South Fork Yard', short: 'South Fork', street: 'S Lamar Blvd', address: '3600 S Lamar Blvd', distanceMi: 2.8, rating: 4.6, parking: 'Two spots by the yard gate', lat: 30.24, lng: -97.786 },
 };
 
 export const trainers: Record<string, Trainer> = {

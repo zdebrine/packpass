@@ -14,9 +14,12 @@ export interface Partner {
   short: string;
   street: string;
   address: string;
+  /** Miles from the member's area or location (src/lib/location.ts). */
   distanceMi: number;
   rating: number;
   parking: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface Trainer {

@@ -15,7 +15,7 @@ import { assessmentFor, bookingFor, cancelRefund, credits as creditsLabel, eligi
 import { now } from '@/lib/clock';
 import { cancelCopy, dayTime, monthDay } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
-import { useApp, useDog, useRules } from '@/store/app';
+import { useApp, useDog, useOriginLabel, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 
@@ -40,6 +40,7 @@ function Section({ title, children, gap = 14 }: { title: string; children: React
 
 /** 05 Class detail */
 export default function ClassDetail() {
+  useOriginLabel(); // re-render when distances are measured from somewhere new
   const { c } = useTheme();
   const top = useTop();
   const { id } = useLocalSearchParams<{ id: string }>();

@@ -1,5 +1,4 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
 import { View } from 'react-native';
 
 import { ENERGY, ENERGY_NOTE, INTERESTS, SOCIAL } from '@/data/fixtures';
@@ -8,17 +7,16 @@ import { Icon } from '@/ds/Icon';
 import { Footer, MiniButton, Screen, themed } from '@/ds/layout';
 import { Text } from '@/ds/Text';
 import { Body, ChipRow, FieldGroup, Intro, StepHeader } from '@/features/onboarding/parts';
+import { AREAS } from '@/lib/location';
 import { useApp } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
-const AREAS = ['Austin · South', 'Austin · East', 'Austin · Central', 'Mueller', 'Cedar Park'];
 
 /** 01g Step 3 · Play style */
 function PlayStyle() {
   const { c } = useTheme();
   const d = useApp((s) => s.draft);
   const update = useApp((s) => s.updateDraft);
-  const [area, setArea] = useState(0);
   const name = d.dogName.trim() || 'Your dog';
 
   return (
@@ -52,8 +50,8 @@ function PlayStyle() {
         <FieldGroup label="Trains near">
           <View style={{ height: 52, paddingLeft: 18, paddingRight: 8, borderRadius: 9999, backgroundColor: c.surfaceRaised, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Icon name="map-pin" color={c.inkMuted} />
-            <Text style={{ flex: 1 }}>{AREAS[area]}</Text>
-            <MiniButton onPress={() => setArea((a) => (a + 1) % AREAS.length)}>Change</MiniButton>
+            <Text style={{ flex: 1 }}>{d.area}</Text>
+            <MiniButton onPress={() => update({ area: AREAS[(AREAS.findIndex((a) => a.label === d.area) + 1) % AREAS.length].label })}>Change</MiniButton>
           </View>
         </FieldGroup>
       </Body>

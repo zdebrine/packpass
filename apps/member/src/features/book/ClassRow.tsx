@@ -4,10 +4,11 @@ import { View } from 'react-native';
 import { ClassCard } from '@/ds/cards';
 import { Pill } from '@/ds/controls';
 import { eligibility, timeLabel, type SessionView } from '@/lib/booking';
-import { useDog, useRules } from '@/store/app';
+import { useDog, useOriginLabel, useRules } from '@/store/app';
 
 /** ClassCard row plus the eligibility and session-type pills shown under it on Book. */
 export function ClassRow({ v, showPartnerAsCoach }: { v: SessionView; showPartnerAsCoach?: boolean }) {
+  useOriginLabel(); // re-render when distances are measured from somewhere new
   const dog = useDog();
   const el = eligibility(v, useRules(), dog.name);
   const cleared = el.ok && el.cleared;

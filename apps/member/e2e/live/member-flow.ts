@@ -17,7 +17,7 @@ const S = () => useApp.getState();
 
 (async () => {
   const email = `e2e+${Date.now()}@packpass.test`;
-  S().updateDraft({ email, ownerName: 'Test Owner' });
+  S().updateDraft({ email, ownerName: 'Test Owner', area: 'Mueller' });
 
   // 01b / 01d
   await S().signUp(email, 'herding4life');
@@ -66,6 +66,14 @@ const S = () => useApp.getState();
   ok(S().activePaths.includes('calm-around-dogs') && S().activePaths.includes('loose-leash-walking'), 'traits start both training paths');
   ok(S().social === 'working', 'Social starts as working on it');
   ok(Object.keys(catalog.classes).length >= 16 && catalog.sessions.length > 300, 'the catalog loads from Supabase');
+
+  // Distances: from the area picked in onboarding, or anywhere the member chooses.
+  ok(S().area === 'Mueller' && catalog.partners.ridgeline.distanceMi < 2, 'the onboarding area is saved, and distances are measured from it');
+  const fromMueller = catalog.partners.southfork.distanceMi;
+  S().setOrigin({ label: 'Near you', lat: 30.505, lng: -97.82 });
+  ok(catalog.partners.southfork.distanceMi > fromMueller + 10, 'choosing another origin re-measures every partner');
+  S().setOrigin(null);
+  ok(catalog.partners.southfork.distanceMi === fromMueller, 'and going back to the area restores it');
   ok(catalog.partners.ridgeline.distanceMi > 0, 'partner distances are computed');
 
   const dog = S().dogs[0].id;

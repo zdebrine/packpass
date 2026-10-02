@@ -141,7 +141,7 @@ Business rules in `src/lib`, unit tested:
 
 1. **v1 (done):** the Expo app with all 24 screens on sample data, running on iOS, Android and web.
 2. **v2 (done, hosted on Supabase `packpass`):** Supabase schema, row level security, storage buckets and booking functions in
-   `supabase/`, tested on Postgres (100 SQL checks) and end to end through PostgREST (54 checks). The app runs
+   `supabase/`, tested on Postgres (100 SQL checks) and end to end through PostgREST (57 checks). The app runs
    against it when `EXPO_PUBLIC_SUPABASE_*` is set: email sign-up with the 6-digit code, sign-in, the dog
    created from onboarding, vaccines, booking, plan booking, cancelling, check-in, the clearance flow and
    notifications, hold reminders, push registration, the waitlist, password reset and dog photos. The app uses the hosted project by default; see `supabase/README.md` for how it
@@ -199,8 +199,13 @@ release 24 hours before the session, and members are reminded a day before that;
   `dog-photos` bucket under `<member>/<dog>/`, stores the path on the dog, deletes the previous photo and shows
   it through week-long signed URLs cached by path. A dog without a photo shows its initial. Sample mode keeps
   the photo on the device.
-- **Live-mode gaps:** distances are measured from Austin ·
-  South, not the member's location; the plan is always Regular; Apple and Google sign-in and buying credits show a message.
+- **Distances** are measured from the area picked in onboarding ("Trains near", saved on the dog), or from
+  anywhere the member picks in Settings › Distances from: another area, or "My location" (when-in-use
+  permission, a recent fix is enough). The Today pill shows which and opens that setting. Sample mode keeps the
+  designs' distances until the member picks somewhere.
+- **Settings** in the live app is Appearance, Distances from and Sign out; Preview states is sample mode only.
+- **Today's hero** shows the member's dog (a field photo until they add one).
+- **Live-mode gaps:** the plan is always Regular; Apple and Google sign-in and buying credits show a message.
 - **Cancelling** lives on the class detail screen (05) when the session is booked: "Cancel booking" under
   Check in, then an inline confirmation that says whether the credits come back (free until 12 hours before;
   the spot always goes back). The designs don't draw it; it reuses the footer's existing buttons.

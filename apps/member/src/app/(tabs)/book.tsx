@@ -15,7 +15,7 @@ import { MapSketch } from '@/features/MapSketch';
 import { eligibility, sessionsFor, timeLabel, view, type SessionView } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { addMinutes, dayOffset, shortDay } from '@/lib/dates';
-import { useApp, useDog, useRules } from '@/store/app';
+import { useApp, useDog, useOriginLabel, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const CATS: Category[] = ['Sport', 'Scent', 'Play', 'Skills'];
@@ -43,6 +43,7 @@ function Segmented({ value, onChange, float }: { value: 'List' | 'Map'; onChange
 
 /** 03 Book · list and 04 Book · map */
 export default function Book() {
+  useOriginLabel(); // re-render when distances are measured from somewhere new
   const { c } = useTheme();
   const top = useTop();
   const [mode, setMode] = useState<'List' | 'Map'>('List');

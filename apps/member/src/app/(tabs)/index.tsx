@@ -16,7 +16,7 @@ import { activeBookings, bookError, bookingFor, credits as creditsLabel, nextSes
 import { now } from '@/lib/clock';
 import { monthDay, relativeDay, time, weekday } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
-import { useApp, useDog, useNotifications, useRules } from '@/store/app';
+import { useApp, useDog, useNotifications, useOriginLabel, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 
@@ -29,6 +29,7 @@ export default function Today() {
   const social = useApp((s) => s.social);
   const read = useApp((s) => s.readNotifications);
   const juno = useDog();
+  const from = useOriginLabel();
   const rules = useRules();
   const notes = useNotifications();
   const canBook = (id: string) => !bookError(id, juno.id, rules);
@@ -73,13 +74,16 @@ export default function Today() {
     <Screen bleed statusLight>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }}>
         <View style={{ height: 440, overflow: 'hidden' }}>
-          <PhotoFill name="juno" position={{ top: '35%', left: '50%' }} />
+          {/* The member's dog; a field photo until they add one. */}
+          <PhotoFill name={juno.photo ?? 'grass'} position={{ top: '35%', left: '50%' }} />
           <HeroScrim />
           <View style={{ position: 'absolute', top: top + 8, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Glass style={{ height: 44, paddingHorizontal: 16, borderRadius: 9999, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Icon name="map-pin" size={18} color="#fff" />
-              <Text variant="wide" color="#fff" style={{ fontSize: 12 }}>Austin · South</Text>
-            </Glass>
+            <Press onPress={() => router.push('/settings')} accessibilityLabel={`Distances from ${from}. Change`}>
+              <Glass style={{ height: 44, paddingHorizontal: 16, borderRadius: 9999, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Icon name="map-pin" size={18} color="#fff" />
+                <Text variant="wide" color="#fff" style={{ fontSize: 12 }}>{from}</Text>
+              </Glass>
+            </Press>
             <View style={{ flex: 1 }} />
             <Press onPress={() => router.push('/notifications')} accessibilityLabel={unread ? 'Notifications, unread' : 'Notifications'} style={{ width: 44, height: 44, borderRadius: 9999, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
               <Glass style={{ position: 'absolute', width: 44, height: 44, borderRadius: 9999 }} />

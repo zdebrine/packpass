@@ -8,6 +8,7 @@ import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, T
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
 import type { Booking, Dog, PhotoSource, PickedDoc, VaccineRecord, WaitEntry } from '@/data/types';
 import { now } from '@/lib/clock';
+import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
 
 export type Appearance = 'system' | 'light' | 'dark';
@@ -32,6 +33,8 @@ export interface OnboardingDraft {
   social: string;
   interests: string[];
   traits: string[];
+  /** "Trains near" (01g); one of AREAS in src/lib/location.ts. */
+  area: string;
 }
 
 const DRAFT: OnboardingDraft = {
@@ -50,6 +53,7 @@ const DRAFT: OnboardingDraft = {
   energy: 'Working dog',
   social: 'Loves dogs',
   interests: ['Herding', 'Sprint', 'Scent'],
+  area: 'Austin · South',
   traits: ['Pulls on the leash', 'Nervous with new dogs'],
 };
 
@@ -82,6 +86,11 @@ interface AppState extends Demo {
   /** Sessions held for the dog until it passes its Social assessment (01j → Today). Stored on the
    * server in live mode (held_spots); each hold reserves the spot until a day before the session. */
   pendingPlan: string[];
+  /** The account's area ("Trains near", saved on the dog). */
+  area: string | null;
+  /** Where distances are measured from, if the member picked somewhere other than their area. */
+  origin: Origin | null;
+  setOrigin: (o: Origin | null) => void;
   /** Full sessions the member is waiting on. A spot that opens is booked for the first dog in line
    * until 12 hours before the start (supabase/migrations/…_waitlist.sql). */
   waitlist: WaitEntry[];
@@ -158,6 +167,8 @@ const fresh = {
   planSwaps: [] as string[],
   pendingPlan: [] as string[],
   waitlist: [] as WaitEntry[],
+  area: null as string | null,
+  origin: null as Origin | null,
   activePaths: ['calm-around-dogs', 'loose-leash-walking'] as Goal['id'][],
   herdingAt: [] as string[],
   vaccines: JUNO_VACCINES.map((v) => ({ type: v.type, expires: localIso(v.expires) })) as Vaccine[],
@@ -275,6 +286,10 @@ export const useApp = create<AppState>()(
           });
           set((st) => ({ pendingPlan: st.pendingPlan.filter((x) => !gone.includes(x)) }));
         },
+        setOrigin: (origin) => {
+          set({ origin });
+          syncDistances();
+        },
         joinWaitlist: async (sessionId, dogId) => {
           if (isLive) return thenRefresh(() => live.joinWaitlist(dogId, sessionId));
           const s = get();
@@ -346,7 +361,7 @@ export const useApp = create<AppState>()(
             await get().refresh();
           } else {
             const photo = get().draft.photo;
-            set((s) => ({ dogs: s.dogs.map((d, i) => (i === 0 ? { ...d, photo: photo ?? undefined } : d)) }));
+            set((s) => ({ dogs: s.dogs.map((d, i) => (i === 0 ? { ...d, photo: photo ?? undefined } : d)), area: s.draft.area }));
           }
           set({ signedIn: true, onboarded: true });
         },
@@ -413,7 +428,9 @@ export const useApp = create<AppState>()(
             pendingPlan: m.holds,
             waitlist: m.waitlist,
             vaccineRecord: m.vaccineRecord,
+            area: m.area,
           });
+          syncDistances();
         },
 
         bookSession: async (sessionId, dogId) => {
@@ -501,12 +518,13 @@ export const useApp = create<AppState>()(
       // Live mode keeps member data in Supabase; only preferences and the onboarding draft persist.
       partialize: (s) =>
         isLive
-          ? { appearance: s.appearance, draft: s.draft }
+          ? { appearance: s.appearance, draft: s.draft, origin: s.origin }
           : {
-              dogs: s.dogs, appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
+              dogs: s.dogs, origin: s.origin, area: s.area, appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
               readNotifications: s.readNotifications, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, social: s.social, socialExpired: s.socialExpired,
               behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines, vaccineRecord: s.vaccineRecord,
             },
+      onRehydrateStorage: () => () => syncDistances(),
       migrate: (persisted, version) => {
         const p = { ...(persisted as Record<string, any>) }; // eslint-disable-line @typescript-eslint/no-explicit-any
         // v1 stored month swaps by title; start them fresh.
@@ -518,6 +536,18 @@ export const useApp = create<AppState>()(
     },
   ),
 );
+
+/**
+ * Measures partner distances from the picked origin, else the account's area. Sample mode keeps the
+ * designs' distances until the member picks somewhere.
+ */
+function syncDistances() {
+  const { origin, area } = useApp.getState();
+  applyDistances(origin ?? (isLive ? areaNamed(area) ?? DEFAULT_AREA : null));
+}
+
+/** What distances are measured from, for the Today pill and Settings. Subscribing re-renders on change. */
+export const useOriginLabel = () => useApp((s) => s.origin?.label ?? s.area ?? DEFAULT_AREA.label);
 
 /** The dog the app is about (Juno in sample mode). */
 export const useDog = () => useApp((s) => s.dogs[0] ?? sampleDogs.juno);

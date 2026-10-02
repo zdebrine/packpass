@@ -1,11 +1,15 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { INITIAL_CREDITS } from '@/data/fixtures';
 import { Button, Chip } from '@/ds/controls';
 import { IconButton, Screen, Toggle } from '@/ds/layout';
 import { Text } from '@/ds/Text';
-import { useApp, type Appearance, useDog } from '@/store/app';
+import { isLive } from '@/api/client';
+import { currentOrigin } from '@/lib/here';
+import { AREAS } from '@/lib/location';
+import { useApp, type Appearance, useDog, useOriginLabel } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 
@@ -23,13 +27,22 @@ function Row({ title, sub, right }: { title: string; sub?: string; right: React.
 }
 
 /**
- * Settings. "Preview states" stands in for the design file's Tweaks panel: it moves the sample data into the
- * states the designs show (re-check passed, clearance expired, out of credits, nothing booked).
+ * Settings: appearance, where distances are measured from, sign out. In sample mode, "Preview states"
+ * stands in for the design file's Tweaks panel: it moves the sample data into the states the designs
+ * show (re-check passed, clearance expired, out of credits, nothing booked). Live mode hides it.
  */
 export default function Settings() {
   const juno = useDog();
   const { c } = useTheme();
   const s = useApp();
+  const from = useOriginLabel();
+  const [locating, setLocating] = useState<'idle' | 'busy' | 'denied'>('idle');
+  const useMyLocation = async () => {
+    setLocating('busy');
+    const here = await currentOrigin().catch(() => null);
+    setLocating(here ? 'idle' : 'denied');
+    if (here) s.setOrigin(here);
+  };
   const stageLabel = { working: 'Working on it', earned: 'Re-check passed, not opened yet', cleared: 'Cleared' }[s.social];
 
   return (
@@ -45,6 +58,18 @@ export default function Settings() {
           ))}
         </View>
 
+        <Text variant="title" style={{ marginBottom: 6 }}>Distances from</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: locating === 'denied' ? 6 : 24 }}>
+          <Chip selected={from === 'Near you'} onPress={useMyLocation}>{locating === 'busy' ? 'Finding you…' : 'My location'}</Chip>
+          {AREAS.map((a) => (
+            <Chip key={a.label} selected={from === a.label} onPress={() => { setLocating('idle'); s.setOrigin(a.label === s.area ? null : a); }}>{a.label}</Chip>
+          ))}
+        </View>
+        {locating === 'denied' ? (
+          <Text variant="caption" muted style={{ marginBottom: 24 }}>Location is off for PackPass. Pick an area, or allow location in your settings.</Text>
+        ) : null}
+
+        {isLive ? null : (<>
         <Text variant="title">Preview states</Text>
         <Text variant="caption" muted style={{ marginBottom: 6 }}>This build runs on sample data. Use these to see the states in the designs.</Text>
 
@@ -86,9 +111,11 @@ export default function Settings() {
           ) : null}
         />
 
+        </>)}
+
         <View style={{ gap: 8, marginTop: 24 }}>
-          <Button block variant="quiet" onPress={() => { s.resetDemo(); router.dismissTo('/'); }}>Reset sample data</Button>
-          <Button block variant="quiet" onPress={() => { s.resetDemo(); s.signOut(); router.replace('/welcome'); }}>Sign out</Button>
+          {isLive ? null : <Button block variant="quiet" onPress={() => { s.resetDemo(); router.dismissTo('/'); }}>Reset sample data</Button>}
+          <Button block variant="quiet" onPress={async () => { if (!isLive) s.resetDemo(); await s.signOut(); router.replace('/welcome'); }}>Sign out</Button>
         </View>
       </ScrollView>
     </Screen>

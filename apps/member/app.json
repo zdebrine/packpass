@@ -75,6 +75,12 @@
           "cameraPermission": "PackPass uses the camera to scan the check-in code at a partner's entrance.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PackPass uses your location to show how far each class is from you."
+        }
       ]
     ],
     "experiments": {

@@ -10,14 +10,6 @@ import { db } from './client';
 
 const PHOTOS: PhotoKey[] = ['collie', 'grass', 'hurdle', 'juno', 'lab', 'leap', 'rail', 'sprint', 'tunnel', 'wall', 'weave'];
 const photo = (k: string | null | undefined, fallback: PhotoKey): PhotoKey => (PHOTOS.includes(k as PhotoKey) ? (k as PhotoKey) : fallback);
-/** Miles from the member's area. Until the app asks for location, that's Austin · South. */
-const HOME = [30.229, -97.788];
-function miles(lat?: number | null, lng?: number | null) {
-  if (lat == null || lng == null) return 0;
-  const r = (x: number) => (x * Math.PI) / 180;
-  const a = Math.sin(r(lat - HOME[0]) / 2) ** 2 + Math.cos(r(HOME[0])) * Math.cos(r(lat)) * Math.sin(r(lng - HOME[1]) / 2) ** 2;
-  return Math.round(3958.8 * 2 * Math.asin(Math.sqrt(a)) * 10) / 10;
-}
 
 const cap = <T extends string>(s: string) => (s.charAt(0).toUpperCase() + s.slice(1)) as T;
 
@@ -86,7 +78,8 @@ export async function loadCatalog() {
   setCatalog({
     partners: Object.fromEntries((partners as any[]).map((p): [string, Partner] => [p.id, {
       id: p.id, name: p.name, short: p.short_name, street: p.street, address: p.address,
-      distanceMi: miles(p.lat, p.lng), rating: Number(p.rating ?? 0), parking: p.parking ?? '',
+      // The store measures distances from the member's area or location once the catalog is in.
+      distanceMi: 0, lat: p.lat ?? undefined, lng: p.lng ?? undefined, rating: Number(p.rating ?? 0), parking: p.parking ?? '',
     }])),
     trainers: Object.fromEntries((trainers as any[]).map((t): [string, Trainer] => [t.id, {
       id: t.id, name: t.name, credential: t.credential ?? '', photo: photo(t.photo_url, 'lab'), rating: Number(t.rating ?? 0),
@@ -121,6 +114,8 @@ export interface MemberSnapshot {
   /** Sessions held for the main dog until its Social assessment. */
   holds: string[];
   waitlist: WaitEntry[];
+  /** The area picked in onboarding ("Trains near"), stored on the main dog. */
+  area: string | null;
   /** The main dog's vet record, if one was uploaded. */
   vaccineRecord: VaccineRecord | null;
 }
@@ -194,6 +189,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     })),
     readNotifications: notes.filter((n) => n.read_at).map((n) => n.id),
     holds: mine(holds).map((h) => h.session_id),
+    area: dogs[0]?.area ?? null,
     waitlist: waiting.map((w) => ({ sessionId: w.session_id, dogId: w.dog_id, place: w.place })),
   };
 }
@@ -213,7 +209,7 @@ export async function createDog(d: OnboardingDraft) {
   const dog = check(await c.from('dogs').insert({
     owner_id: auth.user.id, name: d.dogName.trim(), sex: d.sex.toLowerCase(), breed: d.breed || null, mixed: d.mixed,
     birth_month: d.birthMonth + 1, birth_year: d.birthYear, weight_lb: d.weight, fixed: d.fixed,
-    energy: ENERGY[d.energy], sociability: SOCIABILITY[d.social], interests: d.interests, traits: d.traits,
+    energy: ENERGY[d.energy], sociability: SOCIABILITY[d.social], interests: d.interests, traits: d.traits, area: d.area,
   }).select('id').single()) as { id: string };
   for (const t of d.traits) {
     if (TRAIT_PATHS[t]) check(await c.rpc('start_path', { p_dog: dog.id, p_path: TRAIT_PATHS[t] }));

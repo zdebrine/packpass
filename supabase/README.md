@@ -68,7 +68,7 @@ Expo with `--clear` (Metro caches env values).
   shim for `auth` and `storage`) and runs `booking.test.sql`: 100 checks covering each rule, credits, holds, reminders, the waitlist,
   RLS and storage policies. `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
-  PostgREST, with a stand-in for Supabase Auth and Storage: 54 checks, from sign-up with a dog photo and vet record to a password reset and sign-in again.
+  PostgREST, with a stand-in for Supabase Auth and Storage: 57 checks, from sign-up with a dog photo and vet record to a password reset and sign-in again.
 
 ## The hosted project
 
