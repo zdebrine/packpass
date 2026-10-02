@@ -3,7 +3,7 @@
 
 import { setCatalog } from '@/data/catalog';
 import type { Goal, Notif } from '@/data/passport';
-import type { Booking, ClassType, Dog, LogEntry, Partner, PhotoKey, PickedDoc, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
+import type { Booking, ClassType, ClearanceRecord, Dog, LogEntry, Partner, PhotoKey, PickedDoc, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
 import type { OnboardingDraft, SocialStage } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { db } from './client';
@@ -118,6 +118,8 @@ export interface MemberSnapshot {
   area: string | null;
   /** The main dog's vet record, if one was uploaded. */
   vaccineRecord: VaccineRecord | null;
+  /** The main dog's clearances, newest first (expired ones too). */
+  clearances: ClearanceRecord[];
 }
 
 const ageOf = (year?: number | null, month?: number | null) => {
@@ -169,7 +171,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     credits: profile.credits_balance,
     dogs: dogs.map((d) => ({
       id: d.id, name: d.name, photo: photoUrl.has(d.photo_path) ? { uri: photoUrl.get(d.photo_path)!, cacheKey: d.photo_path } : undefined, breed: d.mixed ? 'Mixed breed' : d.breed ?? '',
-      ...ageOf(d.birth_year, d.birth_month), since: d.member_since,
+      ...ageOf(d.birth_year, d.birth_month), since: d.member_since, traits: d.traits ?? [],
     })),
     bookings: bookings.map((b) => ({ id: b.id, sessionId: b.session_id, dogId: b.dog_id, credits: b.credits_charged, status: b.status === 'checked_in' ? 'checked_in' : 'booked' })),
     social: !social ? 'working' : social.seen_at ? 'cleared' : 'earned',
@@ -191,6 +193,10 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     holds: mine(holds).map((h) => h.session_id),
     area: dogs[0]?.area ?? null,
     waitlist: waiting.map((w) => ({ sessionId: w.session_id, dogId: w.dog_id, place: w.place })),
+    clearances: mine(clearances).sort((a, b) => (a.assessed_on < b.assessed_on ? 1 : -1)).map((k): ClearanceRecord => ({
+      id: k.id, type: k.type, scope: k.scope, partnerId: k.partner_id, assessedOn: k.assessed_on, expiresOn: k.expires_on,
+      assessor: k.assessor, strengths: k.strengths ?? [], workingOn: k.working_on ?? [], quote: k.quote, seen: !!k.seen_at,
+    })),
   };
 }
 
@@ -213,6 +219,11 @@ const ENERGY: Record<string, string> = { Couch: 'couch', Medium: 'medium', High:
 const SOCIABILITY: Record<string, string> = { 'Loves dogs': 'loves_dogs', Selective: 'selective', 'Prefers solo': 'prefers_solo' };
 /** Traits that start a training path at sign-up (same as PLAN_GOALS in fixtures). */
 const TRAIT_PATHS: Record<string, Goal['id']> = { 'Nervous with new dogs': 'calm-around-dogs', 'Pulls on the leash': 'loose-leash-walking' };
+
+/** Edits the dog's traits from the Passport. */
+export async function saveTraits(dogId: string, traits: string[]) {
+  check(await db().from('dogs').update({ traits }).eq('id', dogId));
+}
 
 /** Saves the onboarding dog and starts the paths its traits point to. */
 export async function createDog(d: OnboardingDraft) {

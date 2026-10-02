@@ -3,7 +3,9 @@ import { execFileSync } from 'node:child_process';
 import { catalog } from '@/data/catalog';
 import { nextSession } from '@/lib/booking';
 import { setLiveClock } from '@/lib/clock';
+import { liveHerding, liveSocial } from '@/lib/clearances';
 import { liveLog } from '@/lib/log';
+import { statsOf } from '@/lib/stats';
 import { useApp } from '@/store/app';
 
 setLiveClock(true);
@@ -117,6 +119,14 @@ const S = () => useApp.getState();
   await new Promise((res) => setTimeout(res, 300));
   await S().refresh();
   ok(S().social === 'cleared', 'opening the celebration marks the clearance seen');
+  const social = liveSocial(S().clearanceRecords!, S().log!);
+  ok(social.status === 'cleared' && social.facts[0][1] === 'Eastside Dog Club' && social.assessor?.startsWith('Sam Reyes, Eastside Dog Club'),
+     'the Passport shows the real clearance: issuer and assessor');
+  ok(liveHerding(S().clearanceRecords!).status === 'needs', 'and Herding still needs an assessment');
+  await S().updateDraft({ traits: ['Pulls on the leash', 'Barks at bikes'] });
+  await S().saveTraits(dog);
+  ok(psql(`select array_to_string(traits, ',') from dogs where id = '${dog}'`) === 'Pulls on the leash,Barks at bikes' && S().dogs[0].traits?.length === 2,
+     'editing traits saves them to the dog');
   r = await S().bookSession(agility.session.id, dog);
   ok(r.ok, 'with Social, group sport books');
   const fromHold = await S().bookHeld(dog);
@@ -154,6 +164,8 @@ const S = () => useApp.getState();
   const view = liveLog(S().log!, dog, 'Juno', S().social);
   ok(view.stats[0][0] === String(S().log!.filter((e) => e.startsAt.getMonth() === new Date().getMonth()).length) && view.sessions[0].trainer.startsWith('Dev Patel · '),
      'and counts toward the month');
+  const stats = statsOf(S().log!.filter((e) => e.dogId === dog));
+  ok(stats.sessions === S().log!.length && stats.disciplines >= 1 && stats.levels[0].level === 1, 'the Athlete Card counts sessions and disciplines from the Log');
 
   // Hold reminders: the device is linked for push, and a hold within a day of release gets a reminder.
   await S().registerPush('ExponentPushToken[e2e-device]', 'ios');

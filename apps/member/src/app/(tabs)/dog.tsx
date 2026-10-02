@@ -3,8 +3,10 @@ import { useState } from 'react';
 import { ScrollView, Share, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated';
 
-import { disciplineLevels, TRAIT_SPECIAL } from '@/data/fixtures';
-import { goals, HERDING, isComplete, socialClearance, STATUS_LABEL, stepIndex, type Clearance } from '@/data/passport';
+import { TRAIT_SPECIAL } from '@/data/fixtures';
+import { goals, isComplete, STATUS_LABEL, stepIndex, type Clearance } from '@/data/passport';
+import { useClearances } from '@/lib/clearances';
+import { useDogStats } from '@/lib/stats';
 import { AthleteCard } from '@/ds/cards';
 import { Button, Chip, Tag } from '@/ds/controls';
 import { Badge, Bars, IconButton, Screen } from '@/ds/layout';
@@ -22,6 +24,7 @@ import { motion } from '@/theme/tokens';
 
 function FlipCard() {
   const juno = useDog();
+  const stats = useDogStats();
   const { c } = useTheme();
   const [flipped, setFlipped] = useState(false);
   const deg = useDerivedValue(() => withTiming(flipped ? 180 : 0, { duration: motion.slow, easing: Easing.bezier(...motion.easeOut) }));
@@ -44,15 +47,15 @@ function FlipCard() {
           age={juno.age}
           stage={juno.stage}
           since={juno.since}
-          streak={9}
-          stats={[{ value: 42, label: 'Sessions' }, { value: 38, label: 'Hours active' }, { value: 5, label: 'Disciplines' }]}
+          streak={stats.streak >= 2 ? stats.streak : undefined}
+          stats={[{ value: stats.sessions, label: 'Sessions' }, { value: stats.hours, label: 'Hours active' }, { value: stats.disciplines, label: 'Disciplines' }]}
         />
       </Animated.View>
       <Animated.View style={[face, back, { borderRadius: 28, backgroundColor: c.pitch, paddingVertical: 28, paddingHorizontal: 24, boxShadow: c.shadowCard }]}>
         <Text variant="wide" color={c.onPitchMuted}>{`${juno.name} · Discipline levels`}</Text>
-        <Text variant="displayXl" color={c.onPitch} style={{ marginTop: 10 }}>Five disciplines.</Text>
+        <Text variant="displayXl" color={c.onPitch} style={{ marginTop: 10 }}>{stats.levelsTitle}</Text>
         <View style={{ gap: 20, marginTop: 30 }}>
-          {disciplineLevels.map((l) => (
+          {stats.levels.map((l) => (
             <View key={l.name}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <Text variant="label" color={c.onPitch}>{l.name}</Text>
@@ -112,12 +115,13 @@ export default function DogProfile() {
   const juno = useDog();
   const { c } = useTheme();
   const social = useApp((s) => s.social);
-  const expired = useApp((s) => s.socialExpired);
-  const traits = useApp((s) => s.draft.traits).filter((t) => !TRAIT_SPECIAL.includes(t));
+  const draftTraits = useApp((s) => s.draft.traits);
+  const traits = (juno.traits ?? draftTraits).filter((t) => !TRAIT_SPECIAL.includes(t));
   const styleFor = useClearanceStyle();
   const dogs = useApp((s) => s.dogs);
   const vaccines = useApp((s) => s.vaccines);
-  const clearances = [socialClearance(social, expired), HERDING];
+  const passport = useClearances();
+  const clearances = [passport.social, passport.herding];
 
   return (
     <Screen>

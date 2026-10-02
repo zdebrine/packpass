@@ -13,6 +13,8 @@ import { Icon } from '@/ds/Icon';
 import { IconButton, Screen, useBottom, useTop, themed } from '@/ds/layout';
 import { Gradient, Photo, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
+import { catalog } from '@/data/catalog';
+import { monthYear, useClearances } from '@/lib/clearances';
 import { useApp, useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 import { motion } from '@/theme/tokens';
@@ -144,11 +146,23 @@ function ThemeAgility() {
   );
 }
 
+/** The real clearance in live mode; the designs' Eastside re-check in sample mode. */
+function useEarned() {
+  const k = useClearances().socialRecord;
+  if (!k) return { issuer: 'Eastside', issuerFull: 'Eastside Dog Club', earned: 'Today', validTo: 'Sep 2027', quote: RECHECK_QUOTE, assessor: 'Sam Reyes' };
+  const p = catalog.partners[k.partnerId];
+  return {
+    issuer: p?.short ?? p?.name ?? 'PackPass', issuerFull: p?.name ?? 'PackPass partner', earned: monthYear(k.assessedOn),
+    validTo: k.expiresOn ? monthYear(k.expiresOn) : 'No expiry', quote: k.quote, assessor: k.assessor,
+  };
+}
+
 function Facts() {
   const { c } = useTheme();
+  const e = useEarned();
   return (
     <View style={{ flexDirection: 'row', gap: 8 }}>
-      {[['Issued by', 'Eastside'], ['Earned', 'Today'], ['Valid to', 'Sep 2027']].map(([k, v]) => (
+      {[['Issued by', e.issuer], ['Earned', e.earned], ['Valid to', e.validTo]].map(([k, v]) => (
         <View key={k} style={{ flex: 1, backgroundColor: c.surfaceRaised, borderRadius: 20, padding: 14 }}>
           <Text variant="caption" muted>{k}</Text>
           <Text variant="label" weight="600" style={{ marginTop: 4 }}>{v}</Text>
@@ -178,11 +192,13 @@ function Unlocks() {
 
 function Quote() {
   const { c } = useTheme();
+  const e = useEarned();
+  if (!e.quote) return null;
   return (
     <View style={{ marginTop: 28, padding: 20, borderRadius: 28, backgroundColor: c.surfaceRaised }}>
       <Text variant="wide" muted>From the assessor</Text>
-      <Text style={{ marginTop: 10 }}>{`“${RECHECK_QUOTE}”`}</Text>
-      <Text variant="caption" muted style={{ marginTop: 8 }}>Sam Reyes, Eastside Dog Club</Text>
+      <Text style={{ marginTop: 10 }}>{`“${e.quote}”`}</Text>
+      <Text variant="caption" muted style={{ marginTop: 8 }}>{[e.assessor, e.issuerFull].filter(Boolean).join(', ')}</Text>
     </View>
   );
 }

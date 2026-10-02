@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
-import { monthDone, monthSuggestions, PLAN, recommended } from '@/data/fixtures';
+import { catalog } from '@/data/catalog';
+import { monthSuggestions, PLAN, recommended } from '@/data/fixtures';
 import { goals, isComplete, stepIndex } from '@/data/passport';
 import { AthleteCard, ClassCard } from '@/ds/cards';
 import { Button, Tag } from '@/ds/controls';
@@ -17,6 +18,7 @@ import { now } from '@/lib/clock';
 import { monthDay, relativeDay, time, weekday } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
 import { monthHeader } from '@/lib/log';
+import { useDogStats, useMonthDone } from '@/lib/stats';
 import { useApp, useDog, useNotifications, useOriginLabel, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -42,17 +44,22 @@ export default function Today() {
   const step = goal ? goal.steps[stepIndex(goal)] : undefined;
   const stepView = step?.classId ? nextSession(step.classId) : undefined;
   const stepBooked = !!step?.classId && upcoming.some((x) => x.v.cls.id === step.classId);
-  // The first suggestion Juno can book that isn't booked yet.
-  const suggestion = monthSuggestions
+  const { done, short } = useMonthDone();
+  const stats = useDogStats();
+  // The first suggestion Juno can book that isn't booked yet. Live mode suggests the soonest class in the
+  // balance the month is shortest on.
+  const suggestIds = short ? Object.values(catalog.classes).filter((k) => k.balance === short).map((k) => k.id) : monthSuggestions;
+  const suggestion = suggestIds
     .map((id) => nextSession(id, 1))
-    .find((v) => v && canBook(v.session.id) && !bookingFor(bookings, v.session.id));
+    .filter((v) => v && canBook(v.session.id) && !bookingFor(bookings, v.session.id))
+    .sort((a, b) => (short ? +a!.session.startsAt - +b!.session.startsAt : 0))[0];
   const picks = recommended
     .map(([id, from]) => nextSession(id, from))
     .filter((v): v is NonNullable<typeof v> => !!v && canBook(v.session.id))
     .slice(0, 4);
 
   const month = [
-    ...monthDone.map((m) => ({ key: m.title, meta: m.meta, title: m.title, photo: m.photo, status: 'Done' as string | null, onPress: undefined as undefined | (() => void) })),
+    ...done.map((m) => ({ ...m, status: 'Done' as string | null, onPress: undefined as undefined | (() => void) })),
     ...upcoming.slice(0, 4).map(({ booking, v }) => ({
       key: booking.id,
       meta: `Booked · ${weekday(v.session.startsAt).slice(0, 3)} ${monthDay(v.session.startsAt)} · ${v.cls.balance}`,
@@ -101,7 +108,7 @@ export default function Today() {
 
         <View style={{ marginTop: -28, backgroundColor: c.bg, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 20 }}>
           <Press onPress={() => router.push('/dog')} scale={false} style={{ paddingHorizontal: 20 }} accessibilityLabel={`${juno.name}'s profile`}>
-            <AthleteCard compact name={juno.name} photo={juno.photo} breed={juno.breed} age={juno.age} stage={juno.stage} streak={9} />
+            <AthleteCard compact name={juno.name} photo={juno.photo} breed={juno.breed} age={juno.age} stage={juno.stage} streak={stats.streak >= 2 ? stats.streak : undefined} />
           </Press>
 
           <View style={{ marginTop: 32, paddingHorizontal: 20 }}>

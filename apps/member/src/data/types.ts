@@ -81,6 +81,22 @@ export interface WaitEntry {
   place: number;
 }
 
+/** A clearance on the dog's Passport, as the partner recorded it. */
+export interface ClearanceRecord {
+  id: string;
+  type: ClearanceType;
+  /** Social is valid across the network; Herding only at the partner that assessed it. */
+  scope: 'network' | 'partner';
+  partnerId: string;
+  assessedOn: string;
+  expiresOn: string | null;
+  assessor: string | null;
+  strengths: string[];
+  workingOn: string[];
+  quote: string | null;
+  seen: boolean;
+}
+
 /** A session a dog went to (07 Log), with the trainer's note and any assessment result. */
 export interface LogEntry {
   bookingId: string;
@@ -134,4 +150,6 @@ export interface Dog {
   age: string;
   stage: string;
   since: number;
+  /** What the owner picked in onboarding (01h), e.g. "Pulls on the leash". Live mode only. */
+  traits?: string[];
 }

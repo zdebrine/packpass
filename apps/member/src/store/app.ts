@@ -6,7 +6,7 @@ import { isLive } from '@/api/client';
 import * as live from '@/api/live';
 import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, TRAIT_SPECIAL } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
-import type { Booking, Dog, LogEntry, PhotoSource, PickedDoc, VaccineRecord, WaitEntry } from '@/data/types';
+import type { Booking, ClearanceRecord, Dog, LogEntry, PhotoSource, PickedDoc, VaccineRecord, WaitEntry } from '@/data/types';
 import { now } from '@/lib/clock';
 import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
@@ -108,12 +108,16 @@ interface AppState extends Demo {
   socialClearanceId: string | null;
   /** Live mode: the dogs' sessions that have run (07 Log). Null in sample mode, which shows the designs' log. */
   log: LogEntry[] | null;
+  /** Live mode: the main dog's clearance rows. Null in sample mode (the Passport shows the designs' Juno). */
+  clearanceRecords: ClearanceRecord[] | null;
   /** Live mode: catalog and member are loaded. */
   ready: boolean;
 
   setAppearance: (a: Appearance) => void;
   updateDraft: (patch: Partial<OnboardingDraft>) => void;
   toggleTrait: (t: string) => void;
+  /** Saves the draft's traits to the dog (Passport › Edit). Sample mode keeps them in the draft. */
+  saveTraits: (dogId: string) => Promise<void>;
   toggleSwap: (classId: string) => void;
   /** Holds sessions until the dog passes its Social assessment (spot reserved, no credits). */
   holdSessions: (sessionIds: string[], dogId: string) => Promise<{ sessionId: string; error: string | null }[]>;
@@ -180,6 +184,7 @@ const fresh = {
   remoteNotifications: null as Notif[] | null,
   socialClearanceId: null as string | null,
   log: null as LogEntry[] | null,
+  clearanceRecords: null as ClearanceRecord[] | null,
   social: 'working' as SocialStage,
   socialExpired: false,
   behaviorNote: false,
@@ -188,7 +193,7 @@ const fresh = {
 // Live mode starts empty and fills from Supabase on sign-in.
 if (isLive) {
   Object.assign(fresh, {
-    dogs: [], credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], remoteNotifications: [], log: [],
+    dogs: [], credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], remoteNotifications: [], log: [], clearanceRecords: [],
   });
 }
 
@@ -246,6 +251,9 @@ export const useApp = create<AppState>()(
 
         setAppearance: (appearance) => set({ appearance }),
         updateDraft: (patch) => set((s) => ({ draft: { ...s.draft, ...patch } })),
+        saveTraits: async (dogId) => {
+          if (isLive) await thenRefresh(() => live.saveTraits(dogId, get().draft.traits));
+        },
         toggleTrait: (t) =>
           set((s) => {
             const cur = s.draft.traits;
@@ -370,7 +378,7 @@ export const useApp = create<AppState>()(
         },
         signOut: async () => {
           if (isLive) await live.signOut(get().pushToken);
-          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [] } : {}) });
+          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [], clearanceRecords: [] } : {}) });
         },
         setDogPhoto: async (dogId, dataUri) => {
           if (isLive) {
@@ -429,6 +437,7 @@ export const useApp = create<AppState>()(
             remoteNotifications: m.notifications,
             readNotifications: m.readNotifications,
             log: log ?? get().log,
+            clearanceRecords: m.clearances,
             pendingPlan: m.holds,
             waitlist: m.waitlist,
             vaccineRecord: m.vaccineRecord,

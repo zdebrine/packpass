@@ -3,7 +3,8 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn, SlideInDown } from 'react-native-reanimated';
 
 import { credits as creditsLabel, nextSession } from '@/lib/booking';
-import { HERDING, socialClearance, STATUS_LABEL } from '@/data/passport';
+import { STATUS_LABEL } from '@/data/passport';
+import { useClearances } from '@/lib/clearances';
 import { Button } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
 import { Badge, Grabber, useBottom, useTop } from '@/ds/layout';
@@ -24,9 +25,9 @@ export default function ClearanceDetail() {
   const bottom = useBottom(34);
   const { type } = useLocalSearchParams<{ type: string }>();
   const social = useApp((s) => s.social);
-  const expired = useApp((s) => s.socialExpired);
   const recheck = nextSession('social-recheck');
-  const k = type === 'herding' ? HERDING : socialClearance(social, expired);
+  const passport = useClearances();
+  const k = type === 'herding' ? passport.herding : passport.social;
   const st = useClearanceStyle()(k);
   const facts: [string, string, string][] = [['Status', STATUS_LABEL[k.status], st.color], ...k.facts.map(([a, b]) => [a, b, c.ink] as [string, string, string])];
 
@@ -75,7 +76,7 @@ export default function ClearanceDetail() {
           {k.status === 'needs' ? (
             <View style={{ marginTop: 20, padding: 18, borderRadius: 20, backgroundColor: c.surfaceRaised, gap: 12 }}>
               <Text variant="label">{k.note}</Text>
-              <Button block onPress={() => { const a = nextSession('herding-assessment'); if (a) router.replace(`/book/${a.session.id}`); }}>Book assessment</Button>
+              <Button block onPress={() => { const a = nextSession(k.type === 'herding' ? 'herding-assessment' : 'social-assessment'); if (a) router.replace(`/book/${a.session.id}`); }}>Book assessment</Button>
             </View>
           ) : null}
 
