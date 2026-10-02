@@ -60,6 +60,13 @@
           "cameraPermission": "PackPass uses the camera to scan the check-in code at a partner's entrance.",
           "recordAudioAndroid": false
         }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "PackPass adds the sessions you book to your calendar.",
+          "remindersPermission": false
+        }
       ]
     ],
     "experiments": {

@@ -251,6 +251,87 @@ reset role;
 select t.ok(not exists (select 1 from push_tokens), 'a member can remove their device on sign-out');
 select t.expect_error($$set local role anon; select public.remind_expiring_holds()$$, 'permission denied');
 
+-- ---- Waitlist ----------------------------------------------------------------------------------
+reset role;
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-0000000000f1', 'first@dog.co'),
+  ('00000000-0000-0000-0000-0000000000f2', 'second@dog.co'),
+  ('00000000-0000-0000-0000-0000000000f3', 'third@dog.co');
+-- Each demo member books Herding Fundamentals; make room for three more.
+update sessions set capacity = capacity + 3, packpass_spots = packpass_spots + 3, spots_left = spots_left + 3 where class_id = 'herding-fundamentals';
+select public.seed_demo_member('00000000-0000-0000-0000-0000000000f1');
+select public.seed_demo_member('00000000-0000-0000-0000-0000000000f2');
+select public.seed_demo_member('00000000-0000-0000-0000-0000000000f3');
+create table t.w as select
+  t.next_session('sniff-space') sniff,
+  (select id from sessions where class_id = 'sniff-space' and starts_at > now() + interval '1 day' order by starts_at offset 1 limit 1) other,
+  (select id from dogs where owner_id = '00000000-0000-0000-0000-0000000000f1' and name = 'Juno') d1,
+  (select id from dogs where owner_id = '00000000-0000-0000-0000-0000000000f2' and name = 'Juno') d2,
+  (select id from dogs where owner_id = '00000000-0000-0000-0000-0000000000f3' and name = 'Juno') d3;
+grant select on t.w to authenticated;
+create function t.as_member(n int) returns void language sql as $$
+  select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000f' || n, false)
+$$;
+grant execute on function t.as_member to authenticated;
+
+set role authenticated;
+select t.as_member(1);
+select public.book_session((select sniff from t.w), (select d1 from t.w));
+reset role;
+update sessions set spots_left = 0 where id = (select sniff from t.w);
+set role authenticated;
+select t.as_member(2);
+select t.ok(public.join_waitlist((select d2 from t.w), (select sniff from t.w)) = 1, 'a member joins a full session''s waitlist, first in line');
+select t.expect_error($$select public.join_waitlist((select d2 from t.w), (select sniff from t.w))$$, 'already_waiting');
+select t.expect_error($$select public.join_waitlist((select d2 from t.w), (select other from t.w))$$, 'not_full');
+select t.as_member(3);
+select t.ok(public.join_waitlist((select d3 from t.w), (select sniff from t.w)) = 2, 'the next member is second');
+select t.ok((select place from public.my_waitlist() where session_id = (select sniff from t.w)) = 2, 'members see their place in line');
+select t.as_member(1);
+select t.expect_error($$select public.join_waitlist((select d1 from t.w), (select sniff from t.w))$$, 'already_booked');
+
+-- A cancellation books the first in line.
+select public.cancel_booking((select id from bookings where dog_id = (select d1 from t.w) and session_id = (select sniff from t.w)));
+reset role;
+select t.ok(exists (select 1 from bookings where dog_id = (select d2 from t.w) and session_id = (select sniff from t.w) and status = 'booked'), 'a cancellation books the first dog in line');
+select t.ok((select spots_left from sessions where id = (select sniff from t.w)) = 0, 'the opened spot is taken, not left open');
+select t.ok((select credits_balance from profiles where id = '00000000-0000-0000-0000-0000000000f2') = 6, 'the waitlisted member is charged');
+select t.ok((select status from waitlist where dog_id = (select d2 from t.w)) = 'booked', 'their waitlist entry is closed as booked');
+select t.ok(exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-0000000000f2' and kind = 'waitlist_booked')
+            and not exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-0000000000f2' and kind = 'booked' and href like '%' || (select sniff from t.w)),
+            'they get one "off the waitlist" notification');
+
+-- If the next member can't book any more, they're skipped and told why.
+update profiles set credits_balance = 0 where id = '00000000-0000-0000-0000-0000000000f3';
+set role authenticated;
+select t.as_member(2);
+select public.cancel_booking((select id from bookings where dog_id = (select d2 from t.w) and session_id = (select sniff from t.w)));
+reset role;
+select t.ok((select status from waitlist where dog_id = (select d3 from t.w)) = 'missed', 'a member without credits is skipped');
+select t.ok(exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-0000000000f3' and kind = 'waitlist_missed' and body like '%not enough credits%'), 'and told why');
+select t.ok((select spots_left from sessions where id = (select sniff from t.w)) = 1, 'with nobody left in line, the spot stays open');
+
+-- Inside 12 hours nothing books itself; everyone waiting hears about the spot once.
+update profiles set credits_balance = 7 where id = '00000000-0000-0000-0000-0000000000f3';
+update sessions set spots_left = 0 where id = (select other from t.w);
+set role authenticated;
+select t.as_member(3);
+select public.join_waitlist((select d3 from t.w), (select other from t.w));
+reset role;
+update sessions set starts_at = now() + interval '6 hours' where id = (select other from t.w);
+update sessions set spots_left = 1 where id = (select other from t.w);
+update sessions set spots_left = 0 where id = (select other from t.w);
+update sessions set spots_left = 1 where id = (select other from t.w);
+select t.ok(not exists (select 1 from bookings where dog_id = (select d3 from t.w) and session_id = (select other from t.w)), 'inside 12 hours the waitlist doesn''t book for you');
+select t.ok((select count(*) from notifications where member_id = '00000000-0000-0000-0000-0000000000f3' and kind = 'waitlist_open') = 1, 'it tells you once that a spot opened');
+set role authenticated;
+select t.as_member(3);
+select public.leave_waitlist((select d3 from t.w), (select other from t.w));
+select t.ok(not exists (select 1 from public.my_waitlist()), 'a member can leave the waitlist');
+select t.ok(not exists (select 1 from waitlist where member_id <> '00000000-0000-0000-0000-0000000000f3'), 'members only see their own waitlist rows');
+reset role;
+select t.expect_error($$set local role authenticated; select public.fill_from_waitlist((select sniff from t.w))$$, 'permission denied');
+
 -- ---- Monthly credits ---------------------------------------------------------------------------
 reset role;
 update profiles set credits_balance = 14, credits_reset_on = current_date where email = 'alex@kim.co';

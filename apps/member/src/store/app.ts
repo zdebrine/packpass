@@ -6,7 +6,7 @@ import { isLive } from '@/api/client';
 import * as live from '@/api/live';
 import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, TRAIT_SPECIAL } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
-import type { Booking, Dog } from '@/data/types';
+import type { Booking, Dog, WaitEntry } from '@/data/types';
 import { now } from '@/lib/clock';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
 
@@ -81,6 +81,9 @@ interface AppState extends Demo {
   /** Sessions held for the dog until it passes its Social assessment (01j → Today). Stored on the
    * server in live mode (held_spots); each hold reserves the spot until a day before the session. */
   pendingPlan: string[];
+  /** Full sessions the member is waiting on. A spot that opens is booked for the first dog in line
+   * until 12 hours before the start (supabase/migrations/…_waitlist.sql). */
+  waitlist: WaitEntry[];
   /** Paths the main dog is still working through. Their sessions skip the Social gate. */
   activePaths: Goal['id'][];
   /** Partners where the main dog holds a Herding clearance. */
@@ -102,12 +105,20 @@ interface AppState extends Demo {
   /** Books every held session; failures stay held. */
   bookHeld: (dogId: string) => Promise<{ sessionId: string; error: string | null }[]>;
   releaseHolds: (dogId: string, sessionId?: string) => Promise<void>;
+  /** Joins a full session's waitlist; resolves with the dog's place in line. */
+  joinWaitlist: (sessionId: string, dogId: string) => Promise<number>;
+  leaveWaitlist: (sessionId: string, dogId: string) => Promise<void>;
+  /** Sample mode: someone cancels, so the first waitlisted session books itself (Preview states). */
+  openWaitlistSpot: () => BookResult | null;
 
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   verifyEmail: (code: string) => Promise<void>;
   finishOnboarding: () => Promise<void>;
   signOut: () => Promise<void>;
+  /** Forgot password: email a code, then set a new password with it (signs in). */
+  requestPasswordReset: (email: string) => Promise<void>;
+  resetPassword: (email: string, code: string, password: string) => Promise<void>;
   /** Live mode, phones only: this device's Expo push token, once the member allows notifications. */
   pushToken: string | null;
   registerPush: (token: string, platform: 'ios' | 'android') => Promise<void>;
@@ -139,6 +150,7 @@ const fresh = {
   readNotifications: INITIALLY_READ,
   planSwaps: [] as string[],
   pendingPlan: [] as string[],
+  waitlist: [] as WaitEntry[],
   activePaths: ['calm-around-dogs', 'loose-leash-walking'] as Goal['id'][],
   herdingAt: [] as string[],
   vaccines: JUNO_VACCINES.map((v) => ({ type: v.type, expires: localIso(v.expires) })) as Vaccine[],
@@ -198,6 +210,7 @@ export const useApp = create<AppState>()(
           bookings: [...st.bookings, booking],
           credits: st.credits - v.cls.credits,
           pendingPlan: st.pendingPlan.filter((x) => x !== sessionId),
+          waitlist: st.waitlist.filter((w) => !(w.sessionId === sessionId && w.dogId === dogId)),
         }));
         return { ok: true, bookingId: booking.id };
       };
@@ -252,6 +265,35 @@ export const useApp = create<AppState>()(
           });
           set((st) => ({ pendingPlan: st.pendingPlan.filter((x) => !gone.includes(x)) }));
         },
+        joinWaitlist: async (sessionId, dogId) => {
+          if (isLive) return thenRefresh(() => live.joinWaitlist(dogId, sessionId));
+          const s = get();
+          if (s.waitlist.some((w) => w.sessionId === sessionId && w.dogId === dogId)) throw new Error('already_waiting');
+          const error = bookError(sessionId, dogId, ruleContext(s));
+          if (error === null) throw new Error('not_full');
+          if (error !== 'full') throw new Error(error);
+          const v = view(sessionId)!;
+          if (s.credits < v.cls.credits) throw new Error('credits');
+          // Sample data has no other members; say two dogs got there first.
+          const place = 3;
+          set((st) => ({ waitlist: [...st.waitlist, { sessionId, dogId, place }] }));
+          return place;
+        },
+        leaveWaitlist: async (sessionId, dogId) => {
+          if (isLive) {
+            await thenRefresh(() => live.leaveWaitlist(dogId, sessionId));
+            return;
+          }
+          set((st) => ({ waitlist: st.waitlist.filter((w) => !(w.sessionId === sessionId && w.dogId === dogId)) }));
+        },
+        openWaitlistSpot: () => {
+          const w = get().waitlist.find((x) => (view(x.sessionId)?.session.startsAt.getTime() ?? 0) - now().getTime() >= 12 * 3_600_000);
+          if (!w) return null;
+          view(w.sessionId)!.session.spotsLeft += 1;
+          const r = bookLocal(w.sessionId, w.dogId);
+          if (!r.ok) set((st) => ({ waitlist: st.waitlist.filter((x) => x !== w) }));
+          return r;
+        },
         toggleSwap: (classId) =>
           set((s) => ({ planSwaps: s.planSwaps.includes(classId) ? s.planSwaps.filter((x) => x !== classId) : [...s.planSwaps, classId] })),
 
@@ -292,6 +334,19 @@ export const useApp = create<AppState>()(
           if (isLive) await live.signOut(get().pushToken);
           set({ signedIn: false, onboarded: false, pushToken: null });
         },
+        requestPasswordReset: async (email) => {
+          if (isLive) await live.requestPasswordReset(email);
+        },
+        resetPassword: async (email, code, password) => {
+          if (password.length < 8) throw new Error('weak_password');
+          if (isLive) {
+            await live.resetPassword(email, code, password);
+            await get().refresh();
+            set({ signedIn: true, onboarded: get().dogs.length > 0 });
+            return;
+          }
+          set({ signedIn: true, onboarded: true });
+        },
         pushToken: null,
         registerPush: async (token, platform) => {
           if (!isLive || !get().signedIn) return;
@@ -322,6 +377,7 @@ export const useApp = create<AppState>()(
             remoteNotifications: m.notifications,
             readNotifications: m.readNotifications,
             pendingPlan: m.holds,
+            waitlist: m.waitlist,
           });
         },
 
@@ -406,7 +462,7 @@ export const useApp = create<AppState>()(
           ? { appearance: s.appearance, draft: s.draft }
           : {
               appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
-              readNotifications: s.readNotifications, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, social: s.social, socialExpired: s.socialExpired,
+              readNotifications: s.readNotifications, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, social: s.social, socialExpired: s.socialExpired,
               behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines,
             },
       // v1 stored month swaps by title; start them fresh.

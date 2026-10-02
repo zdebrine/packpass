@@ -71,6 +71,13 @@ export interface Booking {
   status: BookingStatus;
 }
 
+/** A dog waiting for a spot in a full session. place 1 = next in line. */
+export interface WaitEntry {
+  sessionId: string;
+  dogId: string;
+  place: number;
+}
+
 export type ClearanceStatus = 'cleared' | 'expired' | 'working' | 'needs';
 
 export interface Dog {

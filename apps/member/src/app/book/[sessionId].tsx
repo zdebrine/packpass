@@ -8,9 +8,11 @@ import { errorCopy } from '@/api/errors';
 import { PLAN } from '@/data/fixtures';
 import { Button, Chip, Tag } from '@/ds/controls';
 import { Grabber, useBottom } from '@/ds/layout';
+import { WaitlistActions } from '@/features/book/Waitlist';
 import { Photo, PhotoFill, Scrim } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { credits as creditsLabel, eligibility, sameDaySessions, view } from '@/lib/booking';
+import { addToCalendar } from '@/lib/calendar';
 import { cancelCopy, dayTimeInline, relativeDay, time } from '@/lib/dates';
 import { comingWithAccounts } from '@/lib/notice';
 import { useApp, useRules } from '@/store/app';
@@ -32,6 +34,7 @@ export default function BookingSheet() {
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [added, setAdded] = useState(false);
   const credits = useApp((s) => s.credits);
   const bookings = useApp((s) => s.bookings);
   const rules = useRules();
@@ -83,7 +86,7 @@ export default function BookingSheet() {
             </View>
             <Text variant="caption" muted style={{ marginTop: 14, marginHorizontal: 4 }}>{`${partner.name} · ${partner.address}. ${cancelCopy(session.startsAt)}.`}</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
-              <Button variant="quiet" style={{ flex: 1 }} onPress={() => comingWithAccounts('Add to calendar')}>Add to calendar</Button>
+              <Button variant="quiet" style={{ flex: 1 }} disabled={added} onPress={() => addToCalendar(v).then(setAdded).catch(() => {})}>{added ? 'Added' : 'Add to calendar'}</Button>
               <Button style={{ flex: 1 }} onPress={() => router.dismissTo('/')}>Done</Button>
             </View>
           </>
@@ -126,7 +129,7 @@ export default function BookingSheet() {
               ) : already ? (
                 <Button block disabled>{`${dog?.name ?? 'Your dog'} is booked for this`}</Button>
               ) : session.spotsLeft === 0 ? (
-                <Button block onPress={() => comingWithAccounts('Join the waitlist')}>Join the waitlist</Button>
+                <WaitlistActions v={v} dogId={dogId} dogName={dog?.name ?? 'your dog'} />
               ) : short ? (
                 <>
                   <Button block onPress={() => comingWithAccounts('Buy more credits')}>Buy more credits</Button>

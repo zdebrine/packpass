@@ -9,12 +9,12 @@ import { Badge, Bars, Footer, IconButton, Screen, useTop } from '@/ds/layout';
 import { Press } from '@/ds/Press';
 import { Photo, PhotoFill, Gradient } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
+import { WaitlistActions } from '@/features/book/Waitlist';
 import { MapSketch } from '@/features/MapSketch';
 import { assessmentFor, bookingFor, cancelRefund, credits as creditsLabel, eligibility, view } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { cancelCopy, dayTime, monthDay } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
-import { comingWithAccounts } from '@/lib/notice';
 import { useApp, useDog, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -255,10 +255,7 @@ export default function ClassDetail() {
             <Button variant="quiet" block onPress={() => router.replace('/book')}>See other classes</Button>
           </>
         ) : session.spotsLeft === 0 ? (
-          <>
-            <Text variant="caption" muted center>This class is full. Join the waitlist or pick another time.</Text>
-            <Button block onPress={() => comingWithAccounts('Join the waitlist')}>Join the waitlist</Button>
-          </>
+          <WaitlistActions v={v} dogId={juno.id} dogName={juno.name} />
         ) : (
           <>
             <Text variant="caption" muted center>{cancelCopy(session.startsAt)}</Text>

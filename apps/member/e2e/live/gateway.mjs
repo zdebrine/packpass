@@ -54,6 +54,18 @@ http.createServer(async (req, res) => {
     if (!u || u.password !== password || !u.confirmed) return json(res, 400, { msg: 'Invalid login credentials', error_code: 'invalid_credentials' });
     return json(res, 200, session(u.id, email));
   }
+  if (p === '/auth/v1/recover') {
+    await readBody(req); // Always 200, like GoTrue, so it doesn't reveal which emails have accounts.
+    return json(res, 200, {});
+  }
+  if (p === '/auth/v1/user' && req.method === 'PUT') {
+    const tok = (req.headers.authorization || '').split(' ')[1] || '';
+    const claims = JSON.parse(Buffer.from(tok.split('.')[1], 'base64url').toString());
+    const { password } = await readBody(req);
+    if (!password || password.length < 8) return json(res, 422, { msg: 'Password should be at least 8 characters.', error_code: 'weak_password' });
+    users.get(claims.email).password = password;
+    return json(res, 200, userObj(claims.sub, claims.email));
+  }
   if (p === '/auth/v1/user') {
     const tok = (req.headers.authorization || '').split(' ')[1] || '';
     try {

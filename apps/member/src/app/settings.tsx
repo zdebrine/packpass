@@ -78,6 +78,14 @@ export default function Settings() {
           right={<Button size="sm" variant="quiet" fill={c.bg} onPress={s.clearBookings}>Clear</Button>}
         />
 
+        <Row
+          title="Waitlist"
+          sub={s.waitlist.length ? `Waiting on ${s.waitlist.length}. A spot opening books the first one more than 12 hours out.` : 'Join a full class to try it.'}
+          right={s.waitlist.length ? (
+            <Button size="sm" onPress={() => { const r = s.openWaitlistSpot(); if (r?.ok) router.dismissTo('/'); }}>Open a spot</Button>
+          ) : null}
+        />
+
         <View style={{ gap: 8, marginTop: 24 }}>
           <Button block variant="quiet" onPress={() => { s.resetDemo(); router.dismissTo('/'); }}>Reset sample data</Button>
           <Button block variant="quiet" onPress={() => { s.resetDemo(); s.signOut(); router.replace('/welcome'); }}>Sign out</Button>

@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn, SlideInDown } from 'react-native-reanimated';
 
-import { nextSession } from '@/lib/booking';
+import { credits as creditsLabel, nextSession } from '@/lib/booking';
 import { HERDING, socialClearance, STATUS_LABEL } from '@/data/passport';
 import { Button } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
@@ -10,7 +10,6 @@ import { Badge, Grabber, useBottom, useTop } from '@/ds/layout';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { useClearanceStyle } from '@/features/passport/style';
-import { comingWithAccounts } from '@/lib/notice';
 import { useApp, useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 import { motion } from '@/theme/tokens';
@@ -26,6 +25,7 @@ export default function ClearanceDetail() {
   const { type } = useLocalSearchParams<{ type: string }>();
   const social = useApp((s) => s.social);
   const expired = useApp((s) => s.socialExpired);
+  const recheck = nextSession('social-recheck');
   const k = type === 'herding' ? HERDING : socialClearance(social, expired);
   const st = useClearanceStyle()(k);
   const facts: [string, string, string][] = [['Status', STATUS_LABEL[k.status], st.color], ...k.facts.map(([a, b]) => [a, b, c.ink] as [string, string, string])];
@@ -54,7 +54,11 @@ export default function ClearanceDetail() {
           {k.status === 'expired' ? (
             <View style={{ marginTop: 20, padding: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft, gap: 12 }}>
               <Text variant="label" weight="600" color={c.kennelRed}>Social clearance expired. Book a quick re-check to keep group classes open.</Text>
-              <Button block onPress={() => comingWithAccounts('Book a re-check')}>Book a re-check · 1 credit</Button>
+              {recheck ? (
+                <Button block onPress={() => router.replace(`/book/${recheck.session.id}`)}>{`Book a re-check · ${creditsLabel(recheck.cls.credits)}`}</Button>
+              ) : (
+                <Text variant="caption" muted>No re-check times in the next 4 weeks. Check back soon.</Text>
+              )}
             </View>
           ) : null}
           {k.status === 'working' && social === 'earned' ? (

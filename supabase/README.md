@@ -29,6 +29,11 @@ local Supabase stack, and the same migrations can be pushed to a hosted project 
   member once when a dog's holds are within a day of releasing, and `push_tokens` with
   `register_push_token` links a phone's Expo push token to the signed-in member (a device moves to whoever
   signs in on it; members can only read and delete their own).
+- `migrations/…_waitlist.sql` — `join_waitlist`, `leave_waitlist` and `my_waitlist` (place in line). When a
+  session gets a spot back, a trigger books the first dog in line (`book_as`, the body of `book_session` for a
+  given member) until 12 hours before the start, skipping and telling anyone who can't book any more; inside 12
+  hours it tells everyone waiting instead.
+- `templates/` — the sign-up and password-reset emails, sending the 6-digit code the app asks for.
 - `functions/send-push` — Edge Function that sends `hold_expiring`, `holds_released` and `clearance_earned`
   notifications to the member's phones through the Expo push API, and forgets devices Expo reports as gone.
   The logic is in `push.ts`, tested with `node --test supabase/functions/send-push/push.test.ts`.
@@ -44,15 +49,16 @@ cp apps/member/.env.example apps/member/.env.local   # paste the API URL and ano
 cd apps/member && npx expo start
 ```
 
-Sign-up sends a 6-digit code (Inbucket at http://127.0.0.1:54324 shows the email locally).
+Sign-up and password reset send a 6-digit code (Inbucket at http://127.0.0.1:54324 shows the email locally).
+On a hosted project, paste `templates/confirmation.html` and `templates/recovery.html` into Auth › Email Templates.
 
 ## Tests
 
 - `supabase/tests/run-local.sh` — applies everything to a scratch database on plain Postgres (with a small
-  shim for `auth` and `storage`) and runs `booking.test.sql`: 71 checks covering each rule, credits, holds and reminders,
+  shim for `auth` and `storage`) and runs `booking.test.sql`: 90 checks covering each rule, credits, holds, reminders, the waitlist,
   RLS and storage policies. `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
-  PostgREST, with a stand-in for Supabase Auth: 35 checks from sign-up to sign-in again.
+  PostgREST, with a stand-in for Supabase Auth: 42 checks from sign-up to a password reset and sign-in again.
 
 ## Deploying
 

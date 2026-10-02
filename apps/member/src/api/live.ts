@@ -3,7 +3,7 @@
 
 import { setCatalog } from '@/data/catalog';
 import type { Goal, Notif } from '@/data/passport';
-import type { Booking, ClassType, Dog, Partner, PhotoKey, Session, Trainer } from '@/data/types';
+import type { Booking, ClassType, Dog, Partner, PhotoKey, Session, Trainer, WaitEntry } from '@/data/types';
 import type { OnboardingDraft, SocialStage } from '@/store/app';
 import { db } from './client';
 
@@ -39,6 +39,17 @@ export async function verifyEmail(email: string, token: string) {
 
 export async function resendCode(email: string) {
   check(await db().auth.resend({ type: 'signup', email }));
+}
+
+/** Emails a 6-digit reset code (supabase/templates/recovery.html). Succeeds whether or not the account exists. */
+export async function requestPasswordReset(email: string) {
+  check(await db().auth.resetPasswordForEmail(email));
+}
+
+/** Checks the reset code, which signs the member in, then sets the new password. */
+export async function resetPassword(email: string, token: string, password: string) {
+  check(await db().auth.verifyOtp({ email, token, type: 'recovery' }));
+  check(await db().auth.updateUser({ password }));
 }
 
 export async function signIn(email: string, password: string) {
@@ -108,6 +119,7 @@ export interface MemberSnapshot {
   readNotifications: string[];
   /** Sessions held for the main dog until its Social assessment. */
   holds: string[];
+  waitlist: WaitEntry[];
 }
 
 const ageOf = (year?: number | null, month?: number | null) => {
@@ -134,13 +146,14 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
   const dogs = check(await c.from('dogs').select('*').order('created_at')) as any[];
   const dogIds = dogs.map((d) => d.id);
   const main = dogs[0]?.id ?? null;
-  const [bookings, clearances, paths, vaccines, notes, holds] = await Promise.all([
+  const [bookings, clearances, paths, vaccines, notes, holds, waiting] = await Promise.all([
     c.from('bookings').select('*').neq('status', 'cancelled').then(check),
     c.from('clearances').select('*').in('dog_id', dogIds).then(check),
     c.from('dog_paths').select('*').in('dog_id', dogIds).then(check),
     c.from('vaccinations').select('*').in('dog_id', dogIds).then(check),
     c.from('notifications').select('*').order('created_at', { ascending: false }).limit(50).then(check),
     c.from('held_spots').select('session_id, dog_id, expires_at').eq('status', 'held').gt('expires_at', new Date().toISOString()).then(check),
+    c.rpc('my_waitlist').then(check),
   ]) as any[][];
 
   const today = new Date().toISOString().slice(0, 10);
@@ -165,7 +178,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     vaccines: vax.map((v) => ({ type: ({ rabies: 'Rabies', dhpp: 'DHPP', bordetella: 'Bordetella' } as const)[v.type as 'rabies'], expires: v.expires_on })),
     notifications: notes.map((n): Notif => ({
       id: n.id,
-      icon: n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : n.kind === 'hold_expiring' || n.kind === 'holds_released' ? 'clock' : 'message-square',
+      icon: n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : n.kind === 'waitlist_booked' ? 'calendar-check' : n.kind.startsWith('waitlist') || n.kind.startsWith('hold') ? 'clock' : 'message-square',
       tone: n.kind === 'clearance_earned' ? 'clr' : 'n',
       title: n.title, body: n.body, time: relTime(n.created_at),
       cat: cap(n.category), isNew: Date.now() - new Date(n.created_at).getTime() < 3 * 86_400_000 || !n.read_at,
@@ -173,6 +186,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     })),
     readNotifications: notes.filter((n) => n.read_at).map((n) => n.id),
     holds: mine(holds).map((h) => h.session_id),
+    waitlist: waiting.map((w) => ({ sessionId: w.session_id, dogId: w.dog_id, place: w.place })),
   };
 }
 
@@ -228,6 +242,15 @@ export async function bookHeld(dogId: string) {
 
 export async function releaseHolds(dogId: string, sessionId?: string) {
   check(await db().rpc('release_holds', { p_dog: dogId, p_session: sessionId ?? null }));
+}
+
+/** Joins a full session's waitlist. Returns the dog's place in line. */
+export async function joinWaitlist(dogId: string, sessionId: string) {
+  return check(await db().rpc('join_waitlist', { p_dog: dogId, p_session: sessionId })) as number;
+}
+
+export async function leaveWaitlist(dogId: string, sessionId: string) {
+  check(await db().rpc('leave_waitlist', { p_dog: dogId, p_session: sessionId }));
 }
 
 export async function cancel(bookingId: string) {

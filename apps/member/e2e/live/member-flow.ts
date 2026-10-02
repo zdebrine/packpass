@@ -93,6 +93,20 @@ const S = () => useApp.getState();
 
   await S().holdSessions([nextSession('open-field', 3)!.session.id], dog);
 
+  // Waitlist: join a full session; when a spot opens more than 12 hours out, it books itself.
+  const sniffFull = nextSession('sniff-space', 4)!;
+  psql(`update sessions set spots_left = 0 where id = '${sniffFull.session.id}'`);
+  await S().refresh();
+  const creditsBefore = S().credits;
+  ok((await S().joinWaitlist(sniffFull.session.id, dog)) === 1 && S().waitlist.length === 1, 'a full session can be waitlisted, first in line');
+  threw = '';
+  try { await S().joinWaitlist(sniffFull.session.id, dog); } catch (e) { threw = (e as Error).message; }
+  ok(threw === 'already_waiting', 'joining twice is refused');
+  psql(`update sessions set spots_left = 1 where id = '${sniffFull.session.id}'`);
+  await S().refresh();
+  ok(S().bookings.some((b) => b.sessionId === sniffFull.session.id) && S().waitlist.length === 0 && S().credits === creditsBefore - 1, 'an opened spot books the waitlisted dog');
+  ok(S().remoteNotifications!.some((x) => x.title === 'Off the waitlist. Sniff space is booked.'), 'and says so');
+
   // Hold reminders: the device is linked for push, and a hold within a day of release gets a reminder.
   await S().registerPush('ExponentPushToken[e2e-device]', 'ios');
   ok(psql(`select count(*) from push_tokens where token = 'ExponentPushToken[e2e-device]'`) === '1', 'the device is linked for push');
@@ -107,8 +121,19 @@ const S = () => useApp.getState();
   threw = '';
   try { await S().signIn(email, 'wrong-password'); } catch (e) { threw = (e as Error).message; }
   ok(/invalid/i.test(threw), 'a wrong password is rejected');
-  await S().signIn(email, 'herding4life');
-  ok(S().onboarded && S().bookings.length === 4, 'signing back in restores the dog and bookings');
+  // Forgot password: the emailed code (123456 in the stand-in) sets a new password and signs in.
+  await S().requestPasswordReset(email);
+  threw = '';
+  try { await S().resetPassword(email, '000000', 'collies-rule-99'); } catch (e) { threw = (e as Error).message; }
+  ok(/expired|invalid/i.test(threw) && !S().signedIn, 'a wrong reset code is rejected');
+  await S().resetPassword(email, '123456', 'collies-rule-99');
+  ok(S().signedIn && S().onboarded, 'a reset code sets the new password and signs in');
+  await S().signOut();
+  threw = '';
+  try { await S().signIn(email, 'herding4life'); } catch (e) { threw = (e as Error).message; }
+  ok(/invalid/i.test(threw), 'the old password stops working');
+  await S().signIn(email, 'collies-rule-99');
+  ok(S().onboarded && S().bookings.length === 5, 'signing back in restores the dog and bookings');
   ok(S().pendingPlan.length === 1, 'held spots follow the member to a new sign-in');
 
   console.log(`\nAll ${n} live-mode checks passed.`);

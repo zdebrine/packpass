@@ -62,7 +62,7 @@ function SignIn() {
             <Text variant="label" weight="600" color={c.kennelRed}>{error === 'mismatch' ? "That email and password don't match. Try again or reset your password." : error}</Text>
           </View>
         ) : null}
-        <TextLink onPress={() => comingWithAccounts('Reset your password')}>Forgot password</TextLink>
+        <TextLink onPress={() => router.push('/reset')}>Forgot password</TextLink>
         <Button block disabled={busy} onPress={submit}>{busy ? 'Signing in…' : 'Sign in'}</Button>
         <Text variant="caption" muted center style={{ marginTop: 6 }}>Or</Text>
         <View style={{ gap: 8 }}>

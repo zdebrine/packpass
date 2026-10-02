@@ -37,7 +37,7 @@ The designs are 390pt phone screens. On web, v1 renders the same mobile layout i
 | Backend (phase 2) | Supabase: Postgres, Auth (email OTP, Apple, Google), Storage (dog photos, vaccine docs), RLS, Edge Functions |
 | Payments (phase 2) | Stripe Billing for plans, Stripe Payment Sheet for credit packs. Dog classes are real-world services, so App Store in-app purchase rules don't apply; Stripe is allowed on iOS. |
 | Maps (phase 2) | `react-native-maps` on native plus a Mapbox GL web component, behind one `<Map>` wrapper. v1 redraws the design's map placeholder. |
-| Push | Expo Push through `expo-notifications`. Built: hold reminders, released holds, new clearances (`supabase/functions/send-push`). Later: booking reminders, waitlist openings, session notes |
+| Push | Expo Push through `expo-notifications`. Built: hold reminders, released holds, new clearances, waitlist bookings and openings (`supabase/functions/send-push`). Later: booking reminders, session notes |
 | QR check-in | `expo-camera` barcode scanning on iOS and Android, and on web where the browser supports camera scanning (HTTPS only). Fallback: a 4-digit code entry, which the design already has as "Enter code instead". |
 | Analytics (phase 2) | PostHog (onboarding completion, first booking, monthly active dogs) |
 | Quality | `tsc --noEmit` (strict) in v1. Planned: ESLint (`expo lint`), Jest for `src/lib`, Playwright against the web build. |
@@ -141,10 +141,10 @@ Business rules in `src/lib`, unit tested:
 
 1. **v1 (done):** the Expo app with all 24 screens on sample data, running on iOS, Android and web.
 2. **v2 (done, local only):** Supabase schema, row level security, storage buckets and booking functions in
-   `supabase/`, tested on Postgres (71 SQL checks) and end to end through PostgREST (35 checks). The app runs
+   `supabase/`, tested on Postgres (90 SQL checks) and end to end through PostgREST (42 checks). The app runs
    against it when `EXPO_PUBLIC_SUPABASE_*` is set: email sign-up with the 6-digit code, sign-in, the dog
    created from onboarding, vaccines, booking, plan booking, cancelling, check-in, the clearance flow and
-   notifications, hold reminders and push registration. There is no hosted project yet (the EarlyBird Labs free plan is at its 2-project limit).
+   notifications, hold reminders, push registration, the waitlist and password reset. There is no hosted project yet (the EarlyBird Labs free plan is at its 2-project limit).
 3. **v3:** hosted Supabase project, Apple and Google sign-in, photo and document upload, Stripe plans and
    credit packs, push delivery switched on (EAS project, webhook, dev build), a real map with the member's location, the partner dashboard writing schedules,
    assessments and check-in codes, PostHog.
@@ -176,8 +176,21 @@ release 24 hours before the session, and members are reminded a day before that;
   Database Webhook, and a development build (Expo Go and the web don't receive remote pushes).
 - **Vaccines.** Bookings need Rabies, DHPP and Bordetella current on the day. Members enter expiry months on
   the vaccines screen; records are unverified until a partner checks the paperwork (`verified` column).
+- **Waitlist.** A full session's footer (class detail and booking sheet) offers "Join the waitlist". Every rule
+  but "full" applies when joining, including credits. When a spot opens (a cancellation or a released hold) more
+  than 12 hours before the start, the first dog in line is booked automatically and charged, and the member is
+  notified (and pushed); they can still cancel for free. Inside 12 hours nothing books itself: everyone waiting
+  is told once, and the first to book gets it. If the first member can't book any more (credits, vaccines), they
+  are skipped and told why. Sample mode puts you 3rd in line; Settings › Preview states › "Open a spot" plays the
+  cancellation.
+- **Add to calendar** (booking sheet) opens the phone's own "new event" sheet, filled in, with no calendar
+  permission; the web downloads an .ics file with a one-hour alert.
+- **Forgot password** (from sign-in) emails a 6-digit code, then takes the code and a new password and signs in.
+  Not in the designs; built from the sign-in and verify screens' parts. Supabase's emails are set to send codes
+  (`supabase/templates`), which the hosted project needs too.
+- **Re-check** on an expired Social clearance books the next Social re-check (2 credits; the design said 1).
 - **Live-mode gaps:** dog photos use the sample photo (no upload yet); distances are measured from Austin ·
-  South, not the member's location; the plan is always Regular; Apple and Google sign-in show a message.
+  South, not the member's location; the plan is always Regular; Apple and Google sign-in and buying credits show a message.
 - **Cancelling** lives on the class detail screen (05) when the session is booked: "Cancel booking" under
   Check in, then an inline confirmation that says whether the credits come back (free until 12 hours before;
   the spot always goes back). The designs don't draw it; it reuses the footer's existing buttons.

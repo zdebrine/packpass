@@ -19,6 +19,9 @@ const COPY: Record<string, string> = {
   too_late: 'This session has ended.',
   not_booked: 'There\'s no booking to check in to.',
   too_soon: 'Spots can only be held until the day before a session.',
+  weak_password: 'Use at least 8 characters.',
+  already_waiting: 'Already on the waitlist for this session.',
+  not_full: 'A spot just opened. Book it now.',
 };
 
 /** Short, human sentence for an error code or a raw error. */
