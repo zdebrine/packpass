@@ -81,6 +81,32 @@ export interface WaitEntry {
   place: number;
 }
 
+/** A session a dog went to (07 Log), with the trainer's note and any assessment result. */
+export interface LogEntry {
+  bookingId: string;
+  dogId: string;
+  startsAt: Date;
+  durationMin: number;
+  classId: string;
+  title: string;
+  image: PhotoKey;
+  balance: 'physical' | 'mental' | 'social';
+  partner: string;
+  trainer: string | null;
+  note: string | null;
+  skills: string[];
+  /** Who wrote the note (the trainer signed in on the dashboard). */
+  noteBy: string | null;
+  assessment: {
+    type: 'social' | 'herding';
+    outcome: 'cleared' | 'not_yet';
+    quote: string | null;
+    strengths: string[];
+    workingOn: string[];
+    assessor: string;
+  } | null;
+}
+
 /** A picked vet record, ready to show and upload: a data URI with its original name and type. */
 export interface PickedDoc {
   name: string;

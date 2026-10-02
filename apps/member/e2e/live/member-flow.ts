@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { catalog } from '@/data/catalog';
 import { nextSession } from '@/lib/booking';
 import { setLiveClock } from '@/lib/clock';
+import { liveLog } from '@/lib/log';
 import { useApp } from '@/store/app';
 
 setLiveClock(true);
@@ -142,6 +143,17 @@ const S = () => useApp.getState();
   await S().refresh();
   ok(S().bookings.some((b) => b.sessionId === sniffFull.session.id) && S().waitlist.length === 0 && S().credits === creditsBefore - 1, 'an opened spot books the waitlisted dog');
   ok(S().remoteNotifications!.some((x) => x.title === 'Off the waitlist. Sniff space is booked.'), 'and says so');
+
+  // Log: a session that ran shows with the trainer's note from the partner dashboard.
+  const ran = S().bookings.find((b) => b.status === 'booked')!;
+  psql(`update sessions set starts_at = now() - interval '2 hours' where id = '${ran.sessionId}'`);
+  psql(`insert into session_notes (booking_id, trainer_id, note, skills) values ('${ran.id}', 'dev', 'Fast on the recall. Needs a longer warm-up.', '{Recall}')`);
+  await S().refresh();
+  const logged = S().log!.find((e) => e.bookingId === ran.id);
+  ok(logged?.note === 'Fast on the recall. Needs a longer warm-up.' && logged.noteBy === 'Dev Patel', 'a session that ran is in the Log with the trainer\'s note');
+  const view = liveLog(S().log!, dog, 'Juno', S().social);
+  ok(view.stats[0][0] === String(S().log!.filter((e) => e.startsAt.getMonth() === new Date().getMonth()).length) && view.sessions[0].trainer.startsWith('Dev Patel · '),
+     'and counts toward the month');
 
   // Hold reminders: the device is linked for push, and a hold within a day of release gets a reminder.
   await S().registerPush('ExponentPushToken[e2e-device]', 'ios');

@@ -3,7 +3,7 @@
 
 import { setCatalog } from '@/data/catalog';
 import type { Goal, Notif } from '@/data/passport';
-import type { Booking, ClassType, Dog, Partner, PhotoKey, PickedDoc, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
+import type { Booking, ClassType, Dog, LogEntry, Partner, PhotoKey, PickedDoc, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
 import type { OnboardingDraft, SocialStage } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { db } from './client';
@@ -192,6 +192,19 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     area: dogs[0]?.area ?? null,
     waitlist: waiting.map((w) => ({ sessionId: w.session_id, dogId: w.dog_id, place: w.place })),
   };
+}
+
+/** The member's sessions that have run, newest first (07 Log). */
+export async function loadLog(): Promise<LogEntry[]> {
+  const rows = check(await db().rpc('my_log', { p_months: 120 })) as any[];
+  return rows.map((r) => ({
+    bookingId: r.booking_id, dogId: r.dog_id, startsAt: new Date(r.starts_at), durationMin: r.duration_min, classId: r.class_id,
+    title: r.title, image: (r.image ?? 'grass') as PhotoKey, balance: r.balance, partner: r.partner_name, trainer: r.trainer_name,
+    note: r.note, skills: r.skills ?? [], noteBy: r.note_by,
+    assessment: r.outcome
+      ? { type: r.assessed, outcome: r.outcome, quote: r.quote, strengths: r.strengths ?? [], workingOn: r.working_on ?? [], assessor: r.assessor }
+      : null,
+  }));
 }
 
 // ---- Writes --------------------------------------------------------------------------------

@@ -16,6 +16,7 @@ import { activeBookings, bookError, bookingFor, credits as creditsLabel, nextSes
 import { now } from '@/lib/clock';
 import { monthDay, relativeDay, time, weekday } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
+import { monthHeader } from '@/lib/log';
 import { useApp, useDog, useNotifications, useOriginLabel, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -133,7 +134,7 @@ export default function Today() {
           <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
               <Text variant="title">This month</Text>
-              <Text variant="caption" muted>{`September · resets ${PLAN.resetsLabel}`}</Text>
+              <Text variant="caption" muted>{`${monthHeader().month} · resets ${monthHeader().resets}`}</Text>
             </View>
             <View style={{ gap: 8 }}>
               {month.map((m) => (
@@ -209,7 +210,7 @@ export default function Today() {
                   <Text variant="display2xl" num>{credits}</Text>
                   <Text variant="heading" muted>{`of ${PLAN.credits}`}</Text>
                 </View>
-                <Text variant="caption" muted style={{ marginTop: 6 }}>{`${credits} of ${PLAN.credits} credits left, resets ${PLAN.resetsLabel}`}</Text>
+                <Text variant="caption" muted style={{ marginTop: 6 }}>{`${credits} of ${PLAN.credits} credits left, resets ${monthHeader().resets}`}</Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 4, alignItems: 'flex-end', height: 56 }}>
                 {Array.from({ length: PLAN.credits }, (_, i) => (

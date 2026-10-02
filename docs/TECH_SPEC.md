@@ -149,7 +149,7 @@ Business rules in `src/lib`, unit tested:
 3. **v3:** the partner dashboard (done: schedules, rosters and check-in, vet records, notes, assessment
    results, classes, earnings; payouts wait on Stripe Connect). Still to come: Apple and Google sign-in, Stripe
    plans, credit packs and partner payouts, push delivery switched on (EAS project, dev build), a real map,
-   PostHog, and partner notes and results shown in the member app's Log.
+   and PostHog. The member app's Log now shows real sessions, partner notes and assessment results.
 
 ## 8. Decisions and known gaps
 

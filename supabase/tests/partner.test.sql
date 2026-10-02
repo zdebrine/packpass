@@ -191,6 +191,21 @@ reset role;
 select p.ok(exists (select 1 from dog_paths where dog_id = (select juno from p.ids) and path_id = 'calm-around-dogs' and completed_at is null), 'not yet, with a goal, starts the path to Social');
 select p.ok(exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-0000000000a3' and kind = 'assessment_result' and body like 'Close.%training path%'), 'and tells the owner');
 
+-- ---- The member's Log -------------------------------------------------------------------------------
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a3');
+select p.ok((select note from public.my_log() where booking_id = (select hf_booking from p.ids)) like 'Great recall%'
+            and (select note_by from public.my_log() where booking_id = (select hf_booking from p.ids)) = 'Maren Holt',
+            'the Log shows the session with the trainer''s note');
+select p.ok((select outcome = 'cleared' and assessed = 'herding' from public.my_log() where booking_id = (select herding from p.asb))
+            and (select outcome = 'not_yet' and quote like 'Close.%' from public.my_log() where booking_id = (select social from p.asb)),
+            'and assessment results, cleared or not yet');
+select p.ok(not exists (select 1 from public.my_log() where starts_at > now()), 'upcoming sessions aren''t in the Log yet');
+select p.as_user('00000000-0000-0000-0000-0000000000a5');
+select p.ok(not exists (select 1 from public.my_log() where booking_id in ((select hf_booking from p.ids), (select herding from p.asb))), 'members only see their own Log');
+reset role;
+select p.expect_error($$set local role anon; select public.my_log()$$, 'permission denied');
+
 -- ---- Vet records ------------------------------------------------------------------------------------
 reset role;
 insert into storage.objects (bucket_id, name, owner) values

@@ -6,7 +6,7 @@ import { isLive } from '@/api/client';
 import * as live from '@/api/live';
 import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, TRAIT_SPECIAL } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
-import type { Booking, Dog, PhotoSource, PickedDoc, VaccineRecord, WaitEntry } from '@/data/types';
+import type { Booking, Dog, LogEntry, PhotoSource, PickedDoc, VaccineRecord, WaitEntry } from '@/data/types';
 import { now } from '@/lib/clock';
 import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
@@ -106,6 +106,8 @@ interface AppState extends Demo {
   /** Live mode only: notifications from the database, and the Social clearance row. */
   remoteNotifications: Notif[] | null;
   socialClearanceId: string | null;
+  /** Live mode: the dogs' sessions that have run (07 Log). Null in sample mode, which shows the designs' log. */
+  log: LogEntry[] | null;
   /** Live mode: catalog and member are loaded. */
   ready: boolean;
 
@@ -177,6 +179,7 @@ const fresh = {
   pendingVaccineDoc: null as PickedDoc | null,
   remoteNotifications: null as Notif[] | null,
   socialClearanceId: null as string | null,
+  log: null as LogEntry[] | null,
   social: 'working' as SocialStage,
   socialExpired: false,
   behaviorNote: false,
@@ -185,7 +188,7 @@ const fresh = {
 // Live mode starts empty and fills from Supabase on sign-in.
 if (isLive) {
   Object.assign(fresh, {
-    dogs: [], credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], remoteNotifications: [],
+    dogs: [], credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], remoteNotifications: [], log: [],
   });
 }
 
@@ -367,7 +370,7 @@ export const useApp = create<AppState>()(
         },
         signOut: async () => {
           if (isLive) await live.signOut(get().pushToken);
-          set({ signedIn: false, onboarded: false, pushToken: null });
+          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [] } : {}) });
         },
         setDogPhoto: async (dogId, dataUri) => {
           if (isLive) {
@@ -405,7 +408,7 @@ export const useApp = create<AppState>()(
             return;
           }
           await live.loadCatalog();
-          const m = await live.loadMember();
+          const [m, log] = await Promise.all([live.loadMember(), live.loadLog().catch(() => null)]);
           if (!m) {
             set({ ready: true, signedIn: false, onboarded: false });
             return;
@@ -425,6 +428,7 @@ export const useApp = create<AppState>()(
             vaccines: m.vaccines,
             remoteNotifications: m.notifications,
             readNotifications: m.readNotifications,
+            log: log ?? get().log,
             pendingPlan: m.holds,
             waitlist: m.waitlist,
             vaccineRecord: m.vaccineRecord,
