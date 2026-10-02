@@ -57,6 +57,7 @@ async function storage(req, res, p, url) {
     }));
   }
   const obj = p.match(/^\/object\/([^/]+)\/(.+)$/);
+  if (obj) obj[2] = decodeURIComponent(obj[2]); // stored by the decoded name, as Supabase Storage does
   if (req.method === 'POST' && obj) {
     const body = await readRaw(req);
     try {

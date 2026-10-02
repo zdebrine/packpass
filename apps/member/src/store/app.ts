@@ -6,7 +6,7 @@ import { isLive } from '@/api/client';
 import * as live from '@/api/live';
 import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, TRAIT_SPECIAL } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
-import type { Booking, Dog, PhotoSource, WaitEntry } from '@/data/types';
+import type { Booking, Dog, PhotoSource, PickedDoc, VaccineRecord, WaitEntry } from '@/data/types';
 import { now } from '@/lib/clock';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
 
@@ -91,6 +91,9 @@ interface AppState extends Demo {
   herdingAt: string[];
   /** The main dog's vaccine records (ISO expiry dates). Bookings need all three current. */
   vaccines: Vaccine[];
+  /** The main dog's vet record (photo or PDF). Live mode: on the server; before the dog exists, pending. */
+  vaccineRecord: VaccineRecord | null;
+  pendingVaccineDoc: PickedDoc | null;
   /** Live mode only: notifications from the database, and the Social clearance row. */
   remoteNotifications: Notif[] | null;
   socialClearanceId: string | null;
@@ -134,7 +137,8 @@ interface AppState extends Demo {
   checkIn: (bookingId: string, code: string) => Promise<void>;
   clearBookings: () => void;
   setCredits: (n: number) => void;
-  saveVaccines: (rows: Vaccine[]) => Promise<void>;
+  /** Saves expiry dates and, if one was picked, the vet record that shows them. */
+  saveVaccines: (rows: Vaccine[], doc?: PickedDoc | null) => Promise<void>;
 
   markRead: (ids: string[] | null) => void;
   passSocialRecheck: () => void;
@@ -157,6 +161,9 @@ const fresh = {
   activePaths: ['calm-around-dogs', 'loose-leash-walking'] as Goal['id'][],
   herdingAt: [] as string[],
   vaccines: JUNO_VACCINES.map((v) => ({ type: v.type, expires: localIso(v.expires) })) as Vaccine[],
+  // Sample Juno's records were checked at her first visit.
+  vaccineRecord: (isLive ? null : { name: 'Vet record.pdf', verified: true }) as VaccineRecord | null,
+  pendingVaccineDoc: null as PickedDoc | null,
   remoteNotifications: null as Notif[] | null,
   socialClearanceId: null as string | null,
   social: 'working' as SocialStage,
@@ -331,6 +338,10 @@ export const useApp = create<AppState>()(
             const pending = get().vaccines;
             if (pending.length) {
               await live.saveVaccines(dogId, pending.map((r) => ({ type: r.type.toLowerCase() as 'rabies', expiresOn: r.expires })));
+              const doc = get().pendingVaccineDoc;
+              // Like the photo, a failed upload shouldn't stop sign-up; it can be added from Vaccines.
+              if (doc) await live.uploadVaccineRecord(dogId, doc).catch(() => {});
+              set({ pendingVaccineDoc: null });
             }
             await get().refresh();
           } else {
@@ -401,6 +412,7 @@ export const useApp = create<AppState>()(
             readNotifications: m.readNotifications,
             pendingPlan: m.holds,
             waitlist: m.waitlist,
+            vaccineRecord: m.vaccineRecord,
           });
         },
 
@@ -445,14 +457,21 @@ export const useApp = create<AppState>()(
         },
         clearBookings: () => set({ bookings: [] }),
         setCredits: (credits) => set({ credits }),
-        saveVaccines: async (rows) => {
+        saveVaccines: async (rows, doc) => {
           const dog = get().dogs[0];
           // Before onboarding finishes there's no dog row yet; finishOnboarding saves these.
           if (isLive && dog) {
-            await thenRefresh(() => live.saveVaccines(dog.id, rows.map((r) => ({ type: r.type.toLowerCase() as 'rabies', expiresOn: r.expires }))));
+            await thenRefresh(async () => {
+              await live.saveVaccines(dog.id, rows.map((r) => ({ type: r.type.toLowerCase() as 'rabies', expiresOn: r.expires })));
+              if (doc) await live.uploadVaccineRecord(dog.id, doc);
+            });
             return;
           }
-          set({ vaccines: rows });
+          set((s) => ({
+            vaccines: rows,
+            vaccineRecord: doc ? { name: doc.name, verified: false } : s.vaccineRecord,
+            pendingVaccineDoc: isLive && doc ? doc : s.pendingVaccineDoc,
+          }));
         },
 
         markRead: (ids) => {
@@ -486,7 +505,7 @@ export const useApp = create<AppState>()(
           : {
               dogs: s.dogs, appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
               readNotifications: s.readNotifications, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, social: s.social, socialExpired: s.socialExpired,
-              behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines,
+              behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines, vaccineRecord: s.vaccineRecord,
             },
       migrate: (persisted, version) => {
         const p = { ...(persisted as Record<string, any>) }; // eslint-disable-line @typescript-eslint/no-explicit-any

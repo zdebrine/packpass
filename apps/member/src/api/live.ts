@@ -3,7 +3,7 @@
 
 import { setCatalog } from '@/data/catalog';
 import type { Goal, Notif } from '@/data/passport';
-import type { Booking, ClassType, Dog, Partner, PhotoKey, Session, Trainer, WaitEntry } from '@/data/types';
+import type { Booking, ClassType, Dog, Partner, PhotoKey, PickedDoc, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
 import type { OnboardingDraft, SocialStage } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { db } from './client';
@@ -121,6 +121,8 @@ export interface MemberSnapshot {
   /** Sessions held for the main dog until its Social assessment. */
   holds: string[];
   waitlist: WaitEntry[];
+  /** The main dog's vet record, if one was uploaded. */
+  vaccineRecord: VaccineRecord | null;
 }
 
 const ageOf = (year?: number | null, month?: number | null) => {
@@ -180,6 +182,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     socialClearanceId: social?.id ?? null,
     herdingAt: mine(clearances).filter((k) => k.type === 'herding' && (!k.expires_on || k.expires_on >= today)).map((k) => k.partner_id),
     activePaths: mine(paths).filter((p) => !p.completed_at).map((p) => p.path_id),
+    vaccineRecord: recordOf(vax),
     vaccines: vax.map((v) => ({ type: ({ rabies: 'Rabies', dhpp: 'DHPP', bordetella: 'Bordetella' } as const)[v.type as 'rabies'], expires: v.expires_on })),
     notifications: notes.map((n): Notif => ({
       id: n.id,
@@ -236,9 +239,42 @@ export async function uploadDogPhoto(dogId: string, dataUri: string) {
   if (before.photo_path) await c.storage.from('dog-photos').remove([before.photo_path]);
 }
 
-/** Records vaccine expiry dates (unverified until a partner or PackPass checks the document). */
+/** Vet records are stored as <member>/<dog>/<time>-<original name>. */
+const recordName = (path: string) => path.slice(path.lastIndexOf('/') + 1).replace(/^\d+-/, '');
+function recordOf(vax: { document_path: string | null; verified: boolean }[]): VaccineRecord | null {
+  const path = vax.find((v) => v.document_path)?.document_path;
+  return path ? { name: recordName(path), verified: vax.length > 0 && vax.every((v) => v.verified) } : null;
+}
+
+/**
+ * Uploads the vet record (one photo or PDF covering all three vaccines) to vaccine-docs and links it
+ * to the dog's vaccination rows, which go back to unverified until someone checks the new document.
+ * The previous file is removed. Call after saveVaccines, so the rows exist.
+ */
+export async function uploadVaccineRecord(dogId: string, doc: PickedDoc) {
+  const c = db();
+  const { data: auth } = await c.auth.getUser();
+  if (!auth.user) throw new Error('not_signed_in');
+  const before = (check(await c.from('vaccinations').select('document_path').eq('dog_id', dogId)) as { document_path: string | null }[])
+    .map((r) => r.document_path).filter((p): p is string => !!p);
+  const safe = doc.name.replace(/[^\w. -]+/g, '').trim().slice(0, 80) || 'Vet record';
+  const path = `${auth.user.id}/${dogId}/${Date.now()}-${safe}`;
+  check(await c.storage.from('vaccine-docs').upload(path, base64ToBytes(doc.uri.slice(doc.uri.indexOf(',') + 1)), { contentType: doc.mime }));
+  check(await c.from('vaccinations').update({ document_path: path, verified: false }).eq('dog_id', dogId));
+  const old = Array.from(new Set(before)).filter((p) => p !== path);
+  if (old.length) await c.storage.from('vaccine-docs').remove(old);
+}
+
+/**
+ * Records vaccine expiry dates. Only dates that changed are written, and those go back to unverified
+ * (a new date needs checking again; members can't write verified rows), so checked ones stay checked.
+ */
 export async function saveVaccines(dogId: string, rows: { type: 'rabies' | 'dhpp' | 'bordetella'; expiresOn: string }[]) {
-  check(await db().from('vaccinations').upsert(rows.map((r) => ({ dog_id: dogId, type: r.type, expires_on: r.expiresOn })), { onConflict: 'dog_id,type' }));
+  const c = db();
+  const current = check(await c.from('vaccinations').select('type, expires_on').eq('dog_id', dogId)) as { type: string; expires_on: string }[];
+  const changed = rows.filter((r) => current.find((x) => x.type === r.type)?.expires_on !== r.expiresOn);
+  if (!changed.length) return;
+  check(await c.from('vaccinations').upsert(changed.map((r) => ({ dog_id: dogId, type: r.type, expires_on: r.expiresOn, verified: false })), { onConflict: 'dog_id,type' }));
 }
 
 /** Returns the new booking id, or throws with a reason code (see errors.ts). */

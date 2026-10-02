@@ -30,7 +30,8 @@ const S = () => useApp.getState();
   // 01i Upload records before the dog exists, then 01j finishes onboarding.
   const far = new Date(); far.setFullYear(far.getFullYear() + 2);
   const iso = far.toISOString().slice(0, 10);
-  await S().saveVaccines([{ type: 'Rabies', expires: iso }, { type: 'DHPP', expires: iso }, { type: 'Bordetella', expires: iso }]);
+  const record = (name: string) => ({ name, mime: 'application/pdf' as const, uri: `data:application/pdf;base64,${Buffer.from(`%PDF-1.4 ${name}`).toString('base64')}` });
+  await S().saveVaccines([{ type: 'Rabies', expires: iso }, { type: 'DHPP', expires: iso }, { type: 'Bordetella', expires: iso }], record('Clinic certificate.pdf'));
   // A photo picked in 01e (a JPEG data URI from pickDogPhoto) uploads when the dog is saved.
   const jpeg = (tag: string) => `data:image/jpeg;base64,${Buffer.from(`\xff\xd8 fake jpeg ${tag}`).toString('base64')}`;
   S().updateDraft({ photo: { uri: jpeg('first') } });
@@ -42,7 +43,21 @@ const S = () => useApp.getState();
   ok((await (await fetch(photoOf()!.uri)).text()).includes('fake jpeg first'), 'and shows through a signed URL');
   await S().setDogPhoto(S().dogs[0].id, jpeg('second'));
   ok((await (await fetch(photoOf()!.uri)).text()).includes('fake jpeg second'), 'changing the photo shows the new one');
-  ok(psql(`select count(*) from storage.objects where name like '${userId}/%'`) === '1', 'and removes the old file');
+  ok(psql(`select count(*) from storage.objects where bucket_id = 'dog-photos' and name like '${userId}/%'`) === '1', 'and removes the old file');
+  ok(S().vaccineRecord?.name === 'Clinic certificate.pdf' && !S().vaccineRecord?.verified, 'a vet record picked in onboarding uploads with the dog, unverified');
+  ok(psql(`select count(*) from vaccinations where document_path like '${userId}/%Clinic certificate.pdf'`) === '3', 'and covers all three vaccines');
+  psql(`update vaccinations set verified = true where document_path like '${userId}/%'`);
+  await S().refresh();
+  ok(S().vaccineRecord?.verified, 'a checked record shows as checked');
+  await S().saveVaccines(S().vaccines);
+  ok(S().vaccineRecord?.verified, 'saving the same dates keeps the check');
+  const later = new Date(far); later.setMonth(later.getMonth() + 1);
+  await S().saveVaccines(S().vaccines.map((v) => (v.type === 'Rabies' ? { ...v, expires: later.toISOString().slice(0, 10) } : v)));
+  ok(psql(`select string_agg(type || ':' || verified, ',' order by type::text) from vaccinations where document_path like '${userId}/%'`) === 'bordetella:true,dhpp:true,rabies:false',
+     'a changed date can be saved after checking, and only that vaccine needs checking again');
+  await S().saveVaccines(S().vaccines, record('New record.pdf'));
+  ok(S().vaccineRecord?.name === 'New record.pdf' && !S().vaccineRecord?.verified, 'a new record replaces it and needs checking again');
+  ok(psql(`select count(*) from storage.objects where bucket_id = 'vaccine-docs' and name like '${userId}/%'`) === '1', 'and the old file is removed');
   const { supabase } = await import('@/api/client');
   const intruder = await supabase!.storage.from('dog-photos').upload('00000000-0000-0000-0000-000000000000/x.jpg', new Uint8Array([1, 2, 3]));
   ok(intruder.error, 'a member can\'t upload into someone else\'s folder');

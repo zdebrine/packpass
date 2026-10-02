@@ -141,12 +141,12 @@ Business rules in `src/lib`, unit tested:
 
 1. **v1 (done):** the Expo app with all 24 screens on sample data, running on iOS, Android and web.
 2. **v2 (done, hosted on Supabase `packpass`):** Supabase schema, row level security, storage buckets and booking functions in
-   `supabase/`, tested on Postgres (90 SQL checks) and end to end through PostgREST (47 checks). The app runs
+   `supabase/`, tested on Postgres (100 SQL checks) and end to end through PostgREST (54 checks). The app runs
    against it when `EXPO_PUBLIC_SUPABASE_*` is set: email sign-up with the 6-digit code, sign-in, the dog
    created from onboarding, vaccines, booking, plan booking, cancelling, check-in, the clearance flow and
    notifications, hold reminders, push registration, the waitlist, password reset and dog photos. The app uses the hosted project by default; see `supabase/README.md` for how it
    was set up and the dashboard steps left (code email templates, SMTP).
-3. **v3:** hosted Supabase project, Apple and Google sign-in, vaccine document upload, Stripe plans and
+3. **v3:** Apple and Google sign-in, a partner view for checking vet records, Stripe plans and
    credit packs, push delivery switched on (EAS project, webhook, dev build), a real map with the member's location, the partner dashboard writing schedules,
    assessments and check-in codes, PostHog.
 
@@ -176,7 +176,10 @@ release 24 hours before the session, and members are reminded a day before that;
   made aren't pushed. Delivery is untested end to end: it needs an EAS project id, a hosted project with the
   Database Webhook, and a development build (Expo Go and the web don't receive remote pushes).
 - **Vaccines.** Bookings need Rabies, DHPP and Bordetella current on the day. Members enter expiry months on
-  the vaccines screen; records are unverified until a partner checks the paperwork (`verified` column).
+  the vaccines screen and attach the vet record: one photo or PDF for all three (up to 10 MB), in the private
+  `vaccine-docs` bucket. Records are unverified until a partner or PackPass checks them (`verified`). Changing a
+  date or the record makes it unverified again; saving unchanged dates keeps the check. A record picked during
+  onboarding uploads when the dog is saved.
 - **Waitlist.** A full session's footer (class detail and booking sheet) offers "Join the waitlist". Every rule
   but "full" applies when joining, including credits. When a spot opens (a cancellation or a released hold) more
   than 12 hours before the start, the first dog in line is booked automatically and charged, and the member is
@@ -195,7 +198,7 @@ release 24 hours before the session, and members are reminded a day before that;
   where the picker can't crop) and resized to 1080 px JPEG (~150 KB). Live mode uploads it to the private
   `dog-photos` bucket under `<member>/<dog>/`, stores the path on the dog, deletes the previous photo and shows
   it through week-long signed URLs cached by path. A dog without a photo shows its initial. Sample mode keeps
-  the photo on the device. Vaccine document upload (the `vaccine-docs` bucket) isn't built yet.
+  the photo on the device.
 - **Live-mode gaps:** distances are measured from Austin ·
   South, not the member's location; the plan is always Regular; Apple and Google sign-in and buying credits show a message.
 - **Cancelling** lives on the class detail screen (05) when the session is booked: "Cancel booking" under
@@ -207,4 +210,4 @@ release 24 hours before the session, and members are reminded a day before that;
 
 ## 9. Open questions
 
-- Which email sender for auth emails (Resend, Postmark, SES)? Supabase's built-in one only reaches the team.
+- None right now. (Auth email goes through Resend; setup steps are in `supabase/README.md`.)

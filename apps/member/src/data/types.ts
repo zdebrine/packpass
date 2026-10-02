@@ -78,6 +78,19 @@ export interface WaitEntry {
   place: number;
 }
 
+/** A picked vet record, ready to show and upload: a data URI with its original name and type. */
+export interface PickedDoc {
+  name: string;
+  mime: 'image/jpeg' | 'application/pdf';
+  uri: string;
+}
+
+/** The vet record on file for the main dog. Unverified until a partner or PackPass checks it. */
+export interface VaccineRecord {
+  name: string;
+  verified: boolean;
+}
+
 export type ClearanceStatus = 'cleared' | 'expired' | 'working' | 'needs';
 
 /** A bundled sample photo, or an uploaded one (a signed URL, cached by its storage path). */

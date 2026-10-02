@@ -3,12 +3,15 @@ import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { errorCopy } from '@/api/errors';
+import type { PickedDoc } from '@/data/types';
 import { Button } from '@/ds/controls';
+import { Icon } from '@/ds/Icon';
 import { Footer, IconButton, Screen } from '@/ds/layout';
 import { Text } from '@/ds/Text';
 import { Select } from '@/features/onboarding/parts';
 import { now } from '@/lib/clock';
 import { fromIso } from '@/lib/dates';
+import { pickRecordPdf, pickRecordPhoto } from '@/lib/records';
 import { useApp, useDog, type Vaccine, type VaccineType } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -19,12 +22,15 @@ const iso = (y: number, m: number) => `${y}-${String(m + 1).padStart(2, '0')}-${
 
 /**
  * Vaccine records. Bookings need Rabies, DHPP and Bordetella current on the day of the session.
- * Members enter the expiry month from the vet record; uploading the document itself comes later.
+ * Members enter the expiry month from the vet record and attach the record itself (a photo or a PDF,
+ * one for all three), which stays unverified until a partner or PackPass checks it.
  */
 export default function Vaccines() {
   const { c } = useTheme();
   const dog = useDog();
   const saved = useApp((s) => s.vaccines);
+  const record = useApp((s) => s.vaccineRecord);
+  const [doc, setDoc] = useState<PickedDoc | null>(null);
   const save = useApp((s) => s.saveVaccines);
   const year = now().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => year + i);
@@ -43,12 +49,22 @@ export default function Vaccines() {
     setBusy(true);
     setError(null);
     try {
-      await save(rows.map((r): Vaccine => ({ type: r.type, expires: iso(r.year!, r.month!) })));
+      await save(rows.map((r): Vaccine => ({ type: r.type, expires: iso(r.year!, r.month!) })), doc);
       router.canGoBack() ? router.back() : router.replace('/dog');
     } catch (e) {
       setError(errorCopy(e));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const pick = async (fn: () => Promise<PickedDoc | null>) => {
+    setError(null);
+    try {
+      const picked = await fn();
+      if (picked) setDoc(picked);
+    } catch (e) {
+      setError((e as Error).message === 'too_big' ? 'That file is over 10 MB. A photo of the page works too.' : errorCopy(e));
     }
   };
 
@@ -80,11 +96,30 @@ export default function Vaccines() {
             </View>
           </View>
         ))}
+        <View style={{ gap: 10 }}>
+          <Text variant="label" weight="600">Vet record</Text>
+          {doc || record ? (
+            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 14, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+              <Icon name="file-text" />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text variant="label" weight="600" numberOfLines={1}>{(doc ?? record)!.name}</Text>
+                <Text variant="caption" muted>{doc ? 'Uploads when you save' : record!.verified ? 'Checked by PackPass' : 'Not checked yet'}</Text>
+              </View>
+              {doc ? <Button size="sm" variant="quiet" fill={c.bg} onPress={() => setDoc(null)}>Remove</Button> : null}
+            </View>
+          ) : (
+            <Text variant="caption" muted>{`A photo or PDF of ${dog.name}'s vaccine certificate. One record that shows all three is enough.`}</Text>
+          )}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Button size="sm" variant="quiet" icon="camera" onPress={() => pick(pickRecordPhoto)}>{doc || record ? 'Replace with a photo' : 'Add a photo'}</Button>
+            <Button size="sm" variant="quiet" icon="file-text" onPress={() => pick(pickRecordPdf)}>{doc || record ? 'Use a PDF' : 'Add a PDF'}</Button>
+          </View>
+        </View>
         {error ? <Text variant="label" weight="600" color={c.kennelRed}>{error}</Text> : null}
       </ScrollView>
       <Footer>
         <Button block disabled={!complete || busy} onPress={submit}>{busy ? 'Saving…' : 'Save vaccines'}</Button>
-        <Text variant="caption" muted center>Partners can ask to see the paperwork at the first visit.</Text>
+        <Text variant="caption" muted center>{record?.verified && !doc ? 'Partners see that the record was checked.' : 'Partners can ask to see the paperwork at the first visit.'}</Text>
       </Footer>
     </Screen>
   );

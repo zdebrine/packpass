@@ -65,10 +65,10 @@ Expo with `--clear` (Metro caches env values).
 ## Tests
 
 - `supabase/tests/run-local.sh` — applies everything to a scratch database on plain Postgres (with a small
-  shim for `auth` and `storage`) and runs `booking.test.sql`: 90 checks covering each rule, credits, holds, reminders, the waitlist,
+  shim for `auth` and `storage`) and runs `booking.test.sql`: 100 checks covering each rule, credits, holds, reminders, the waitlist,
   RLS and storage policies. `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
-  PostgREST, with a stand-in for Supabase Auth and Storage: 47 checks from sign-up and a photo upload to a password reset and sign-in again.
+  PostgREST, with a stand-in for Supabase Auth and Storage: 54 checks, from sign-up with a dog photo and vet record to a password reset and sign-in again.
 
 ## The hosted project
 
@@ -94,8 +94,16 @@ Set up on Oct 2 2026 through the Supabase MCP tools:
 1. **Auth › Email Templates:** paste `templates/confirmation.html` into "Confirm signup" and
    `templates/recovery.html` into "Reset password". The defaults send a link; the app asks for a 6-digit code.
 2. **Auth › Providers › Email:** check the email OTP length is 6.
-3. **Auth › SMTP:** set up a sender (Resend, Postmark, SES). Supabase's built-in email only reaches members of
-   the EarlyBird Labs team and a few messages an hour, so other people can't finish signing up without it.
+3. **Email through Resend.** Supabase's built-in email only reaches members of the EarlyBird Labs team and a few
+   messages an hour, so other people can't finish signing up without this.
+   1. In Resend, add and verify the sending domain (Domains › Add domain, then the DNS records it lists).
+   2. Easiest: Resend › Integrations › Supabase, pick the `packpass` project and the sender
+      (for example `PackPass <hello@your-domain>`). It fills in Supabase's SMTP settings for you.
+   3. Or by hand, in Supabase › Authentication › Emails › SMTP Settings: host `smtp.resend.com`, port `465`,
+      username `resend`, password a Resend API key with sending access, sender name `PackPass`, sender email on
+      the verified domain.
+   4. Under Authentication › Rate Limits, raise the email limit from the default (it's set low for the built-in
+      sender), for example to 100 an hour.
 4. **Push:** in `apps/member`, run `eas init` (adds the project id push tokens need) and
    `eas build --profile development`. Expo Go and the web app don't receive remote pushes; reminders still
    show in the app's notifications there. If Expo push security is on, add `EXPO_ACCESS_TOKEN` as a function
