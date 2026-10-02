@@ -6,10 +6,12 @@ for the stack, the decisions behind it, and what v1 leaves out.
 
 It runs in one of two modes:
 
-- **Sample data** (default): Juno, a 3-year-old Border Collie on the Regular plan, with the clock fixed at
-  Tuesday, Sep 29 2026, 9:41 am, the moment the designs show. Nothing leaves the device.
-- **Live**: set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_KEY` (see `.env.example`) and the app
-  signs up, signs in, books and checks in against Supabase, on the real clock. See `supabase/README.md`.
+- **Live** (default): `.env` points at the hosted Supabase project `packpass`. The app signs up, signs in,
+  books and checks in against it, on the real clock. See `supabase/README.md`.
+- **Sample data**: put `EXPO_PUBLIC_SUPABASE_URL=` and `EXPO_PUBLIC_SUPABASE_KEY=` (both empty) in `.env.local`.
+  Juno, a 3-year-old Border Collie on the Regular plan, with the clock fixed at Tuesday, Sep 29 2026, 9:41 am,
+  the moment the designs show. Nothing leaves the device, and Settings › Preview states moves through the
+  designs' states. After changing env files, start or export with `--clear`; Metro caches env values.
   On a phone it also registers for push (hold reminders, clearances; `src/lib/push.ts`). That needs
   `eas init` and a development build, since Expo Go and the web don't receive remote pushes.
 

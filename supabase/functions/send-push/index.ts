@@ -1,15 +1,17 @@
-// send-push: called by a Database Webhook on INSERT into public.notifications (see supabase/README.md).
-// Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (provided by Supabase), PUSH_WEBHOOK_SECRET (the
-// webhook sends it in the x-webhook-secret header), EXPO_ACCESS_TOKEN (optional, if push security is on).
+// send-push: called by the notifications_push trigger (migrations/…_push_webhook.sql) through pg_net
+// for each new notification worth pushing. The trigger sends a shared secret from Vault in the
+// x-webhook-secret header; push_secret_ok() checks it, so the function needs no secret of its own.
+// Env: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (provided by Supabase), EXPO_ACCESS_TOKEN (optional,
+// only if Expo push security is turned on).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { deliver, expoSender, type NotificationRow } from './push.ts';
 
 const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
-const secret = Deno.env.get('PUSH_WEBHOOK_SECRET');
 
 Deno.serve(async (req) => {
-  if (!secret || req.headers.get('x-webhook-secret') !== secret) return new Response('forbidden', { status: 403 });
+  const { data: ok } = await db.rpc('push_secret_ok', { p_secret: req.headers.get('x-webhook-secret') });
+  if (ok !== true) return new Response('forbidden', { status: 403 });
   const payload = (await req.json()) as { type: string; table: string; record: NotificationRow };
   if (payload.type !== 'INSERT' || payload.table !== 'notifications') return Response.json({ skipped: true });
 

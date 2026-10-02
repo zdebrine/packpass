@@ -371,6 +371,13 @@ export const useApp = create<AppState>()(
         },
         refresh: async () => {
           if (!isLive) return;
+          // Signed out: the welcome and sign-in screens don't need the catalog, so show them straight
+          // away (the stored session is local; no network) and load the catalog in the background.
+          if (!(await live.hasSession())) {
+            set({ ready: true, signedIn: false, onboarded: false });
+            live.loadCatalog().catch(() => {});
+            return;
+          }
           await live.loadCatalog();
           const m = await live.loadMember();
           if (!m) {

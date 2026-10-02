@@ -30,6 +30,18 @@ create function t.next_session(cls text) returns uuid language sql as $$
   select id from public.sessions where class_id = cls and starts_at > now() + interval '1 day' order by starts_at limit 1
 $$;
 
+-- ---- Rolling schedule ----------------------------------------------------------------------------
+reset role;
+select t.ok(public.extend_schedule() = 0, 'the seeded four weeks need no new sessions');
+select t.ok(public.extend_schedule(35) > 0, 'a longer window adds sessions from the timetable');
+select t.ok(public.extend_schedule(35) = 0, 'running it again adds nothing');
+select t.ok((select bool_and(spots_left = capacity) from sessions where starts_at > now() + interval '29 days'), 'new sessions open every spot');
+select t.ok(not exists (
+  select 1 from sessions s where s.starts_at > now() + interval '29 days' and s.class_id = 'herding-fundamentals'
+    and extract(dow from s.starts_at at time zone 'America/Chicago') <> 4), 'weekly classes land on their weekday (Herding Fundamentals on Thursdays)');
+select t.expect_error($$set local role authenticated; select public.extend_schedule()$$, 'permission denied');
+select t.expect_error($$set local role authenticated; insert into timetable (class_id, starts) values ('fitness', '06:00')$$, 'permission denied');
+
 -- ---- Sign-up ---------------------------------------------------------------------------------
 insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-00000000000a', 'alex@kim.co', '{"name":"Alex Kim"}'),
@@ -331,6 +343,12 @@ select t.ok(not exists (select 1 from public.my_waitlist()), 'a member can leave
 select t.ok(not exists (select 1 from waitlist where member_id <> '00000000-0000-0000-0000-0000000000f3'), 'members only see their own waitlist rows');
 reset role;
 select t.expect_error($$set local role authenticated; select public.fill_from_waitlist((select sniff from t.w))$$, 'permission denied');
+
+-- ---- Push webhook ------------------------------------------------------------------------------
+reset role;
+select t.ok(public.push_kind('waitlist_booked') and not public.push_kind('booked'), 'only some notifications are pushed');
+select t.ok(not public.push_secret_ok(null) and not public.push_secret_ok('guess'), 'without the Vault secret, nothing passes the webhook check');
+select t.expect_error($$set local role authenticated; select public.push_secret_ok('x')$$, 'permission denied');
 
 -- ---- Monthly credits ---------------------------------------------------------------------------
 reset role;

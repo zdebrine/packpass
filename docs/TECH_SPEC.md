@@ -140,11 +140,12 @@ Business rules in `src/lib`, unit tested:
 ## 7. Phasing
 
 1. **v1 (done):** the Expo app with all 24 screens on sample data, running on iOS, Android and web.
-2. **v2 (done, local only):** Supabase schema, row level security, storage buckets and booking functions in
+2. **v2 (done, hosted on Supabase `packpass`):** Supabase schema, row level security, storage buckets and booking functions in
    `supabase/`, tested on Postgres (90 SQL checks) and end to end through PostgREST (47 checks). The app runs
    against it when `EXPO_PUBLIC_SUPABASE_*` is set: email sign-up with the 6-digit code, sign-in, the dog
    created from onboarding, vaccines, booking, plan booking, cancelling, check-in, the clearance flow and
-   notifications, hold reminders, push registration, the waitlist, password reset and dog photos. There is no hosted project yet (the EarlyBird Labs free plan is at its 2-project limit).
+   notifications, hold reminders, push registration, the waitlist, password reset and dog photos. The app uses the hosted project by default; see `supabase/README.md` for how it
+   was set up and the dashboard steps left (code email templates, SMTP).
 3. **v3:** hosted Supabase project, Apple and Google sign-in, vaccine document upload, Stripe plans and
    credit packs, push delivery switched on (EAS project, webhook, dev build), a real map with the member's location, the partner dashboard writing schedules,
    assessments and check-in codes, PostHog.
@@ -155,7 +156,7 @@ Decided with the product owner: Expo universal app; centered phone layout on web
 with a Social assessment for dogs without one; cancelling lives on the booking detail screen; Juno's Social clearance
 shows "Working on it" until the member opens the Clearance earned screen (13), then "Cleared"; group classes
 need Social except sessions on the dog's own training path; "Book these" books real sessions; held spots
-release 24 hours before the session, and members are reminded a day before that; Supabase runs locally for now.
+release 24 hours before the session, and members are reminded a day before that; Supabase is the hosted `packpass` project (us-east-1).
 
 - **Sample timeline.** Sample mode's clock is fixed at Tue Sep 29 2026, 9:41 am. Juno starts at step 2 of Calm
   around dogs. Settings › Preview states › "Pass re-check" stands in for the partner recording the re-check.
@@ -206,5 +207,4 @@ release 24 hours before the session, and members are reminded a day before that;
 
 ## 9. Open questions
 
-- Which Supabase project and region for production, and when (the free plan is at its project limit)?
-  Still being decided; the build continues on local Supabase until then.
+- Which email sender for auth emails (Resend, Postmark, SES)? Supabase's built-in one only reaches the team.

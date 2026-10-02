@@ -1,7 +1,8 @@
 // Turns a new notifications row into Expo push messages and delivers them. Kept free of Deno and
 // Supabase imports so it runs under Node for tests (push.test.ts).
 
-/** Notifications worth interrupting someone for. The rest (e.g. "Booked.") stay in the app. */
+/** Notifications worth interrupting someone for. The rest (e.g. "Booked.") stay in the app.
+ * Same list as public.push_kind() in migrations/…_push_webhook.sql, which filters before calling. */
 export const PUSH_KINDS = new Set(['hold_expiring', 'holds_released', 'clearance_earned', 'waitlist_booked', 'waitlist_open', 'waitlist_missed']);
 
 export type NotificationRow = { id: string; member_id: string; kind: string; title: string; body: string; href: string | null };

@@ -1,7 +1,8 @@
 # PackPass Supabase
 
-Schema, security rules and booking logic for the member app. Nothing here is deployed yet: it runs on a
-local Supabase stack, and the same migrations can be pushed to a hosted project when one is created.
+Schema, security rules and booking logic for the member app. It's deployed to the hosted project
+**packpass** (EarlyBird Labs org, us-east-1, ref `qovbpxvpnslsjzunxutk`), which the app uses by default
+(`apps/member/.env`), and it runs the same on a local stack for development and tests.
 
 ## Contents
 
@@ -37,7 +38,15 @@ local Supabase stack, and the same migrations can be pushed to a hosted project 
 - `functions/send-push` — Edge Function that sends `hold_expiring`, `holds_released` and `clearance_earned`
   notifications to the member's phones through the Expo push API, and forgets devices Expo reports as gone.
   The logic is in `push.ts`, tested with `node --test supabase/functions/send-push/push.test.ts`.
-- `seed.sql` — generated from the app's sample data (`npm run gen:seed` in `apps/member`): 5 partners,
+- `migrations/…_timetable_and_jobs.sql` — `timetable` (each class's weekly slots) and `extend_schedule`, which
+  keeps four weeks of sessions bookable; pg_cron runs it daily with the holds, reminders and monthly-credit jobs.
+- `migrations/…_hardening.sql` — fixes from the Supabase advisors: internal functions aren't callable over the
+  API, policies evaluate `auth.uid()` once per query, and foreign keys have indexes.
+- `migrations/…_push_webhook.sql` — a trigger calls `send-push` (through pg_net) for each notification worth
+  pushing, to members with a registered phone. The function URL and a shared secret live in Vault.
+- `catalog.sql` — generated: partners, trainers, classes, training paths and the timetable. Loaded into the
+  hosted project; the partner dashboard will take this over.
+- `seed.sql` — local only, generated from the app's sample data (`npm run gen:seed` in `apps/member`): 5 partners,
   17 classes, 2 training paths and 4 weeks of sessions. `select public.seed_demo_member('<user id>')` gives a
   signed-up account Juno's Passport as the designs show it.
 
@@ -50,7 +59,8 @@ cd apps/member && npx expo start
 ```
 
 Sign-up and password reset send a 6-digit code (Inbucket at http://127.0.0.1:54324 shows the email locally).
-On a hosted project, paste `templates/confirmation.html` and `templates/recovery.html` into Auth › Email Templates.
+To point the app at the local stack, put its URL and publishable key in `apps/member/.env.local`, then start
+Expo with `--clear` (Metro caches env values).
 
 ## Tests
 
@@ -60,23 +70,33 @@ On a hosted project, paste `templates/confirmation.html` and `templates/recovery
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
   PostgREST, with a stand-in for Supabase Auth and Storage: 47 checks from sign-up and a photo upload to a password reset and sign-in again.
 
-## Deploying
+## The hosted project
 
-When a hosted project exists: `supabase link --project-ref <ref>` then `supabase db push`. Don't run
-`seed.sql` against production; load real partners and schedules from the partner dashboard instead.
+Set up on Oct 2 2026 through the Supabase MCP tools:
 
-Then switch on the scheduled jobs and push:
+- Every migration in `migrations/` is applied. The hosted history records them by name with the time they were
+  applied, and the waitlist migration as two parts (`waitlist`, `waitlist_fill`). Before using the CLI there
+  (`supabase link --project-ref qovbpxvpnslsjzunxutk`), run `supabase migration repair` so the history matches
+  the files. New migrations: apply them the same way, or with `supabase db push` once repaired.
+- `catalog.sql` is loaded and `select public.extend_schedule()` made the first four weeks of sessions. `seed.sql`
+  is not loaded (it's sample spot counts and a demo helper).
+- pg_cron jobs: `release-expired-holds` (every 15 min), `hold-reminders` (hourly), `monthly-credits` and
+  `extend-schedule` (daily, 06:05 and 06:10 UTC).
+- `send-push` is deployed (JWT check off; the trigger's shared secret is checked instead). Vault holds
+  `push_function_url` and `push_webhook_secret`. Checked with a call from the database: the right secret gets
+  200, a wrong one 403.
+- A member journey was run inside the database and rolled back (sign-up, 10 credits, path booking, the Social
+  gate, a hold, a cancel and refund, check-in codes hidden), and the advisors are clean apart from the member
+  API functions, which check the caller themselves.
 
-```sql
-select cron.schedule('holds', '*/15 * * * *', 'select public.release_expired_holds()');
-select cron.schedule('hold-reminders', '0 * * * *', 'select public.remind_expiring_holds()');
-select cron.schedule('credits', '5 0 * * *', 'select public.grant_monthly_credits()');
-```
+### Still to do in the dashboard
 
-1. `supabase secrets set PUSH_WEBHOOK_SECRET=<random>` (and `EXPO_ACCESS_TOKEN` if Expo push security is on),
-   then `supabase functions deploy send-push --no-verify-jwt`.
-2. Dashboard › Database › Webhooks: on INSERT into `public.notifications`, POST to the `send-push` function
-   URL with the header `x-webhook-secret: <the same secret>`.
-3. In `apps/member`, run `eas init` (writes the project id the app needs for push tokens) and build with
+1. **Auth › Email Templates:** paste `templates/confirmation.html` into "Confirm signup" and
+   `templates/recovery.html` into "Reset password". The defaults send a link; the app asks for a 6-digit code.
+2. **Auth › Providers › Email:** check the email OTP length is 6.
+3. **Auth › SMTP:** set up a sender (Resend, Postmark, SES). Supabase's built-in email only reaches members of
+   the EarlyBird Labs team and a few messages an hour, so other people can't finish signing up without it.
+4. **Push:** in `apps/member`, run `eas init` (adds the project id push tokens need) and
    `eas build --profile development`. Expo Go and the web app don't receive remote pushes; reminders still
-   appear in the app's notifications there.
+   show in the app's notifications there. If Expo push security is on, add `EXPO_ACCESS_TOKEN` as a function
+   secret.

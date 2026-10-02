@@ -170,9 +170,11 @@ begin
     select * into w from public.waitlist where session_id = p_session and status = 'waiting' order by created_at limit 1 for update;
     exit when not found;
     begin
+      -- Tell notify_booking to skip its plain "Booked." note; this one says it came off the waitlist (and is pushed).
+      -- A failed booking rolls the setting back with the rest of this block.
+      perform set_config('packpass.waitlist_booking', 'on', true);
       b := public.book_as(w.member_id, p_session, w.dog_id);
-      -- Swap the plain "Booked." note for one that says it came off the waitlist (and is pushed).
-      delete from public.notifications where member_id = w.member_id and kind = 'booked' and href = '/class/' || p_session;
+      perform set_config('packpass.waitlist_booking', 'off', true);
       insert into public.notifications (member_id, category, kind, title, body, href)
       values (w.member_id, 'bookings', 'waitlist_booked', 'Off the waitlist. ' || t || ' is booked.',
               to_char(s.starts_at at time zone 'America/Chicago', 'FMDay FMHH12:MI am') || ' · '
@@ -192,6 +194,24 @@ begin
   return n;
 end $$;
 revoke execute on function public.fill_from_waitlist from public, anon, authenticated;
+
+-- Booking notifications, except for waitlist bookings (fill_from_waitlist writes its own).
+create or replace function public.notify_booking() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  t text;
+  s public.sessions;
+begin
+  if current_setting('packpass.waitlist_booking', true) = 'on' then return new; end if;
+  select * into s from public.sessions where id = new.session_id;
+  select title into t from public.class_types where id = s.class_id;
+  insert into public.notifications (member_id, category, kind, title, body, href)
+  values (new.member_id, 'bookings', 'booked', 'Booked. ' || t,
+          to_char(s.starts_at at time zone 'America/Chicago', 'FMDay FMHH12:MI am') || ' · ' || new.credits_charged
+            || case when new.credits_charged = 1 then ' credit' else ' credits' end,
+          '/class/' || new.session_id);
+  return new;
+end $$;
 
 -- Any time a session gets spots back (cancel_booking, released or expired holds), offer them to the line.
 create function public.sessions_spot_opened() returns trigger
