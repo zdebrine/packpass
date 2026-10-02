@@ -20,6 +20,8 @@ const COPY: Record<string, string> = {
   not_booked: 'There\'s no booking to check in to.',
   too_soon: 'Spots can only be held until the day before a session.',
   weak_password: 'Use at least 8 characters.',
+  cancelled: 'The partner cancelled this session. Pick another time.',
+  waitlist_closed: 'The waitlist for this session is closed.',
   already_waiting: 'Already on the waitlist for this session.',
   not_full: 'A spot just opened. Book it now.',
 };
@@ -41,4 +43,5 @@ export const SHORT: Record<string, string> = {
   credits: 'not enough credits',
   not_found: 'not on the schedule',
   too_soon: 'too soon to hold',
+  cancelled: 'cancelled by the partner',
 };

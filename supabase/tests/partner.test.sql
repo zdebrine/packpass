@@ -1,0 +1,212 @@
+-- Partner dashboard functions (migrations/…_partner_dashboard.sql). Runs after booking.test.sql on
+-- the same database; uses its own accounts.
+create schema p;
+create function p.expect_error(q text, want text) returns void language plpgsql as $$
+declare got text;
+begin
+  begin
+    execute q;
+  exception when others then
+    got := sqlerrm;
+  end;
+  if got is null then raise exception 'FAILED: expected error "%" but it succeeded: %', want, q; end if;
+  if got not like '%' || want || '%' then raise exception 'FAILED: expected error "%" but got "%" from: %', want, got, q; end if;
+  raise notice 'ok: rejected with %', want;
+end $$;
+create function p.ok(cond boolean, what text) returns void language plpgsql as $$
+begin
+  if cond is not true then raise exception 'FAILED: %', what; end if;
+  raise notice 'ok: %', what;
+end $$;
+create function p.as_user(id text) returns void language sql as $$
+  select set_config('request.jwt.claim.sub', id, false)
+$$;
+grant usage, create on schema p to authenticated;
+grant execute on all functions in schema p to authenticated;
+
+-- Accounts: a Ridgeline owner (also trainer Maren), an Eastside trainer, a member with Juno.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000a1', 'owner@ridgeline.co', '{"name":"Rae Owner"}'),
+  ('00000000-0000-0000-0000-0000000000a2', 'sam@eastside.co', '{"name":"Sam Reyes"}'),
+  ('00000000-0000-0000-0000-0000000000a3', 'member@dog.co', '{"name":"Mia Member"}'),
+  ('00000000-0000-0000-0000-0000000000a4', 'lena@southfork.co', '{"name":"Lena Brooks"}');
+update sessions set capacity = capacity + 2, packpass_spots = packpass_spots + 2, spots_left = spots_left + 2 where class_id = 'herding-fundamentals';
+select public.seed_demo_member('00000000-0000-0000-0000-0000000000a3');
+-- A second member whose Juno has Social (so group classes are open to her).
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000a5', 'second@dog.co');
+select public.seed_demo_member('00000000-0000-0000-0000-0000000000a5');
+insert into clearances (dog_id, type, scope, partner_id, assessed_on, expires_on)
+values ((select id from dogs where owner_id = '00000000-0000-0000-0000-0000000000a5' and name = 'Juno'), 'social', 'network', 'eastside', current_date, current_date + 365);
+select public.link_partner_staff('owner@ridgeline.co', 'ridgeline', 'owner', 'maren');
+select public.link_partner_staff('sam@eastside.co', 'eastside', 'trainer', 'sam');
+select public.link_partner_staff('lena@southfork.co', 'southfork', 'trainer', 'lena');
+create table p.ids as select
+  (select id from dogs where owner_id = '00000000-0000-0000-0000-0000000000a3' and name = 'Juno') juno,
+  (select b.id from bookings b join dogs d on d.id = b.dog_id where d.owner_id = '00000000-0000-0000-0000-0000000000a3') hf_booking,
+  (select b.session_id from bookings b join dogs d on d.id = b.dog_id where d.owner_id = '00000000-0000-0000-0000-0000000000a3') hf;
+grant select on p.ids to authenticated;
+
+-- ---- Who can see what ----------------------------------------------------------------------------
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.ok(public.my_partner() = 'ridgeline', 'a staff account belongs to its partner');
+select p.ok((select count(*) from public.partner_sessions(now(), now() + interval '7 days')) > 0
+            and not exists (select 1 from public.partner_sessions(now(), now() + interval '7 days') x join class_types c on c.id = x.class_id where c.partner_id <> 'ridgeline'),
+            'staff see only their own sessions');
+select p.ok((select check_in_code from public.partner_sessions(now(), now() + interval '30 days') where id = (select hf from p.ids)) ~ '^\d{4}$', 'staff see the check-in code');
+select p.ok((select booked from public.partner_sessions(now(), now() + interval '30 days') where id = (select hf from p.ids)) >= 1, 'and how many dogs are booked');
+select p.ok((select dog_name from public.partner_roster((select hf from p.ids)) where booking_id = (select hf_booking from p.ids)) = 'Juno', 'the roster lists the booked dog');
+select p.ok((select owner_name || ' · ' || vaccine_line from public.partner_roster((select hf from p.ids)) where booking_id = (select hf_booking from p.ids)) like 'Mia Member · Bordetella expires%', 'with the owner and the vaccine that runs out soonest');
+select p.as_user('00000000-0000-0000-0000-0000000000a3');
+select p.expect_error($$select * from public.partner_sessions(now(), now() + interval '7 days')$$, 'not_partner');
+select p.expect_error($$select * from public.partner_roster((select hf from p.ids))$$, 'not_partner');
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+select p.ok(not exists (select 1 from public.partner_roster((select hf from p.ids))), 'another partner gets an empty roster');
+select p.expect_error($$select public.partner_check_in((select hf_booking from p.ids))$$, 'not_found');
+
+-- ---- Check-in, capacity, waitlist switches -------------------------------------------------------
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.partner_check_in((select hf_booking from p.ids));
+select p.ok((select status from public.partner_roster((select hf from p.ids)) where booking_id = (select hf_booking from p.ids)) = 'checked_in', 'staff can check a dog in by hand');
+select public.partner_check_in((select hf_booking from p.ids), true);
+select p.ok((select status from public.partner_roster((select hf from p.ids)) where booking_id = (select hf_booking from p.ids)) = 'booked', 'and undo it');
+create table p.cap as select packpass_spots - spots_left taken, capacity from sessions where id = (select hf from p.ids);
+grant select on p.cap to authenticated;
+select p.expect_error($$select public.partner_update_session((select hf from p.ids), 10, (select taken from p.cap) - 1, true, true)$$, 'below_booked');
+select public.partner_update_session((select hf from p.ids), 12, (select taken from p.cap), false, true);
+reset role;
+select p.ok((select spots_left = 0 and capacity = 12 and not waitlist_open from sessions where id = (select hf from p.ids)), 'staff set capacity, PackPass spots and the waitlist switch');
+-- A member can't join a closed waitlist.
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a5');
+select p.expect_error($$select public.join_waitlist((select id from dogs where name = 'Juno'), (select hf from p.ids))$$, 'waitlist_closed');
+
+-- ---- Adding sessions -----------------------------------------------------------------------------
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+create table p.added as select public.partner_add_session('agility-drop-in', date_trunc('day', now()) + interval '9 days 15 hours', 10, 6, true) id;
+reset role;
+select p.ok((select capacity = 10 and packpass_spots = 6 and spots_left = 6 from sessions where id = (select id from p.added)), 'staff add a session with its own capacity');
+select p.ok(exists (select 1 from timetable t where t.class_id = 'agility-drop-in' and t.starts = ((date_trunc('day', now()) + interval '9 days 15 hours') at time zone 'America/Chicago')::time), 'a repeating session joins the weekly timetable');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.expect_error($$select public.partner_add_session('scent-work', now() + interval '2 days', 6, 6, false)$$, 'not_found');
+
+-- ---- Blocking dates -------------------------------------------------------------------------------
+reset role;
+create table p.blk as select s.id, (s.starts_at at time zone 'America/Chicago')::date d
+from sessions s where s.class_id = 'agility-drop-in' and s.starts_at > now() + interval '3 days' and s.cancelled_at is null order by s.starts_at limit 1;
+grant select on p.blk to authenticated;
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a5');
+select public.book_session((select id from p.blk), (select id from dogs where name = 'Juno'));
+reset role;
+create table p.before as select credits_balance c from profiles where id = '00000000-0000-0000-0000-0000000000a5';
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.ok((select sessions >= 1 and dogs = 1 from public.partner_block_dates((select d from p.blk), (select d from p.blk), 'Weather', 'Field is flooded.')), 'blocking a day reports the sessions and dogs affected');
+reset role;
+select p.ok((select cancelled_at is not null and cancel_reason = 'Weather' from sessions where id = (select id from p.blk)), 'the sessions are cancelled');
+select p.ok((select credits_balance from profiles where id = '00000000-0000-0000-0000-0000000000a5') = (select c from p.before) + 2, 'booked dogs get their credits back');
+select p.ok(exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-0000000000a5' and kind = 'session_cancelled' and body like '%(weather). 2 credits are back%Field is flooded.'), 'and the owner is told why');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a5');
+select p.ok(not exists (select 1 from sessions where id = (select id from p.blk)), 'members no longer see a cancelled session');
+select p.expect_error($$select public.book_session((select id from p.blk), (select id from dogs where name = 'Juno'))$$, 'cancelled');
+
+-- ---- Session notes ---------------------------------------------------------------------------------
+reset role;
+update sessions set starts_at = now() - interval '2 hours' where id = (select hf from p.ids);
+update bookings set status = 'checked_in', checked_in_at = now() - interval '2 hours' where id = (select hf_booking from p.ids);
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.ok(exists (select 1 from public.partner_notes(7) where booking_id = (select hf_booking from p.ids) and note is null), 'a session that ran shows up as needing a note');
+select p.expect_error($$select public.partner_send_note((select hf_booking from p.ids), '  ')$$, 'empty_note');
+select public.partner_send_note((select hf_booking from p.ids), 'Great recall today. Work on waiting at the gate.', array['Recall', 'Gate wait']);
+select public.partner_send_note((select hf_booking from p.ids), 'Great recall today. Work on the gate wait next time.', array['Recall']);
+reset role;
+select p.ok((select note from session_notes where booking_id = (select hf_booking from p.ids)) like '%next time.', 'staff send a note and can edit it');
+select p.ok((select count(*) from notifications where member_id = '00000000-0000-0000-0000-0000000000a3' and kind = 'session_note') = 1
+            and (select title from notifications where member_id = '00000000-0000-0000-0000-0000000000a3' and kind = 'session_note') = 'Note on Juno from Maren',
+            'the owner is told once, by the trainer''s name');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a3');
+select p.ok((select count(*) from session_notes) = 1, 'the owner can read the note');
+
+-- ---- Assessments ------------------------------------------------------------------------------------
+reset role;
+insert into sessions (class_id, starts_at, capacity, packpass_spots, spots_left) values
+  ('herding-assessment', now() - interval '1 hour', 1, 1, 0), ('social-assessment', now() - interval '3 hours', 1, 1, 0);
+insert into bookings (session_id, dog_id, member_id, credits_charged) values
+  ((select id from sessions where class_id = 'herding-assessment' and starts_at < now() order by starts_at desc limit 1), (select juno from p.ids), '00000000-0000-0000-0000-0000000000a3', 2),
+  ((select id from sessions where class_id = 'social-assessment' and starts_at < now() order by starts_at desc limit 1), (select juno from p.ids), '00000000-0000-0000-0000-0000000000a3', 2);
+create table p.asb as select
+  (select b.id from bookings b join sessions s on s.id = b.session_id where s.class_id = 'herding-assessment' and b.dog_id = (select juno from p.ids)) herding,
+  (select b.id from bookings b join sessions s on s.id = b.session_id where s.class_id = 'social-assessment' and b.dog_id = (select juno from p.ids) and s.starts_at < now()) social;
+grant select on p.asb to authenticated;
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.ok(exists (select 1 from public.partner_assessments() where booking_id = (select herding from p.asb) and outcome is null), 'assessment bookings wait for a result');
+select public.partner_record_result((select herding from p.asb), 'cleared', array['Stock awareness', 'Responds to a stop'], array['Calm at the gate']);
+reset role;
+select p.ok(exists (select 1 from clearances where dog_id = (select juno from p.ids) and type = 'herding' and scope = 'partner' and partner_id = 'ridgeline' and assessor = 'Maren Holt'),
+            'a pass grants Herding at this partner, signed by the trainer');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.expect_error($$select public.partner_record_result((select herding from p.asb), 'cleared')$$, 'already_recorded');
+select p.expect_error($$select public.partner_record_result((select social from p.asb), 'cleared')$$, 'not_found');
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+reset role;
+delete from dog_paths where dog_id = (select juno from p.ids);
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+select public.partner_record_result((select social from p.asb), 'not_yet', '{}', array['Greets new dogs calmly'], 'Close. Two sessions of distance work first.', true);
+reset role;
+select p.ok(exists (select 1 from dog_paths where dog_id = (select juno from p.ids) and path_id = 'calm-around-dogs' and completed_at is null), 'not yet, with a goal, starts the path to Social');
+select p.ok(exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-0000000000a3' and kind = 'assessment_result' and body like 'Close.%training path%'), 'and tells the owner');
+
+-- ---- Vet records ------------------------------------------------------------------------------------
+reset role;
+insert into storage.objects (bucket_id, name, owner) values
+  ('vaccine-docs', '00000000-0000-0000-0000-0000000000a3/' || (select juno from p.ids) || '/1-record.pdf', '00000000-0000-0000-0000-0000000000a3');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.ok((select count(*) from storage.objects where bucket_id = 'vaccine-docs') = 1, 'staff can open the vet record of a dog booked with them');
+select public.partner_check_vaccines((select juno from p.ids));
+select p.as_user('00000000-0000-0000-0000-0000000000a4');
+select p.ok((select count(*) from storage.objects where bucket_id = 'vaccine-docs') = 0, 'other partners can''t');
+select p.expect_error($$select public.partner_check_vaccines((select juno from p.ids))$$, 'not_found');
+reset role;
+select p.ok((select bool_and(verified) from vaccinations where dog_id = (select juno from p.ids)), 'staff mark the vaccines as checked');
+
+-- ---- Classes and trainers ------------------------------------------------------------------------------
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+create table p.newc as select public.partner_save_class(null, '{"title":"Treibball Basics","discipline":"Treibball","category":"sport","session_type":"class","duration_min":60,"intensity":3,"group_size":6,"balance":"physical","description":"Dogs push big balls into a goal.","image":"grass","energy":["High"],"sociability":["Loves dogs"],"requirements":[]}') id;
+select p.ok((select status = 'in_review' and credits is null from class_types where id = (select id from p.newc)), 'a new class waits for PackPass to set its credits');
+select p.as_user('00000000-0000-0000-0000-0000000000a3');
+select p.ok(not exists (select 1 from class_types where id = (select id from p.newc)), 'members don''t see classes in review');
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.partner_save_class('agility-drop-in', '{"title":"Agility drop-in","discipline":"Agility","category":"sport","session_type":"class","duration_min":60,"intensity":4,"group_size":8,"balance":"physical","description":"Longer course."}');
+reset role;
+select p.ok((select credit_review and status = 'live' and credits = 2 from class_types where id = 'agility-drop-in'), 'a longer class goes for a credit review and keeps its price meanwhile');
+insert into timetable (class_id, starts) values ((select id from p.newc), '06:00');
+select public.extend_schedule();
+select p.ok(not exists (select 1 from sessions where class_id = (select id from p.newc)), 'classes in review get no sessions');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+select p.expect_error($$select public.partner_save_class('agility-drop-in', '{"title":"Hijack","category":"sport","duration_min":10,"intensity":1,"group_size":2,"balance":"physical"}')$$, 'not_found');
+select p.expect_error($$select public.partner_save_trainer('maren', 'x', '{}', true)$$, 'not_found');
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.partner_save_trainer('maren', 'Maren runs the herding program.', array['Herding', 'Recall'], false);
+reset role;
+select p.ok((select bio like 'Maren runs%' and specialties = array['Herding', 'Recall'] and not private_sessions from trainers where id = 'maren'), 'staff edit their trainer profiles');
+
+-- ---- Earnings -----------------------------------------------------------------------------------------
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.ok((select count(*) from public.partner_earnings(6)) = 6, 'earnings cover the last six months');
+select p.ok((select credits >= 4 and amount_cents = credits * 950 from public.partner_earnings(1)), 'this month counts the sessions that ran, at $9.50 a credit');
+select p.ok(exists (select 1 from public.partner_earnings_by_class() where class_id = 'herding-fundamentals'), 'broken down by class');
+reset role;
+
+drop schema p cascade;
