@@ -212,6 +212,45 @@ select public.record_assessment((select id from dogs where owner_id = '00000000-
 select t.ok((select count(*) from held_spots where member_id = '00000000-0000-0000-0000-00000000000d' and status = 'held') = 0, 'a not-yet result releases the holds');
 select t.ok(exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-00000000000d' and kind = 'holds_released'), 'and tells the owner');
 
+-- ---- Hold reminders ---------------------------------------------------------------------------
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000e', 'remind@dog.co');
+select public.seed_demo_member('00000000-0000-0000-0000-00000000000e');
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000e', false);
+select public.hold_sessions((select id from dogs limit 1), array[t.next_session('free-roam'), t.next_session('agility-drop-in')]);
+reset role;
+update held_spots set reminded_at = now() where member_id <> '00000000-0000-0000-0000-00000000000e';
+update held_spots set expires_at = now() + interval '3 days' where member_id = '00000000-0000-0000-0000-00000000000e';
+select t.ok(public.remind_expiring_holds() = 0, 'holds far from release aren''t reminded');
+update held_spots set expires_at = now() + interval '20 hours' where member_id = '00000000-0000-0000-0000-00000000000e';
+select t.ok(public.remind_expiring_holds() = 1, 'holds releasing within a day get one reminder per dog');
+select t.ok((select body from notifications where member_id = '00000000-0000-0000-0000-00000000000e' and kind = 'hold_expiring') like '2 held group sessions go back%needs a Social clearance%',
+            'an uncleared dog''s reminder says it needs Social');
+select t.ok(public.remind_expiring_holds() = 0, 'each hold is reminded once');
+select t.ok(not exists (select 1 from held_spots where member_id = '00000000-0000-0000-0000-00000000000e' and status = 'held' and reminded_at is null), 'reminded holds are marked');
+select public.record_assessment((select id from dogs where owner_id = '00000000-0000-0000-0000-00000000000e' and name = 'Juno'), 'social', 'eastside', 'Sam Reyes', 'cleared');
+update held_spots set reminded_at = null where member_id = '00000000-0000-0000-0000-00000000000e';
+select public.remind_expiring_holds();
+select t.ok(exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-00000000000e' and title = 'Book Juno''s held sessions'), 'a cleared dog''s reminder asks the member to book');
+
+-- ---- Push tokens -------------------------------------------------------------------------------
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000e', false);
+select public.register_push_token('ExponentPushToken[abc123]', 'ios');
+select public.register_push_token('ExponentPushToken[abc123]', 'ios');
+select t.ok((select count(*) from push_tokens) = 1, 'a member registers a device once');
+select t.expect_error($$select public.register_push_token('not-a-token', 'ios')$$, 'bad_token');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+select public.register_push_token('ExponentPushToken[abc123]', 'android');
+select t.ok((select member_id from push_tokens) = '00000000-0000-0000-0000-00000000000d', 'a device signed into by someone else moves to them');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000e', false);
+select t.ok((select count(*) from push_tokens) = 0, 'members only see their own devices');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+delete from push_tokens where token = 'ExponentPushToken[abc123]';
+reset role;
+select t.ok(not exists (select 1 from push_tokens), 'a member can remove their device on sign-out');
+select t.expect_error($$set local role anon; select public.remind_expiring_holds()$$, 'permission denied');
+
 -- ---- Monthly credits ---------------------------------------------------------------------------
 reset role;
 update profiles set credits_balance = 14, credits_reset_on = current_date where email = 'alex@kim.co';

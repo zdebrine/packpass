@@ -10,6 +10,8 @@ It runs in one of two modes:
   Tuesday, Sep 29 2026, 9:41 am, the moment the designs show. Nothing leaves the device.
 - **Live**: set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_KEY` (see `.env.example`) and the app
   signs up, signs in, books and checks in against Supabase, on the real clock. See `supabase/README.md`.
+  On a phone it also registers for push (hold reminders, clearances; `src/lib/push.ts`). That needs
+  `eas init` and a development build, since Expo Go and the web don't receive remote pushes.
 
 Both modes apply the same booking rules (`src/lib/booking.ts` mirrors the database functions):
 group classes need a Social clearance unless they're a step on the dog's training path, Herding is assessed

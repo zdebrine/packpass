@@ -11,6 +11,7 @@ import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { bookError, credits as creditsLabel, sessionOn } from '@/lib/booking';
 import { time, weekday } from '@/lib/dates';
+import { enablePush } from '@/lib/push';
 import { useApp, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -79,6 +80,8 @@ function Month() {
       const out = await bookMany(now.map((r) => r.v!.session.id), dogId);
       // The rest is held on the server: the spot is reserved, credits are charged when it books.
       const held = later.length ? await holdSessions(later.map((r) => r.v!.session.id), dogId) : [];
+      // Holds release a day before the session; ask now so the reminder can reach the phone.
+      if (held.some((h) => !h.error)) await enablePush();
       const title = (id: string) => planned.find((r) => r.v!.session.id === id)?.v?.cls.title ?? 'Session';
       setResults([
         ...out.map((o) => ({ title: title(o.sessionId), error: o.error })),
@@ -113,7 +116,7 @@ function Month() {
             </View>
           ))}
           {held.length ? (
-            <Text variant="caption" muted style={{ marginTop: 6 }}>{`Your spots are held, with no credits used yet. Once ${name} passes the Social assessment, book them from Today in one tap.`}</Text>
+            <Text variant="caption" muted style={{ marginTop: 6 }}>{`Your spots are held, with no credits used yet. Once ${name} passes the Social assessment, book them from Today in one tap. We'll remind you a day before any held spot is released.`}</Text>
           ) : null}
           {skipped.some((r) => r.error === 'needs_social') ? (
             <Text variant="caption" muted style={{ marginTop: 6 }}>{`Group classes open once ${name} has a Social clearance. Path sessions are open now.`}</Text>

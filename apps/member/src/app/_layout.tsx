@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { isLive, supabase } from '@/api/client';
 import { setLiveClock } from '@/lib/clock';
+import { usePush } from '@/lib/push';
 import { useApp } from '@/store/app';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
@@ -49,6 +50,7 @@ export default function RootLayout() {
   const hydrated = useHydrated();
   const dataReady = useApp((s) => s.ready);
   const ready = fontsLoaded && hydrated && dataReady;
+  usePush();
 
   // Live mode: load the catalog and the member, and reload when the session changes.
   useEffect(() => {

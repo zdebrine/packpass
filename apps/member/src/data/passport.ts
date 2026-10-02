@@ -6,7 +6,7 @@ import type { ClearanceStatus, ClearanceType, PhotoKey } from './types';
 
 export type IconName =
   | 'users' | 'trees' | 'zap' | 'fence' | 'trophy' | 'check' | 'arrow-right' | 'lock' | 'shield' | 'shield-check'
-  | 'shield-alert' | 'trending-up' | 'calendar-check' | 'message-square' | 'award' | 'rotate-ccw';
+  | 'shield-alert' | 'trending-up' | 'calendar-check' | 'message-square' | 'award' | 'rotate-ccw' | 'clock';
 
 export interface Clearance {
   type: ClearanceType;

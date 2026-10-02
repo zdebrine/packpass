@@ -92,8 +92,18 @@ const S = () => useApp.getState();
   ok(S().remoteNotifications!.every((x) => S().readNotifications.includes(x.id)), 'mark all read persists');
 
   await S().holdSessions([nextSession('open-field', 3)!.session.id], dog);
+
+  // Hold reminders: the device is linked for push, and a hold within a day of release gets a reminder.
+  await S().registerPush('ExponentPushToken[e2e-device]', 'ios');
+  ok(psql(`select count(*) from push_tokens where token = 'ExponentPushToken[e2e-device]'`) === '1', 'the device is linked for push');
+  psql(`update held_spots set expires_at = now() + interval '20 hours' where status = 'held'`);
+  ok(psql('select public.remind_expiring_holds()') === '1', 'a hold releasing within a day is reminded');
+  await S().refresh();
+  ok(S().remoteNotifications!.some((x) => x.title === "Book Juno's held sessions" && x.icon === 'clock'), 'the reminder shows in the app');
+
   await S().signOut();
   ok(!S().signedIn, 'sign out');
+  ok(psql(`select count(*) from push_tokens`) === '0', 'signing out unlinks the device');
   threw = '';
   try { await S().signIn(email, 'wrong-password'); } catch (e) { threw = (e as Error).message; }
   ok(/invalid/i.test(threw), 'a wrong password is rejected');

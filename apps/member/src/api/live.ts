@@ -45,7 +45,9 @@ export async function signIn(email: string, password: string) {
   check(await db().auth.signInWithPassword({ email, password }));
 }
 
-export async function signOut() {
+/** Signs out, first unlinking this device so the next person to use it doesn't get this member's pushes. */
+export async function signOut(pushToken?: string | null) {
+  if (pushToken) await db().from('push_tokens').delete().eq('token', pushToken);
   await db().auth.signOut();
 }
 
@@ -163,7 +165,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     vaccines: vax.map((v) => ({ type: ({ rabies: 'Rabies', dhpp: 'DHPP', bordetella: 'Bordetella' } as const)[v.type as 'rabies'], expires: v.expires_on })),
     notifications: notes.map((n): Notif => ({
       id: n.id,
-      icon: n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : 'message-square',
+      icon: n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : n.kind === 'hold_expiring' || n.kind === 'holds_released' ? 'clock' : 'message-square',
       tone: n.kind === 'clearance_earned' ? 'clr' : 'n',
       title: n.title, body: n.body, time: relTime(n.created_at),
       cat: cap(n.category), isNew: Date.now() - new Date(n.created_at).getTime() < 3 * 86_400_000 || !n.read_at,
@@ -238,6 +240,11 @@ export async function checkIn(bookingId: string, code: string) {
 
 export async function seeClearance(id: string) {
   check(await db().rpc('see_clearance', { p_clearance: id }));
+}
+
+/** Links this device's Expo push token to the signed-in member (supabase/functions/send-push delivers to it). */
+export async function registerPushToken(token: string, platform: 'ios' | 'android') {
+  check(await db().rpc('register_push_token', { p_token: token, p_platform: platform }));
 }
 
 export async function markRead(ids: string[] | null) {

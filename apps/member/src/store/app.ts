@@ -108,6 +108,9 @@ interface AppState extends Demo {
   verifyEmail: (code: string) => Promise<void>;
   finishOnboarding: () => Promise<void>;
   signOut: () => Promise<void>;
+  /** Live mode, phones only: this device's Expo push token, once the member allows notifications. */
+  pushToken: string | null;
+  registerPush: (token: string, platform: 'ios' | 'android') => Promise<void>;
   /** Live mode: reload catalog and member data. */
   refresh: () => Promise<void>;
 
@@ -286,8 +289,14 @@ export const useApp = create<AppState>()(
           set({ signedIn: true, onboarded: true });
         },
         signOut: async () => {
-          if (isLive) await live.signOut();
-          set({ signedIn: false, onboarded: false });
+          if (isLive) await live.signOut(get().pushToken);
+          set({ signedIn: false, onboarded: false, pushToken: null });
+        },
+        pushToken: null,
+        registerPush: async (token, platform) => {
+          if (!isLive || !get().signedIn) return;
+          await live.registerPushToken(token, platform);
+          set({ pushToken: token });
         },
         refresh: async () => {
           if (!isLive) return;

@@ -9,13 +9,17 @@ import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { credits as creditsLabel, view } from '@/lib/booking';
 import { now } from '@/lib/clock';
-import { monthDay, time, weekday } from '@/lib/dates';
+import { addMinutes, dayTimeInline, monthDay, time, weekday } from '@/lib/dates';
 import { useApp, useDog, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
+
+/** A hold gives its spot back 24 hours before the session (held_spots.expires_at). */
+const releaseOf = (startsAt: Date) => addMinutes(startsAt, -24 * 60);
 
 /**
  * The rest of the starting month (01j), held until the dog passes its Social assessment. Each hold
  * reserves the spot (held_spots on the server) until a day before the session. One tap books them.
+ * Within a day of the first release it says so (the server sends the same reminder as a notification).
  */
 export function HeldPlan() {
   const { c } = useTheme();
@@ -27,8 +31,13 @@ export function HeldPlan() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
-  const rows = pending.map((id) => view(id)).filter((v): v is NonNullable<typeof v> => !!v && v.session.startsAt > now());
+  const rows = pending
+    .map((id) => view(id))
+    .filter((v): v is NonNullable<typeof v> => !!v && releaseOf(v.session.startsAt) > now())
+    .sort((a, b) => a.session.startsAt.getTime() - b.session.startsAt.getTime());
   if (!rows.length && !result) return null;
+  const first = rows[0];
+  const soon = first && releaseOf(first.session.startsAt).getTime() - now().getTime() <= 24 * 3_600_000 ? first : null;
 
   const book = async () => {
     setBusy(true);
@@ -57,6 +66,12 @@ export function HeldPlan() {
                 {hasSocial ? null : <Icon name="lock" size={18} color={c.inkFaint} />}
               </View>
             ))}
+            {soon ? (
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <Icon name="clock" size={16} color={c.kennelRed} />
+                <Text variant="caption" weight="600" style={{ flex: 1 }}>{`${soon.cls.title} releases ${dayTimeInline(releaseOf(soon.session.startsAt))}${hasSocial ? ' unless you book it.' : '.'}`}</Text>
+              </View>
+            ) : null}
             {hasSocial ? (
               <Button block disabled={busy} onPress={book}>{busy ? 'Booking…' : `Book ${rows.length} ${rows.length === 1 ? 'session' : 'sessions'}`}</Button>
             ) : (

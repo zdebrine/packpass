@@ -49,6 +49,12 @@
         }
       ],
       [
+        "expo-notifications",
+        {
+          "color": "#0e0f0e"
+        }
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "PackPass uses the camera to scan the check-in code at a partner's entrance.",
