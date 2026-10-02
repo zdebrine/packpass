@@ -125,3 +125,7 @@ export const activeBookings = (bookings: Booking[]) =>
 
 export const bookingFor = (bookings: Booking[], sessionId: string) =>
   bookings.find((b) => b.sessionId === sessionId && b.status !== 'cancelled');
+
+/** Credits a cancellation gives back: all of them until 12 hours before the start, none after (cancel_booking). */
+export const cancelRefund = (startsAt: Date, credits: number, at = now()) =>
+  startsAt.getTime() - at.getTime() >= 12 * 3_600_000 ? credits : 0;

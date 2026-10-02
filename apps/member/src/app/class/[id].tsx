@@ -2,13 +2,15 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Share, View } from 'react-native';
 
+import { errorCopy } from '@/api/errors';
 import { Button, Tag } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
 import { Badge, Bars, Footer, IconButton, Screen, useTop } from '@/ds/layout';
+import { Press } from '@/ds/Press';
 import { Photo, PhotoFill, Gradient } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { MapSketch } from '@/features/MapSketch';
-import { assessmentFor, bookingFor, credits as creditsLabel, eligibility, view } from '@/lib/booking';
+import { assessmentFor, bookingFor, cancelRefund, credits as creditsLabel, eligibility, view } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { cancelCopy, dayTime, monthDay } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
@@ -47,7 +49,12 @@ export default function ClassDetail() {
   const onCalmPath = useApp((s) => s.activePaths.includes('calm-around-dogs'));
   const bookings = useApp((s) => s.bookings);
   const vaccines = useApp((s) => s.vaccines);
+  const cancelBooking = useApp((s) => s.cancelBooking);
   const [saved, setSaved] = useState(false);
+  // Cancel lives here (booking detail): tap, confirm inline (Alert has no web version), then the footer offers booking again.
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   if (!v) {
     return (
@@ -68,6 +75,20 @@ export default function ClassDetail() {
   const assessment = !el.ok && el.needs === 'herding' ? assessmentFor(cls) : undefined;
   const firstVaccine = [...vaccines].sort((a, b) => (a.expires < b.expires ? -1 : 1))[0];
   const group = cls.groupSize === 1 ? (cls.sessionType === 'Private' ? '1:1 · Private' : 'Your dogs only') : `${cls.groupSize} dogs · ${session.spotsLeft === 0 ? 'full' : `${session.spotsLeft} left`}`;
+  const refund = booking ? cancelRefund(session.startsAt, booking.credits) : 0;
+  const cancel = async () => {
+    if (!booking) return;
+    setBusy(true);
+    try {
+      await cancelBooking(booking.id);
+      setNotice(refund ? `Cancelled. ${creditsLabel(refund)} back in your balance.` : 'Cancelled. Inside 12 hours, so the credits were used.');
+    } catch (e) {
+      setNotice(errorCopy(e));
+    } finally {
+      setBusy(false);
+      setConfirming(false);
+    }
+  };
   const when = `${cls.openWindow ? `${dayTime(session.startsAt).split(' ')[0]} · ${cls.openWindow}` : dayTime(session.startsAt)} · ${partner.name}`;
 
   return (
@@ -182,13 +203,32 @@ export default function ClassDetail() {
       </ScrollView>
 
       <Footer>
-        {booking ? (
+        {notice && !confirming ? <Text variant="caption" weight="600" center accessibilityLiveRegion="polite">{notice}</Text> : null}
+        {booking && confirming ? (
+          <>
+            <Text variant="label" weight="600" center accessibilityLiveRegion="polite">{`Cancel ${cls.title}?`}</Text>
+            <Text variant="caption" center color={refund ? c.inkMuted : c.kennelRed}>
+              {refund
+                ? `${creditsLabel(refund)} ${refund === 1 ? 'goes' : 'go'} back to your balance, and the spot opens for someone else.`
+                : `It starts within 12 hours, so the ${creditsLabel(booking.credits)} won't come back.`}
+            </Text>
+            <Button block disabled={busy} onPress={() => setConfirming(false)}>Keep booking</Button>
+            <Button block variant="quiet" disabled={busy} onPress={cancel}>{busy ? 'Cancelling…' : 'Yes, cancel'}</Button>
+          </>
+        ) : booking ? (
           <>
             <Text variant="caption" muted center>{`Booked for ${dayTime(session.startsAt)}. ${cancelCopy(session.startsAt)}.`}</Text>
             {booking.status === 'checked_in' ? (
               <Button block variant="quiet" disabled>Checked in</Button>
             ) : (
-              <Button block onPress={() => router.push(`/check-in/scan?booking=${booking.id}`)}>Check in</Button>
+              <>
+                <Button block onPress={() => router.push(`/check-in/scan?booking=${booking.id}`)}>Check in</Button>
+                {started ? null : (
+                  <Press onPress={() => { setNotice(null); setConfirming(true); }} scale={false} accessibilityRole="button" style={{ alignSelf: 'center', paddingVertical: 4 }}>
+                    <Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Cancel booking</Text>
+                  </Press>
+                )}
+              </>
             )}
           </>
         ) : started ? (

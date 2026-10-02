@@ -152,7 +152,7 @@ Business rules in `src/lib`, unit tested:
 ## 8. Decisions and known gaps
 
 Decided with the product owner: Expo universal app; centered phone layout on web; the starting month leads
-with a Social assessment for dogs without one; Juno's Social clearance
+with a Social assessment for dogs without one; cancelling lives on the booking detail screen; Juno's Social clearance
 shows "Working on it" until the member opens the Clearance earned screen (13), then "Cleared"; group classes
 need Social except sessions on the dog's own training path; "Book these" books real sessions; held spots
 release 24 hours before the session, and members are reminded a day before that; Supabase runs locally for now.
@@ -178,12 +178,14 @@ release 24 hours before the session, and members are reminded a day before that;
   the vaccines screen; records are unverified until a partner checks the paperwork (`verified` column).
 - **Live-mode gaps:** dog photos use the sample photo (no upload yet); distances are measured from Austin ·
   South, not the member's location; the plan is always Regular; Apple and Google sign-in show a message.
-- **No cancel button.** The designs don't have one; the store and `cancel_booking` support it.
+- **Cancelling** lives on the class detail screen (05) when the session is booked: "Cancel booking" under
+  Check in, then an inline confirmation that says whether the credits come back (free until 12 hours before;
+  the spot always goes back). The designs don't draw it; it reuses the footer's existing buttons.
 - **Otis** appears in the dog switcher and booking sheet; sample mode checks the rules against Juno's records.
 - **Web QR scanning** in expo-camera loads jsQR from cdn.jsdelivr.net at runtime. The 4-digit code works without it.
 - **Glass on Android** uses expo-blur's experimental blur; older devices fall back to a translucent fill.
 
 ## 9. Open questions
 
-- Where does cancelling live in the UI? The designs have no cancel button; `cancel_booking` exists.
 - Which Supabase project and region for production, and when (the free plan is at its project limit)?
+  Still being decided; the build continues on local Supabase until then.

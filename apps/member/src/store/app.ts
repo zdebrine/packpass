@@ -8,7 +8,7 @@ import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, T
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
 import type { Booking, Dog } from '@/data/types';
 import { now } from '@/lib/clock';
-import { bookError, view, type BookError, type RuleContext } from '@/lib/booking';
+import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
 
 export type Appearance = 'system' | 'light' | 'dark';
 /** working: on the Calm around dogs path. earned: re-check passed, not seen yet. cleared: seen on screen 13. */
@@ -346,7 +346,16 @@ export const useApp = create<AppState>()(
             await thenRefresh(() => live.cancel(bookingId));
             return;
           }
-          set((s) => ({ bookings: s.bookings.map((b) => (b.id === bookingId ? { ...b, status: 'cancelled' } : b)) }));
+          // Same rule as cancel_booking: the spot goes back, credits come back until 12 hours before.
+          const b = get().bookings.find((x) => x.id === bookingId);
+          if (!b || b.status !== 'booked') throw new Error('not_cancellable');
+          const v = view(b.sessionId);
+          if (v) v.session.spotsLeft += 1;
+          const refund = v ? cancelRefund(v.session.startsAt, b.credits) : 0;
+          set((s) => ({
+            bookings: s.bookings.map((x) => (x.id === bookingId ? { ...x, status: 'cancelled' } : x)),
+            credits: s.credits + refund,
+          }));
         },
         checkIn: async (bookingId, code) => {
           if (isLive) {
