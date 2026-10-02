@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { SHORT } from '@/api/errors';
 import { Button } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
+import { Press } from '@/ds/Press';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { credits as creditsLabel, view } from '@/lib/booking';
@@ -13,16 +14,16 @@ import { useApp, useDog, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /**
- * The rest of the starting month (01j), held until the dog passes its Social assessment.
- * Locked until then; afterwards one tap books them all.
+ * The rest of the starting month (01j), held until the dog passes its Social assessment. Each hold
+ * reserves the spot (held_spots on the server) until a day before the session. One tap books them.
  */
 export function HeldPlan() {
   const { c } = useTheme();
   const dog = useDog();
   const { hasSocial } = useRules();
   const pending = useApp((s) => s.pendingPlan);
-  const setPending = useApp((s) => s.setPendingPlan);
-  const bookMany = useApp((s) => s.bookMany);
+  const bookHeld = useApp((s) => s.bookHeld);
+  const releaseHolds = useApp((s) => s.releaseHolds);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
@@ -31,9 +32,8 @@ export function HeldPlan() {
 
   const book = async () => {
     setBusy(true);
-    const out = await bookMany(rows.map((v) => v.session.id), dog.id);
+    const out = await bookHeld(dog.id);
     setBusy(false);
-    setPending([]);
     const ok = out.filter((o) => !o.error).length;
     const missed = out.filter((o) => o.error).map((o) => `${view(o.sessionId)?.cls.title ?? 'A session'} (${SHORT[o.error!] ?? o.error})`);
     setResult(`Booked ${ok} of ${out.length}.${missed.length ? ` Skipped: ${missed.join(', ')}.` : ''}`);
@@ -60,8 +60,11 @@ export function HeldPlan() {
             {hasSocial ? (
               <Button block disabled={busy} onPress={book}>{busy ? 'Booking…' : `Book ${rows.length} ${rows.length === 1 ? 'session' : 'sessions'}`}</Button>
             ) : (
-              <Text variant="caption" muted>{`These open once ${dog.name} passes the Social assessment.`}</Text>
+              <Text variant="caption" muted>{`Spots are held for ${dog.name} until the day before each session. Book them once ${dog.name} passes the Social assessment.`}</Text>
             )}
+            <Press onPress={() => releaseHolds(dog.id)} scale={false} accessibilityRole="button" style={{ alignSelf: 'flex-start' }}>
+              <Text variant="caption" weight="600" style={{ textDecorationLine: 'underline' }}>Let these spots go</Text>
+            </Press>
           </>
         )}
       </View>

@@ -51,6 +51,15 @@ const S = () => useApp.getState();
   ok(r.ok && S().credits === 7 && S().bookings.length === 2, 'a path session books and charges 1 credit');
   ok(S().remoteNotifications!.some((x) => x.title === 'Booked. Small-group play'), 'the booking notification shows up');
 
+  // 01j holds group sessions for a dog without Social: spot reserved on the server, no credits.
+  const roam = nextSession('free-roam', 3)!;
+  const spotsBefore = roam.session.spotsLeft;
+  const held = await S().holdSessions([roam.session.id, nextSession('herding-livestock', 3)!.session.id], dog);
+  ok(held[0].error === null && held[1].error === 'needs_herding', 'holding skips the Social rule but no other');
+  ok(S().pendingPlan.includes(roam.session.id) && S().credits === 7, 'the hold is stored on the server and charges nothing');
+  ok(nextSession('free-roam', 3)!.session.spotsLeft === spotsBefore - 1, 'other members see one spot fewer');
+  ok((await S().bookHeld(dog))[0].error === 'needs_social' && S().pendingPlan.length === 1, 'held spots stay held until the dog has Social');
+
   const many = await S().bookMany([nextSession('sniff-space', 2)!.session.id, nextSession('open-field', 2)!.session.id], dog);
   ok(many.filter((m) => !m.error).length === 1 && many.some((m) => m.error === 'needs_social'), 'Book these books what it can and reports the rest');
   ok(S().credits === 6, 'only the booked plan session is charged');
@@ -73,19 +82,24 @@ const S = () => useApp.getState();
   ok(S().social === 'cleared', 'opening the celebration marks the clearance seen');
   r = await S().bookSession(agility.session.id, dog);
   ok(r.ok, 'with Social, group sport books');
+  const fromHold = await S().bookHeld(dog);
+  ok(fromHold.length === 1 && fromHold[0].error === null && S().pendingPlan.length === 0, 'once cleared, held sessions book in one tap');
+  ok(nextSession('free-roam', 3)!.session.spotsLeft === spotsBefore - 1, 'booking a held spot doesn\'t take a second one');
 
   S().markRead(null);
   await new Promise((res) => setTimeout(res, 300));
   await S().refresh();
   ok(S().remoteNotifications!.every((x) => S().readNotifications.includes(x.id)), 'mark all read persists');
 
+  await S().holdSessions([nextSession('open-field', 3)!.session.id], dog);
   await S().signOut();
   ok(!S().signedIn, 'sign out');
   threw = '';
   try { await S().signIn(email, 'wrong-password'); } catch (e) { threw = (e as Error).message; }
   ok(/invalid/i.test(threw), 'a wrong password is rejected');
   await S().signIn(email, 'herding4life');
-  ok(S().onboarded && S().bookings.length === 3, 'signing back in restores the dog and bookings');
+  ok(S().onboarded && S().bookings.length === 4, 'signing back in restores the dog and bookings');
+  ok(S().pendingPlan.length === 1, 'held spots follow the member to a new sign-in');
 
   console.log(`\nAll ${n} live-mode checks passed.`);
   process.exit(0);

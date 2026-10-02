@@ -104,6 +104,8 @@ export interface MemberSnapshot {
   vaccines: { type: 'Rabies' | 'DHPP' | 'Bordetella'; expires: string }[];
   notifications: Notif[];
   readNotifications: string[];
+  /** Sessions held for the main dog until its Social assessment. */
+  holds: string[];
 }
 
 const ageOf = (year?: number | null, month?: number | null) => {
@@ -130,12 +132,13 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
   const dogs = check(await c.from('dogs').select('*').order('created_at')) as any[];
   const dogIds = dogs.map((d) => d.id);
   const main = dogs[0]?.id ?? null;
-  const [bookings, clearances, paths, vaccines, notes] = await Promise.all([
+  const [bookings, clearances, paths, vaccines, notes, holds] = await Promise.all([
     c.from('bookings').select('*').neq('status', 'cancelled').then(check),
     c.from('clearances').select('*').in('dog_id', dogIds).then(check),
     c.from('dog_paths').select('*').in('dog_id', dogIds).then(check),
     c.from('vaccinations').select('*').in('dog_id', dogIds).then(check),
     c.from('notifications').select('*').order('created_at', { ascending: false }).limit(50).then(check),
+    c.from('held_spots').select('session_id, dog_id, expires_at').eq('status', 'held').gt('expires_at', new Date().toISOString()).then(check),
   ]) as any[][];
 
   const today = new Date().toISOString().slice(0, 10);
@@ -167,6 +170,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
       href: n.href ?? undefined,
     })),
     readNotifications: notes.filter((n) => n.read_at).map((n) => n.id),
+    holds: mine(holds).map((h) => h.session_id),
   };
 }
 
@@ -206,6 +210,22 @@ export async function book(sessionId: string, dogId: string) {
 export async function bookMany(dogId: string, sessionIds: string[]) {
   const rows = check(await db().rpc('book_sessions', { p_dog: dogId, p_sessions: sessionIds })) as { session_id: string; error: string | null }[];
   return rows.map((r) => ({ sessionId: r.session_id, error: r.error }));
+}
+
+/** Holds the rest of a starting month for a dog without Social (spots reserved, no credits). */
+export async function holdSessions(dogId: string, sessionIds: string[]) {
+  const rows = check(await db().rpc('hold_sessions', { p_dog: dogId, p_sessions: sessionIds })) as { session_id: string; error: string | null }[];
+  return rows.map((r) => ({ sessionId: r.session_id, error: r.error }));
+}
+
+/** Books every live hold for the dog; each succeeds or fails on its own. */
+export async function bookHeld(dogId: string) {
+  const rows = check(await db().rpc('book_held', { p_dog: dogId })) as { session_id: string; error: string | null }[];
+  return rows.map((r) => ({ sessionId: r.session_id, error: r.error }));
+}
+
+export async function releaseHolds(dogId: string, sessionId?: string) {
+  check(await db().rpc('release_holds', { p_dog: dogId, p_session: sessionId ?? null }));
 }
 
 export async function cancel(bookingId: string) {

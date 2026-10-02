@@ -18,6 +18,7 @@ const COPY: Record<string, string> = {
   too_early: 'Check-in opens an hour before the start.',
   too_late: 'This session has ended.',
   not_booked: 'There\'s no booking to check in to.',
+  too_soon: 'Spots can only be held until the day before a session.',
 };
 
 /** Short, human sentence for an error code or a raw error. */
@@ -36,4 +37,5 @@ export const SHORT: Record<string, string> = {
   full: 'full',
   credits: 'not enough credits',
   not_found: 'not on the schedule',
+  too_soon: 'too soon to hold',
 };

@@ -33,7 +33,7 @@ function Month() {
   const toggleSwap = useApp((s) => s.toggleSwap);
   const finish = useApp((s) => s.finishOnboarding);
   const bookMany = useApp((s) => s.bookMany);
-  const setPendingPlan = useApp((s) => s.setPendingPlan);
+  const holdSessions = useApp((s) => s.holdSessions);
   const rules = useRules();
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<Result[] | null>(null);
@@ -77,12 +77,13 @@ function Month() {
       const later = planned.filter((r) => r.after);
       const blocked = planned.filter((r) => !r.after && r.block);
       const out = await bookMany(now.map((r) => r.v!.session.id), dogId);
-      setPendingPlan(later.map((r) => r.v!.session.id));
+      // The rest is held on the server: the spot is reserved, credits are charged when it books.
+      const held = later.length ? await holdSessions(later.map((r) => r.v!.session.id), dogId) : [];
       const title = (id: string) => planned.find((r) => r.v!.session.id === id)?.v?.cls.title ?? 'Session';
       setResults([
         ...out.map((o) => ({ title: title(o.sessionId), error: o.error })),
         ...blocked.map((r) => ({ title: r.v!.cls.title, error: r.block })),
-        ...later.map((r) => ({ title: r.v!.cls.title, error: 'after' })),
+        ...held.map((h) => ({ title: title(h.sessionId), error: h.error ?? 'after' })),
       ]);
     } catch (e) {
       setFailure(errorCopy(e));
@@ -107,12 +108,12 @@ function Month() {
               <Icon name={!r.error ? 'check' : r.error === 'after' ? 'clock' : 'x'} color={!r.error ? c.turf : c.inkMuted} />
               <View style={{ flex: 1 }}>
                 <Text variant="label" weight="600">{r.title}</Text>
-                <Text variant="caption" muted>{!r.error ? 'Booked' : r.error === 'after' ? 'Held until the Social assessment' : `Skipped: ${SHORT[r.error] ?? errorCopy(r.error)}`}</Text>
+                <Text variant="caption" muted>{!r.error ? 'Booked' : r.error === 'after' ? 'Spot held until the Social assessment' : `Skipped: ${SHORT[r.error] ?? errorCopy(r.error)}`}</Text>
               </View>
             </View>
           ))}
           {held.length ? (
-            <Text variant="caption" muted style={{ marginTop: 6 }}>{`Once ${name} passes the Social assessment, Today offers to book the rest of the month in one tap.`}</Text>
+            <Text variant="caption" muted style={{ marginTop: 6 }}>{`Your spots are held, with no credits used yet. Once ${name} passes the Social assessment, book them from Today in one tap.`}</Text>
           ) : null}
           {skipped.some((r) => r.error === 'needs_social') ? (
             <Text variant="caption" muted style={{ marginTop: 6 }}>{`Group classes open once ${name} has a Social clearance. Path sessions are open now.`}</Text>

@@ -155,6 +155,63 @@ insert into storage.objects (bucket_id, name) values ('dog-photos', '00000000-00
 select t.ok(true, 'a member can upload into their own folder');
 select t.expect_error($$insert into storage.objects (bucket_id, name) values ('vaccine-docs', '00000000-0000-0000-0000-00000000000b/x.pdf')$$, 'row-level security');
 
+
+-- ---- Held spots (01j for dogs without Social) --------------------------------------------------
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000c', 'new@dog.co');
+select public.seed_demo_member('00000000-0000-0000-0000-00000000000c');
+create table t.c as
+select (select id from dogs where owner_id = '00000000-0000-0000-0000-00000000000c' and name = 'Juno') as dog,
+       t.next_session('free-roam') as roam, t.next_session('herding-livestock') as livestock, t.next_session('open-field') as field,
+       (select spots_left from sessions where id = t.next_session('free-roam')) as roam_spots;
+grant select on t.c to authenticated;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+
+create temp table holds as select * from public.hold_sessions((select dog from t.c), array[(select roam from t.c), (select livestock from t.c)]);
+select t.ok((select hold_id is not null from holds where session_id = (select roam from t.c)), 'a group session can be held without Social');
+select t.ok((select error from holds where session_id = (select livestock from t.c)) = 'needs_herding', 'other rules still stop a hold');
+select t.ok((select spots_left from sessions where id = (select roam from t.c)) = (select roam_spots from t.c) - 1, 'a hold takes the spot');
+select t.ok((select credits_balance from profiles) = 7, 'a hold charges no credits');
+select t.ok((select error from public.hold_sessions((select dog from t.c), array[(select roam from t.c)])) = 'already_booked', 'a session can''t be held twice');
+select t.ok((select count(*) from held_spots where status = 'held') = 1, 'the member reads their own holds');
+
+create temp table early as select * from public.book_held((select dog from t.c));
+select t.ok((select error from early) = 'needs_social' and exists (select 1 from held_spots where status = 'held'), 'held spots stay held until the dog has Social');
+
+reset role;
+select public.record_assessment((select dog from t.c), 'social', 'eastside', 'Sam Reyes', 'cleared');
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+create temp table booked_held as select * from public.book_held((select dog from t.c));
+select t.ok((select booking_id is not null from booked_held), 'once cleared, held sessions book in one call');
+select t.ok((select spots_left from sessions where id = (select roam from t.c)) = (select roam_spots from t.c) - 1, 'booking a held spot doesn''t take a second spot');
+select t.ok((select credits_balance from profiles) = 6, 'credits are charged when the held session books');
+select t.ok((select status from held_spots where session_id = (select roam from t.c)) = 'booked', 'the hold is marked booked');
+
+-- Releasing by hand, and expiry.
+select public.hold_sessions((select dog from t.c), array[(select field from t.c)]);
+select public.release_holds((select dog from t.c));
+select t.ok(not exists (select 1 from held_spots where status = 'held'), 'release gives the hold back');
+select public.hold_sessions((select dog from t.c), array[(select field from t.c)]);
+reset role;
+create table t.field_spots as select spots_left n from sessions where id = (select field from t.c);
+update held_spots set expires_at = now() - interval '1 minute' where status = 'held';
+select t.ok(public.release_expired_holds() = 1, 'expired holds are released');
+select t.ok((select spots_left from sessions where id = (select field from t.c)) = (select n from t.field_spots) + 1, 'an expired hold gives its spot back');
+
+-- A "not yet" releases the dog's holds and tells the owner.
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000d', 'notyet@dog.co');
+select public.seed_demo_member('00000000-0000-0000-0000-00000000000d');
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+select public.hold_sessions((select id from dogs limit 1), array[t.next_session('free-roam'), t.next_session('agility-drop-in')]);
+select t.ok((select count(*) from held_spots where status = 'held') = 2, 'a new dog holds the rest of its month');
+reset role;
+select public.record_assessment((select id from dogs where owner_id = '00000000-0000-0000-0000-00000000000d' and name = 'Juno'), 'social', 'eastside', 'Sam Reyes', 'not_yet');
+select t.ok((select count(*) from held_spots where member_id = '00000000-0000-0000-0000-00000000000d' and status = 'held') = 0, 'a not-yet result releases the holds');
+select t.ok(exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-00000000000d' and kind = 'holds_released'), 'and tells the owner');
+
 -- ---- Monthly credits ---------------------------------------------------------------------------
 reset role;
 update profiles set credits_balance = 14, credits_reset_on = current_date where email = 'alex@kim.co';

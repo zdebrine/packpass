@@ -7,6 +7,7 @@ import * as live from '@/api/live';
 import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, TRAIT_SPECIAL } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
 import type { Booking, Dog } from '@/data/types';
+import { now } from '@/lib/clock';
 import { bookError, view, type BookError, type RuleContext } from '@/lib/booking';
 
 export type Appearance = 'system' | 'light' | 'dark';
@@ -77,7 +78,8 @@ interface AppState extends Demo {
   readNotifications: string[];
   /** Month-plan rows (by class id) the member swapped on 01j. */
   planSwaps: string[];
-  /** Plan sessions held until the dog passes its Social assessment (01j → Today). */
+  /** Sessions held for the dog until it passes its Social assessment (01j → Today). Stored on the
+   * server in live mode (held_spots); each hold reserves the spot until a day before the session. */
   pendingPlan: string[];
   /** Paths the main dog is still working through. Their sessions skip the Social gate. */
   activePaths: Goal['id'][];
@@ -95,7 +97,11 @@ interface AppState extends Demo {
   updateDraft: (patch: Partial<OnboardingDraft>) => void;
   toggleTrait: (t: string) => void;
   toggleSwap: (classId: string) => void;
-  setPendingPlan: (sessionIds: string[]) => void;
+  /** Holds sessions until the dog passes its Social assessment (spot reserved, no credits). */
+  holdSessions: (sessionIds: string[], dogId: string) => Promise<{ sessionId: string; error: string | null }[]>;
+  /** Books every held session; failures stay held. */
+  bookHeld: (dogId: string) => Promise<{ sessionId: string; error: string | null }[]>;
+  releaseHolds: (dogId: string, sessionId?: string) => Promise<void>;
 
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
@@ -178,12 +184,18 @@ export const useApp = create<AppState>()(
       // Sample-mode booking, same rules as book_session().
       const bookLocal = (sessionId: string, dogId: string): BookResult => {
         const s = get();
+        const held = s.pendingPlan.includes(sessionId);
         const error = bookError(sessionId, dogId, ruleContext(s));
-        if (error) return { ok: false, error };
+        // A held session already has its spot.
+        if (error && !(held && error === 'full')) return { ok: false, error };
         const v = view(sessionId)!;
         const booking: Booking = { id: `b-${Date.now()}-${Math.round(Math.random() * 1e6)}`, sessionId, dogId, credits: v.cls.credits, status: 'booked' };
-        v.session.spotsLeft -= 1;
-        set((st) => ({ bookings: [...st.bookings, booking], credits: st.credits - v.cls.credits }));
+        if (!held) v.session.spotsLeft -= 1;
+        set((st) => ({
+          bookings: [...st.bookings, booking],
+          credits: st.credits - v.cls.credits,
+          pendingPlan: st.pendingPlan.filter((x) => x !== sessionId),
+        }));
         return { ok: true, bookingId: booking.id };
       };
 
@@ -201,7 +213,42 @@ export const useApp = create<AppState>()(
             const real = cur.filter((x) => !TRAIT_SPECIAL.includes(x));
             return { draft: { ...s.draft, traits: real.includes(t) ? real.filter((x) => x !== t) : [...real, t] } };
           }),
-        setPendingPlan: (pendingPlan) => set({ pendingPlan }),
+        holdSessions: async (sessionIds, dogId) => {
+          if (isLive) return thenRefresh(() => live.holdSessions(dogId, sessionIds));
+          // Same checks as hold_sessions(): every rule except Social, plus spots and a day's notice.
+          const ctx = { ...ruleContext(get()), hasSocial: true, credits: Infinity };
+          return sessionIds.map((sessionId) => {
+            const v = view(sessionId);
+            const st = get();
+            let error: string | null = bookError(sessionId, dogId, ctx);
+            if (!error && v && +v.session.startsAt - 86_400_000 <= +now()) error = 'too_soon';
+            if (!error && st.pendingPlan.includes(sessionId)) error = 'already_booked';
+            if (!error && v) {
+              v.session.spotsLeft -= 1;
+              set({ pendingPlan: [...st.pendingPlan, sessionId] });
+            }
+            return { sessionId, error };
+          });
+        },
+        bookHeld: async (dogId) => {
+          if (isLive) return thenRefresh(() => live.bookHeld(dogId));
+          return get().pendingPlan.map((sessionId) => {
+            const r = bookLocal(sessionId, dogId);
+            return { sessionId, error: r.ok ? null : r.error };
+          });
+        },
+        releaseHolds: async (dogId, sessionId) => {
+          if (isLive) {
+            await thenRefresh(() => live.releaseHolds(dogId, sessionId));
+            return;
+          }
+          const gone = get().pendingPlan.filter((x) => !sessionId || x === sessionId);
+          gone.forEach((id) => {
+            const v = view(id);
+            if (v) v.session.spotsLeft += 1;
+          });
+          set((st) => ({ pendingPlan: st.pendingPlan.filter((x) => !gone.includes(x)) }));
+        },
         toggleSwap: (classId) =>
           set((s) => ({ planSwaps: s.planSwaps.includes(classId) ? s.planSwaps.filter((x) => x !== classId) : [...s.planSwaps, classId] })),
 
@@ -265,6 +312,7 @@ export const useApp = create<AppState>()(
             vaccines: m.vaccines,
             remoteNotifications: m.notifications,
             readNotifications: m.readNotifications,
+            pendingPlan: m.holds,
           });
         },
 
@@ -337,7 +385,7 @@ export const useApp = create<AppState>()(
       // Live mode keeps member data in Supabase; only preferences and the onboarding draft persist.
       partialize: (s) =>
         isLive
-          ? { appearance: s.appearance, draft: s.draft, pendingPlan: s.pendingPlan }
+          ? { appearance: s.appearance, draft: s.draft }
           : {
               appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
               readNotifications: s.readNotifications, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, social: s.social, socialExpired: s.socialExpired,

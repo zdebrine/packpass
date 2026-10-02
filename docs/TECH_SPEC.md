@@ -141,7 +141,7 @@ Business rules in `src/lib`, unit tested:
 
 1. **v1 (done):** the Expo app with all 24 screens on sample data, running on iOS, Android and web.
 2. **v2 (done, local only):** Supabase schema, row level security, storage buckets and booking functions in
-   `supabase/`, tested on Postgres (42 SQL checks) and end to end through PostgREST (24 checks). The app runs
+   `supabase/`, tested on Postgres (61 SQL checks) and end to end through PostgREST (31 checks). The app runs
    against it when `EXPO_PUBLIC_SUPABASE_*` is set: email sign-up with the 6-digit code, sign-in, the dog
    created from onboarding, vaccines, booking, plan booking, cancelling, check-in, the clearance flow and
    notifications. There is no hosted project yet (the EarlyBird Labs free plan is at its 2-project limit).
@@ -161,8 +161,10 @@ locally for now.
   around dogs. Settings › Preview states › "Pass re-check" stands in for the partner recording the re-check.
 - **Starting month for dogs without Social.** 01j leads with a Social assessment (week 1), plus a solo
   session. Both book with "Book these". Group sessions later in the month show "Opens after the assessment"
-  and are held on the device; once the dog is cleared, Today's "Rest of Juno's month" card books them in one
-  tap. Rows blocked for another reason (vaccines, full) are reported, not held. Dogs that already have Social
+  and are held on the server (`held_spots`): each hold reserves the spot without charging credits, follows
+  the member to any device, and releases itself 24 hours before the session or when the assessment comes back
+  "not yet". Once the dog is cleared, Today's "Rest of Juno's month" card books them in one tap (credits are
+  charged then), or "Let these spots go" releases them. Rows blocked for another reason (vaccines, full) are reported, not held. Dogs that already have Social
   get the month from the design.
 - **Vaccines.** Bookings need Rabies, DHPP and Bordetella current on the day. Members enter expiry months on
   the vaccines screen; records are unverified until a partner checks the paperwork (`verified` column).
@@ -175,7 +177,7 @@ locally for now.
 
 ## 9. Open questions
 
-- Held plan sessions live on the device. Should they be stored server-side (a `monthly_plans` table) so they
-  follow the member across devices, and reserve spots?
+- Holds release 24 hours before a session. Is that the right window for partners, and should a member be
+  warned before a hold lapses (needs push)?
 - Where does cancelling live in the UI? The designs have no cancel button; `cancel_booking` exists.
 - Which Supabase project and region for production, and when (the free plan is at its project limit)?

@@ -20,6 +20,11 @@ local Supabase stack, and the same migrations can be pushed to a hosted project 
   - Service role only: `record_assessment` (partner dashboard; a pass grants the clearance, completes the
     path and notifies the owner) and `grant_monthly_credits` (run daily with pg_cron; rollover capped at one
     month of credits).
+- `migrations/…_held_spots.sql` — holds for the rest of a starting month (01j) while a dog waits on its
+  Social assessment: `hold_sessions` reserves spots without charging credits (every rule but Social still
+  applies), `book_held` books them once the dog is cleared, `release_holds` gives them back. Holds release
+  24 hours before the session (`release_expired_holds`, run every 15 minutes by pg_cron) and when the
+  assessment comes back "not yet".
 - `seed.sql` — generated from the app's sample data (`npm run gen:seed` in `apps/member`): 5 partners,
   17 classes, 2 training paths and 4 weeks of sessions. `select public.seed_demo_member('<user id>')` gives a
   signed-up account Juno's Passport as the designs show it.
@@ -37,10 +42,10 @@ Sign-up sends a 6-digit code (Inbucket at http://127.0.0.1:54324 shows the email
 ## Tests
 
 - `supabase/tests/run-local.sh` — applies everything to a scratch database on plain Postgres (with a small
-  shim for `auth` and `storage`) and runs `booking.test.sql`: 42 checks covering each rule, credits, RLS and
+  shim for `auth` and `storage`) and runs `booking.test.sql`: 61 checks covering each rule, credits, RLS and
   storage policies. `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
-  PostgREST, with a stand-in for Supabase Auth: 24 checks from sign-up to sign-in again.
+  PostgREST, with a stand-in for Supabase Auth: 31 checks from sign-up to sign-in again.
 
 ## Deploying
 
