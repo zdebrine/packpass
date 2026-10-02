@@ -40,7 +40,10 @@ The design file had a Tweaks panel. Here those states are in the Dog tab › gea
 Juno starts on step 2 of Calm around dogs, so group classes show "Needs Social" until she passes the
 re-check; path sessions (Small-group play, privates) book straight away. Herding on Livestock shows the
 "needs assessment" state, and anything after Oct 14 is blocked until her Bordetella is updated on the
-vaccines screen (Dog tab › Health and care › Update). "Book these" on 01j books what it can and lists the rest.
+vaccines screen (Dog tab › Health and care › Update).
+
+01j leads with a Social assessment for dogs without one: "Book these" books week 1, holds the group sessions,
+and Today's "Rest of Juno's month" card books them once she passes (Settings › Preview states › Pass re-check).
 
 ## Layout
 

@@ -1,0 +1,70 @@
+import { useState } from 'react';
+import { View } from 'react-native';
+
+import { SHORT } from '@/api/errors';
+import { Button } from '@/ds/controls';
+import { Icon } from '@/ds/Icon';
+import { Photo } from '@/ds/Surface';
+import { Text } from '@/ds/Text';
+import { credits as creditsLabel, view } from '@/lib/booking';
+import { now } from '@/lib/clock';
+import { monthDay, time, weekday } from '@/lib/dates';
+import { useApp, useDog, useRules } from '@/store/app';
+import { useTheme } from '@/theme/ThemeProvider';
+
+/**
+ * The rest of the starting month (01j), held until the dog passes its Social assessment.
+ * Locked until then; afterwards one tap books them all.
+ */
+export function HeldPlan() {
+  const { c } = useTheme();
+  const dog = useDog();
+  const { hasSocial } = useRules();
+  const pending = useApp((s) => s.pendingPlan);
+  const setPending = useApp((s) => s.setPendingPlan);
+  const bookMany = useApp((s) => s.bookMany);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+
+  const rows = pending.map((id) => view(id)).filter((v): v is NonNullable<typeof v> => !!v && v.session.startsAt > now());
+  if (!rows.length && !result) return null;
+
+  const book = async () => {
+    setBusy(true);
+    const out = await bookMany(rows.map((v) => v.session.id), dog.id);
+    setBusy(false);
+    setPending([]);
+    const ok = out.filter((o) => !o.error).length;
+    const missed = out.filter((o) => o.error).map((o) => `${view(o.sessionId)?.cls.title ?? 'A session'} (${SHORT[o.error!] ?? o.error})`);
+    setResult(`Booked ${ok} of ${out.length}.${missed.length ? ` Skipped: ${missed.join(', ')}.` : ''}`);
+  };
+
+  return (
+    <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
+      <Text variant="title" style={{ marginBottom: 14 }}>{`Rest of ${dog.name}'s month`}</Text>
+      <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 12 }}>
+        {result ? (
+          <Text variant="label" accessibilityLiveRegion="polite">{result}</Text>
+        ) : (
+          <>
+            {rows.map((v) => (
+              <View key={v.session.id} style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                <Photo name={v.cls.image} style={{ width: 44, height: 44, borderRadius: 12, opacity: hasSocial ? 1 : 0.6 }} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text variant="caption" muted>{`${weekday(v.session.startsAt).slice(0, 3)} ${monthDay(v.session.startsAt)} · ${time(v.session.startsAt)}`}</Text>
+                  <Text variant="label" weight="600">{`${v.cls.title} · ${creditsLabel(v.cls.credits)}`}</Text>
+                </View>
+                {hasSocial ? null : <Icon name="lock" size={18} color={c.inkFaint} />}
+              </View>
+            ))}
+            {hasSocial ? (
+              <Button block disabled={busy} onPress={book}>{busy ? 'Booking…' : `Book ${rows.length} ${rows.length === 1 ? 'session' : 'sessions'}`}</Button>
+            ) : (
+              <Text variant="caption" muted>{`These open once ${dog.name} passes the Social assessment.`}</Text>
+            )}
+          </>
+        )}
+      </View>
+    </View>
+  );
+}

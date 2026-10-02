@@ -41,21 +41,23 @@ const S = () => useApp.getState();
   ok(catalog.partners.ridgeline.distanceMi > 0, 'partner distances are computed');
 
   const dog = S().dogs[0].id;
+  const assessment = nextSession('social-assessment', 1)!;
+  ok(!!assessment && (await S().bookSession(assessment.session.id, dog)).ok && S().credits === 8, 'a new dog can book the Social assessment its month leads with');
   const agility = nextSession('agility-drop-in', 1)!;
   let r = await S().bookSession(agility.session.id, dog);
   ok(!r.ok && r.error === 'needs_social', 'group sport is blocked without Social');
   const play = nextSession('small-group-play', 1)!;
   r = await S().bookSession(play.session.id, dog);
-  ok(r.ok && S().credits === 9 && S().bookings.length === 1, 'a path session books and charges 1 credit');
+  ok(r.ok && S().credits === 7 && S().bookings.length === 2, 'a path session books and charges 1 credit');
   ok(S().remoteNotifications!.some((x) => x.title === 'Booked. Small-group play'), 'the booking notification shows up');
 
   const many = await S().bookMany([nextSession('sniff-space', 2)!.session.id, nextSession('open-field', 2)!.session.id], dog);
   ok(many.filter((m) => !m.error).length === 1 && many.some((m) => m.error === 'needs_social'), 'Book these books what it can and reports the rest');
-  ok(S().credits === 8, 'only the booked plan session is charged');
+  ok(S().credits === 6, 'only the booked plan session is charged');
 
   const sniff = S().bookings.find((b) => b.sessionId === many.find((m) => !m.error)!.sessionId)!;
   await S().cancelBooking(sniff.id);
-  ok(S().credits === 9 && !S().bookings.some((b) => b.id === sniff.id), 'cancelling early refunds the credit');
+  ok(S().credits === 7 && !S().bookings.some((b) => b.id === sniff.id), 'cancelling early refunds the credit');
 
   threw = '';
   try { await S().checkIn(S().bookings[0].id, '0000'); } catch (e) { threw = (e as Error).message; }
@@ -83,7 +85,7 @@ const S = () => useApp.getState();
   try { await S().signIn(email, 'wrong-password'); } catch (e) { threw = (e as Error).message; }
   ok(/invalid/i.test(threw), 'a wrong password is rejected');
   await S().signIn(email, 'herding4life');
-  ok(S().onboarded && S().bookings.length === 2, 'signing back in restores the dog and bookings');
+  ok(S().onboarded && S().bookings.length === 3, 'signing back in restores the dog and bookings');
 
   console.log(`\nAll ${n} live-mode checks passed.`);
   process.exit(0);

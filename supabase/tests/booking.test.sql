@@ -67,6 +67,7 @@ select t.expect_error($$select public.book_session(t.next_session('agility-drop-
 select t.expect_error($$select public.book_session(t.next_session('herding-fundamentals'), (select juno from t.ids))$$, 'needs_social');
 select t.expect_error($$select public.book_session(t.next_session('herding-livestock'), (select juno from t.ids))$$, 'needs_herding');
 select t.ok(public.booking_block((select juno from t.ids), t.next_session('sniff-space')) is null, 'sniff spaces (your dogs only) don''t need Social');
+select t.ok(public.booking_block((select juno from t.ids), t.next_session('social-assessment')) is null, 'the Social assessment a starting month leads with is open without Social');
 
 -- Small-group play is step 3 of Calm around dogs, so it's open while Juno is on the path.
 select public.book_session(t.next_session('small-group-play'), (select juno from t.ids));

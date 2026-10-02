@@ -77,6 +77,8 @@ interface AppState extends Demo {
   readNotifications: string[];
   /** Month-plan rows (by class id) the member swapped on 01j. */
   planSwaps: string[];
+  /** Plan sessions held until the dog passes its Social assessment (01j → Today). */
+  pendingPlan: string[];
   /** Paths the main dog is still working through. Their sessions skip the Social gate. */
   activePaths: Goal['id'][];
   /** Partners where the main dog holds a Herding clearance. */
@@ -93,6 +95,7 @@ interface AppState extends Demo {
   updateDraft: (patch: Partial<OnboardingDraft>) => void;
   toggleTrait: (t: string) => void;
   toggleSwap: (classId: string) => void;
+  setPendingPlan: (sessionIds: string[]) => void;
 
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
@@ -126,6 +129,7 @@ const fresh = {
   bookings: INITIAL_BOOKINGS as Booking[],
   readNotifications: INITIALLY_READ,
   planSwaps: [] as string[],
+  pendingPlan: [] as string[],
   activePaths: ['calm-around-dogs', 'loose-leash-walking'] as Goal['id'][],
   herdingAt: [] as string[],
   vaccines: JUNO_VACCINES.map((v) => ({ type: v.type, expires: localIso(v.expires) })) as Vaccine[],
@@ -197,6 +201,7 @@ export const useApp = create<AppState>()(
             const real = cur.filter((x) => !TRAIT_SPECIAL.includes(x));
             return { draft: { ...s.draft, traits: real.includes(t) ? real.filter((x) => x !== t) : [...real, t] } };
           }),
+        setPendingPlan: (pendingPlan) => set({ pendingPlan }),
         toggleSwap: (classId) =>
           set((s) => ({ planSwaps: s.planSwaps.includes(classId) ? s.planSwaps.filter((x) => x !== classId) : [...s.planSwaps, classId] })),
 
@@ -327,15 +332,15 @@ export const useApp = create<AppState>()(
     },
     {
       name: 'packpass-member',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => AsyncStorage),
       // Live mode keeps member data in Supabase; only preferences and the onboarding draft persist.
       partialize: (s) =>
         isLive
-          ? { appearance: s.appearance, draft: s.draft }
+          ? { appearance: s.appearance, draft: s.draft, pendingPlan: s.pendingPlan }
           : {
               appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
-              readNotifications: s.readNotifications, planSwaps: s.planSwaps, social: s.social, socialExpired: s.socialExpired,
+              readNotifications: s.readNotifications, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, social: s.social, socialExpired: s.socialExpired,
               behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines,
             },
       // v1 stored month swaps by title; start them fresh.

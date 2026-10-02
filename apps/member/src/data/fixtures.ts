@@ -133,6 +133,13 @@ export const classes: Record<string, ClassType> = {
     description: 'Sam works Juno at a distance from a calm helper dog and closes the gap as she settles. Each session ends before she gets stuck.',
     partnerId: 'eastside', trainerId: 'sam', image: 'lab', requirements: [VAX],
   }),
+  'social-assessment': C({
+    id: 'social-assessment', title: 'Social assessment', discipline: 'Assessment', category: 'Skills', sessionType: 'Assessment',
+    credits: 2, durationMin: 30, intensity: 2, groupSize: 1, suits: 'Any energy', suitsNote: 'One dog at a time',
+    balance: 'Social',
+    description: 'Sam meets Juno one-on-one, then with a calm helper dog, and watches how she reads other dogs, settles and recovers from a startle. Passing earns the Social clearance, which opens group sport, play and group skills at every PackPass partner. Not yet means a short training path first.',
+    partnerId: 'eastside', trainerId: 'sam', image: 'rail', grants: 'social', requirements: [VAX],
+  }),
   'social-recheck': C({
     id: 'social-recheck', title: 'Social re-check', discipline: 'Assessment', category: 'Skills', sessionType: 'Assessment',
     credits: 2, durationMin: 30, intensity: 2, groupSize: 1, suits: 'Any energy', suitsNote: 'One dog at a time', balance: 'Social',
@@ -183,6 +190,8 @@ export const WEEKLY: [string, number, string, number][] = [
   ['herding-livestock', 6, '08:00', 1],
   ['loose-leash', 6, '09:00', 1],
   ['social-recheck', 6, '10:00', 2],
+  ['social-assessment', 3, '10:30', 3],
+  ['social-assessment', 6, '11:00', 3],
 ];
 
 const spotsFor = (today: number, day: number, cap: number) =>
@@ -308,10 +317,29 @@ export const PLAN_GOALS = [
  * 01j "Juno's month": five sessions over 4 weeks that fit Regular. [classId, day offset] picks the
  * real session to book; each row's swap is another class with the same balance category.
  */
-export const MONTH_PLAN: { classId: string; day: number; swap: { classId: string; day: number } }[] = [
+export interface PlanRow {
+  classId: string;
+  day: number;
+  swap?: { classId: string; day: number };
+}
+
+/** For dogs with a Social clearance: the month the design shows. */
+export const MONTH_PLAN: PlanRow[] = [
   { classId: 'scent-work', day: 0, swap: { classId: 'sniff-space', day: 0 } },
   { classId: 'agility-drop-in', day: 4, swap: { classId: 'lure-sprint', day: 4 } },
   { classId: 'small-group-play', day: 9, swap: { classId: 'free-roam', day: 9 } },
   { classId: 'open-field', day: 19, swap: { classId: 'fitness', day: 19 } },
   { classId: 'focus-recall', day: 21, swap: { classId: 'herding-fundamentals', day: 23 } },
+];
+
+/**
+ * For dogs without one: the month leads with a Social assessment. Week 1 books now; the group sessions
+ * after it open once the assessment is passed, and Today offers to book them then.
+ */
+export const MONTH_PLAN_NEW_DOG: PlanRow[] = [
+  { classId: 'social-assessment', day: 1 },
+  { classId: 'sniff-space', day: 2, swap: { classId: 'loose-leash', day: 4 } },
+  { classId: 'agility-drop-in', day: 11, swap: { classId: 'lure-sprint', day: 11 } },
+  { classId: 'open-field', day: 19, swap: { classId: 'fitness', day: 19 } },
+  { classId: 'focus-recall', day: 21, swap: { classId: 'scent-work', day: 21 } },
 ];

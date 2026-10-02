@@ -11,6 +11,7 @@ import { Press } from '@/ds/Press';
 import { Glass, HeroScrim, Photo, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { MapSketch } from '@/features/MapSketch';
+import { HeldPlan } from '@/features/today/HeldPlan';
 import { activeBookings, bookError, bookingFor, credits as creditsLabel, nextSession, timeLabel } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { monthDay, relativeDay, time, weekday } from '@/lib/dates';
@@ -122,6 +123,8 @@ export default function Today() {
               </View>
             )}
           </View>
+
+          <HeldPlan />
 
           <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>

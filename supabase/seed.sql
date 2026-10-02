@@ -31,6 +31,7 @@ insert into public.class_types (id, partner_id, trainer_id, title, discipline, c
   ('focus-recall', 'northside', 'ana', 'Focus and Recall', 'Skills', 'skills', 'class', 2, 45, 2, 6, 'Any energy', 'Good with dogs nearby', 'mental', 'Eye contact, a reliable come and a solid wait, practiced with more distractions each round. You handle, Ana coaches.', 'hurdle', false, null, null, null, '[{"icon":"syringe","text":"Rabies, DHPP and Bordetella current"},{"icon":"link","text":"On leash until the trainer releases Juno"}]'::jsonb),
   ('loose-leash', 'northside', 'ana', 'Loose leash 1:1', 'Skills', 'skills', 'private', 3, 45, 2, 1, 'Any energy', 'Private session', 'mental', 'A private session on the streets around Northside. Ana works on pace, turns and what to do when Juno pulls. You leave with three things to practice.', 'rail', false, null, null, null, '[{"icon":"syringe","text":"Rabies, DHPP and Bordetella current"}]'::jsonb),
   ('calm-private', 'eastside', 'sam', 'Calm around dogs', 'Skills', 'skills', 'private', 3, 40, 2, 1, 'Any energy', 'Private session', 'social', 'Sam works Juno at a distance from a calm helper dog and closes the gap as she settles. Each session ends before she gets stuck.', 'lab', false, null, null, null, '[{"icon":"syringe","text":"Rabies, DHPP and Bordetella current"}]'::jsonb),
+  ('social-assessment', 'eastside', 'sam', 'Social assessment', 'Assessment', 'skills', 'assessment', 2, 30, 2, 1, 'Any energy', 'One dog at a time', 'social', 'Sam meets Juno one-on-one, then with a calm helper dog, and watches how she reads other dogs, settles and recovers from a startle. Passing earns the Social clearance, which opens group sport, play and group skills at every PackPass partner. Not yet means a short training path first.', 'rail', false, null, 'social', null, '[{"icon":"syringe","text":"Rabies, DHPP and Bordetella current"}]'::jsonb),
   ('social-recheck', 'eastside', 'sam', 'Social re-check', 'Assessment', 'skills', 'assessment', 2, 30, 2, 1, 'Any energy', 'One dog at a time', 'social', 'Sam watches Juno in a calm small group and checks how she reads other dogs, recovers from a startle and settles. Passing earns the Social clearance, which opens group sport, play and group skills at every PackPass partner.', 'tunnel', false, null, 'social', null, '[{"icon":"syringe","text":"Rabies, DHPP and Bordetella current"}]'::jsonb),
   ('parallel-walk', 'eastside', 'sam', 'Parallel walk', 'Skills', 'skills', 'private', 3, 45, 2, 1, 'Any energy', 'Private session', 'social', 'Juno and a steady helper dog walk the same route on opposite sides of the street, then closer. Step 2 of Calm around dogs.', 'wall', false, null, null, null, '[{"icon":"syringe","text":"Rabies, DHPP and Bordetella current"}]'::jsonb);
 
@@ -69,7 +70,9 @@ with daily(class_id, t, spots) as (values
   ('parallel-walk', 4, '16:00', 1),
   ('herding-livestock', 6, '08:00', 1),
   ('loose-leash', 6, '09:00', 1),
-  ('social-recheck', 6, '10:00', 2)
+  ('social-recheck', 6, '10:00', 2),
+  ('social-assessment', 3, '10:30', 3),
+  ('social-assessment', 6, '11:00', 3)
 ), days as (
   select (current_date + d) as day, d from generate_series(0, 27) d
 ), slots as (
