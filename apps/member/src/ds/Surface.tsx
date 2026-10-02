@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { photos } from '@/data/fixtures';
-import type { PhotoKey } from '@/data/types';
+import type { PhotoSource } from '@/data/types';
 
 /** Glass capsule: white 22% over a 20px blur with 1.4 saturate. Only use over photography. */
 export function Glass({ style, children }: { style?: StyleProp<ViewStyle>; children?: ReactNode }) {
@@ -23,10 +23,12 @@ export function Glass({ style, children }: { style?: StyleProp<ViewStyle>; child
   );
 }
 
-export function Photo({ name, style, position }: { name: PhotoKey; style?: StyleProp<ImageStyle>; position?: { top?: string; left?: string } }) {
+export function Photo({ name, style, position }: { name?: PhotoSource | null; style?: StyleProp<ImageStyle>; position?: { top?: string; left?: string } }) {
+  // A dog without a photo yet gets a quiet fill in its place.
+  if (!name) return <View style={[style as StyleProp<ViewStyle>, { backgroundColor: '#3a3d38' }]} />;
   return (
     <Image
-      source={photos[name]}
+      source={typeof name === 'string' ? photos[name] : name}
       style={style}
       contentFit="cover"
       contentPosition={position as never}
@@ -37,7 +39,7 @@ export function Photo({ name, style, position }: { name: PhotoKey; style?: Style
 }
 
 /** Full-bleed photo filling its parent. */
-export function PhotoFill({ name, position }: { name: PhotoKey; position?: { top?: string; left?: string } }) {
+export function PhotoFill({ name, position }: { name?: PhotoSource | null; position?: { top?: string; left?: string } }) {
   return <Photo name={name} style={StyleSheet.absoluteFill} position={position} />;
 }
 

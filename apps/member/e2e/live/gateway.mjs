@@ -22,6 +22,62 @@ const session = (id, email) => {
 const json = (res, code, body) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)); };
 const readBody = (req) => new Promise((r) => { let d = ''; req.on('data', (c) => (d += c)); req.on('end', () => r(d ? JSON.parse(d) : {})); });
 
+// ---- Storage stand-in --------------------------------------------------------------------------
+// Bytes live in memory; every object row goes through storage.objects as the signed-in member, so the
+// bucket policies in the migrations decide what's allowed, as they do in Supabase Storage.
+const files = new Map(); // "bucket/path" -> Buffer
+const tokens = new Map(); // signed URL token -> "bucket/path"
+const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
+const subOf = (req) => {
+  try { return JSON.parse(Buffer.from(((req.headers.authorization || '').split(' ')[1] || '').split('.')[1], 'base64url').toString()).sub; } catch { return null; }
+};
+// psql prints each statement's result; the last line is the query's.
+const asMember = (sub, sql) => psql(`set role authenticated; select set_config('request.jwt.claim.sub', ${q(sub)}, false); ${sql}`).split('\n').pop();
+const readRaw = (req) => new Promise((r) => { const ch = []; req.on('data', (c) => ch.push(c)); req.on('end', () => r(Buffer.concat(ch))); });
+
+async function storage(req, res, p, url) {
+  const sub = subOf(req);
+  const signed = p.match(/^\/object\/sign\/([^/]+)\/(.+)$/);
+  if (req.method === 'GET' && signed) {
+    const key = tokens.get(url.searchParams.get('token'));
+    if (key !== `${signed[1]}/${decodeURIComponent(signed[2])}` || !files.has(key)) return json(res, 400, { statusCode: '404', error: 'not_found', message: 'Object not found' });
+    res.writeHead(200, { 'content-type': 'image/jpeg' });
+    return res.end(files.get(key));
+  }
+  if (!sub) return json(res, 400, { statusCode: '403', error: 'Unauthorized', message: 'invalid JWT' });
+  const sign = p.match(/^\/object\/sign\/([^/]+)$/);
+  if (req.method === 'POST' && sign) {
+    const { paths } = await readBody(req);
+    return json(res, 200, paths.map((path) => {
+      const ok = asMember(sub, `select count(*) from storage.objects where bucket_id = ${q(sign[1])} and name = ${q(path)}`) === '1';
+      if (!ok) return { path, error: 'Either the object does not exist or you do not have access to it', signedURL: null };
+      const token = crypto.randomUUID();
+      tokens.set(token, `${sign[1]}/${path}`);
+      return { path, error: null, signedURL: `/object/sign/${sign[1]}/${path}?token=${token}` };
+    }));
+  }
+  const obj = p.match(/^\/object\/([^/]+)\/(.+)$/);
+  if (req.method === 'POST' && obj) {
+    const body = await readRaw(req);
+    try {
+      asMember(sub, `insert into storage.objects (bucket_id, name, owner) values (${q(obj[1])}, ${q(obj[2])}, ${q(sub)})`);
+    } catch {
+      return json(res, 400, { statusCode: '403', error: 'Unauthorized', message: 'new row violates row-level security policy' });
+    }
+    files.set(`${obj[1]}/${obj[2]}`, body);
+    return json(res, 200, { Key: `${obj[1]}/${obj[2]}`, Id: crypto.randomUUID() });
+  }
+  const bucket = p.match(/^\/object\/([^/]+)$/);
+  if (req.method === 'DELETE' && bucket) {
+    const { prefixes } = await readBody(req);
+    const gone = asMember(sub, `with d as (delete from storage.objects where bucket_id = ${q(bucket[1])} and name in (${prefixes.map(q).join(', ')}) returning name) select coalesce(string_agg(name, ','), '') from d`);
+    const names = gone ? gone.split(',') : [];
+    names.forEach((n) => files.delete(`${bucket[1]}/${n}`));
+    return json(res, 200, names.map((name) => ({ name, bucket_id: bucket[1] })));
+  }
+  json(res, 404, { msg: 'not found ' + p });
+}
+
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname.startsWith('/rest/v1')) {
@@ -33,6 +89,7 @@ http.createServer(async (req, res) => {
     return res.end(Buffer.from(await r.arrayBuffer()));
   }
   const p = url.pathname;
+  if (p.startsWith('/storage/v1/')) return storage(req, res, p.slice('/storage/v1'.length), url);
   if (p === '/auth/v1/signup') {
     const { email, password, data } = await readBody(req);
     if (users.has(email)) return json(res, 422, { msg: 'User already registered', error_code: 'user_already_exists' });

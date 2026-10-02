@@ -67,6 +67,14 @@
           "calendarPermission": "PackPass adds the sessions you book to your calendar.",
           "remindersPermission": false
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "PackPass uses your photos so you can add one of your dog to their Athlete Card.",
+          "cameraPermission": "PackPass uses the camera to scan the check-in code at a partner's entrance.",
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {

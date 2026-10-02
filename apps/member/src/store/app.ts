@@ -6,7 +6,7 @@ import { isLive } from '@/api/client';
 import * as live from '@/api/live';
 import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, TRAIT_SPECIAL } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
-import type { Booking, Dog, WaitEntry } from '@/data/types';
+import type { Booking, Dog, PhotoSource, WaitEntry } from '@/data/types';
 import { now } from '@/lib/clock';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
 
@@ -18,7 +18,8 @@ export interface OnboardingDraft {
   ownerName: string;
   email: string;
   dogName: string;
-  photo: boolean;
+  /** Sample mode starts with Juno's photo; a picked photo is a JPEG data URI until it's uploaded. */
+  photo: PhotoSource | null;
   sex: 'Female' | 'Male';
   breed: string;
   mixed: boolean;
@@ -37,7 +38,7 @@ const DRAFT: OnboardingDraft = {
   ownerName: 'Alex Kim',
   email: 'alex@kim.co',
   dogName: 'Juno',
-  photo: true,
+  photo: isLive ? null : 'juno',
   sex: 'Female',
   breed: 'Border Collie',
   mixed: false,
@@ -116,6 +117,8 @@ interface AppState extends Demo {
   verifyEmail: (code: string) => Promise<void>;
   finishOnboarding: () => Promise<void>;
   signOut: () => Promise<void>;
+  /** Sets a dog's photo from a picked JPEG data URI (uploaded to dog-photos in live mode). */
+  setDogPhoto: (dogId: string, dataUri: string) => Promise<void>;
   /** Forgot password: email a code, then set a new password with it (signs in). */
   requestPasswordReset: (email: string) => Promise<void>;
   resetPassword: (email: string, code: string, password: string) => Promise<void>;
@@ -321,18 +324,31 @@ export const useApp = create<AppState>()(
         finishOnboarding: async () => {
           if (isLive) {
             const dogId = await live.createDog(get().draft);
+            const photo = get().draft.photo;
+            // A failed upload shouldn't stop sign-up; the photo can be added again from the dog's profile.
+            if (photo && typeof photo === 'object') await live.uploadDogPhoto(dogId, photo.uri).catch(() => {});
             // Vaccines entered during onboarding (before the dog existed) are saved now.
             const pending = get().vaccines;
             if (pending.length) {
               await live.saveVaccines(dogId, pending.map((r) => ({ type: r.type.toLowerCase() as 'rabies', expiresOn: r.expires })));
             }
             await get().refresh();
+          } else {
+            const photo = get().draft.photo;
+            set((s) => ({ dogs: s.dogs.map((d, i) => (i === 0 ? { ...d, photo: photo ?? undefined } : d)) }));
           }
           set({ signedIn: true, onboarded: true });
         },
         signOut: async () => {
           if (isLive) await live.signOut(get().pushToken);
           set({ signedIn: false, onboarded: false, pushToken: null });
+        },
+        setDogPhoto: async (dogId, dataUri) => {
+          if (isLive) {
+            await thenRefresh(() => live.uploadDogPhoto(dogId, dataUri));
+            return;
+          }
+          set((s) => ({ dogs: s.dogs.map((d) => (d.id === dogId ? { ...d, photo: { uri: dataUri } } : d)) }));
         },
         requestPasswordReset: async (email) => {
           if (isLive) await live.requestPasswordReset(email);
@@ -454,19 +470,25 @@ export const useApp = create<AppState>()(
     },
     {
       name: 'packpass-member',
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => AsyncStorage),
       // Live mode keeps member data in Supabase; only preferences and the onboarding draft persist.
       partialize: (s) =>
         isLive
           ? { appearance: s.appearance, draft: s.draft }
           : {
-              appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
+              dogs: s.dogs, appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
               readNotifications: s.readNotifications, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, social: s.social, socialExpired: s.socialExpired,
               behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines,
             },
-      // v1 stored month swaps by title; start them fresh.
-      migrate: (persisted) => ({ ...(persisted as object), planSwaps: [] }) as never,
+      migrate: (persisted, version) => {
+        const p = { ...(persisted as Record<string, any>) }; // eslint-disable-line @typescript-eslint/no-explicit-any
+        // v1 stored month swaps by title; start them fresh.
+        if (version < 3) p.planSwaps = [];
+        // v4: the draft's photo went from a yes/no to the photo itself.
+        if (p.draft && typeof p.draft.photo === 'boolean') p.draft = { ...p.draft, photo: p.draft.photo ? 'juno' : null };
+        return p as never;
+      },
     },
   ),
 );

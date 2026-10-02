@@ -46,7 +46,7 @@ function Reveal() {
         <Animated.View style={card}>
           <AthleteCard
             name={name}
-            photo={d.photo ? 'juno' : undefined}
+            photo={d.photo ?? undefined}
             breed={d.mixed ? 'Mixed breed' : d.breed || undefined}
             age={yrs < 1 ? 'Puppy' : `${yrs} yrs`}
             stage={yrs < 1 ? undefined : yrs < 8 ? 'Prime' : 'Senior'}

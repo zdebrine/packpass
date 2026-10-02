@@ -58,7 +58,7 @@ On a hosted project, paste `templates/confirmation.html` and `templates/recovery
   shim for `auth` and `storage`) and runs `booking.test.sql`: 90 checks covering each rule, credits, holds, reminders, the waitlist,
   RLS and storage policies. `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
-  PostgREST, with a stand-in for Supabase Auth: 42 checks from sign-up to a password reset and sign-in again.
+  PostgREST, with a stand-in for Supabase Auth and Storage: 47 checks from sign-up and a photo upload to a password reset and sign-in again.
 
 ## Deploying
 

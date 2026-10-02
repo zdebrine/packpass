@@ -141,11 +141,11 @@ Business rules in `src/lib`, unit tested:
 
 1. **v1 (done):** the Expo app with all 24 screens on sample data, running on iOS, Android and web.
 2. **v2 (done, local only):** Supabase schema, row level security, storage buckets and booking functions in
-   `supabase/`, tested on Postgres (90 SQL checks) and end to end through PostgREST (42 checks). The app runs
+   `supabase/`, tested on Postgres (90 SQL checks) and end to end through PostgREST (47 checks). The app runs
    against it when `EXPO_PUBLIC_SUPABASE_*` is set: email sign-up with the 6-digit code, sign-in, the dog
    created from onboarding, vaccines, booking, plan booking, cancelling, check-in, the clearance flow and
-   notifications, hold reminders, push registration, the waitlist and password reset. There is no hosted project yet (the EarlyBird Labs free plan is at its 2-project limit).
-3. **v3:** hosted Supabase project, Apple and Google sign-in, photo and document upload, Stripe plans and
+   notifications, hold reminders, push registration, the waitlist, password reset and dog photos. There is no hosted project yet (the EarlyBird Labs free plan is at its 2-project limit).
+3. **v3:** hosted Supabase project, Apple and Google sign-in, vaccine document upload, Stripe plans and
    credit packs, push delivery switched on (EAS project, webhook, dev build), a real map with the member's location, the partner dashboard writing schedules,
    assessments and check-in codes, PostHog.
 
@@ -189,7 +189,13 @@ release 24 hours before the session, and members are reminded a day before that;
   Not in the designs; built from the sign-in and verify screens' parts. Supabase's emails are set to send codes
   (`supabase/templates`), which the hosted project needs too.
 - **Re-check** on an expired Social clearance books the next Social re-check (2 credits; the design said 1).
-- **Live-mode gaps:** dog photos use the sample photo (no upload yet); distances are measured from Austin ·
+- **Dog photos.** Added in onboarding (01e) or from "Change photo" under the Athlete Card on the Dog tab (not in
+  the designs). The photo is cropped to the card's 4:5 (by the picker on phones, centre-cropped on the web,
+  where the picker can't crop) and resized to 1080 px JPEG (~150 KB). Live mode uploads it to the private
+  `dog-photos` bucket under `<member>/<dog>/`, stores the path on the dog, deletes the previous photo and shows
+  it through week-long signed URLs cached by path. A dog without a photo shows its initial. Sample mode keeps
+  the photo on the device. Vaccine document upload (the `vaccine-docs` bucket) isn't built yet.
+- **Live-mode gaps:** distances are measured from Austin ·
   South, not the member's location; the plan is always Regular; Apple and Google sign-in and buying credits show a message.
 - **Cancelling** lives on the class detail screen (05) when the session is booked: "Cancel booking" under
   Check in, then an inline confirmation that says whether the credits come back (free until 12 hours before;

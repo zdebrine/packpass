@@ -5,6 +5,7 @@ import { setCatalog } from '@/data/catalog';
 import type { Goal, Notif } from '@/data/passport';
 import type { Booking, ClassType, Dog, Partner, PhotoKey, Session, Trainer, WaitEntry } from '@/data/types';
 import type { OnboardingDraft, SocialStage } from '@/store/app';
+import { base64ToBytes } from '@/lib/base64';
 import { db } from './client';
 
 const PHOTOS: PhotoKey[] = ['collie', 'grass', 'hurdle', 'juno', 'lab', 'leap', 'rail', 'sprint', 'tunnel', 'wall', 'weave'];
@@ -146,6 +147,10 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
   const dogs = check(await c.from('dogs').select('*').order('created_at')) as any[];
   const dogIds = dogs.map((d) => d.id);
   const main = dogs[0]?.id ?? null;
+  // dog-photos is private: show uploads through signed URLs, cached by path so a fresh URL doesn't refetch.
+  const photoPaths = dogs.map((d) => d.photo_path).filter(Boolean) as string[];
+  const signed = photoPaths.length ? (check(await c.storage.from('dog-photos').createSignedUrls(photoPaths, PHOTO_URL_TTL)) as { path: string; signedUrl: string }[]) : [];
+  const photoUrl = new Map(signed.map((x) => [x.path, x.signedUrl]));
   const [bookings, clearances, paths, vaccines, notes, holds, waiting] = await Promise.all([
     c.from('bookings').select('*').neq('status', 'cancelled').then(check),
     c.from('clearances').select('*').in('dog_id', dogIds).then(check),
@@ -165,8 +170,8 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
   return {
     name: profile.name,
     credits: profile.credits_balance,
-    dogs: dogs.map((d, i) => ({
-      id: d.id, name: d.name, photo: i === 0 ? 'juno' : 'lab', breed: d.mixed ? 'Mixed breed' : d.breed ?? '',
+    dogs: dogs.map((d) => ({
+      id: d.id, name: d.name, photo: photoUrl.has(d.photo_path) ? { uri: photoUrl.get(d.photo_path)!, cacheKey: d.photo_path } : undefined, breed: d.mixed ? 'Mixed breed' : d.breed ?? '',
       ...ageOf(d.birth_year, d.birth_month), since: d.member_since,
     })),
     bookings: bookings.map((b) => ({ id: b.id, sessionId: b.session_id, dogId: b.dog_id, credits: b.credits_charged, status: b.status === 'checked_in' ? 'checked_in' : 'booked' })),
@@ -211,6 +216,24 @@ export async function createDog(d: OnboardingDraft) {
     if (TRAIT_PATHS[t]) check(await c.rpc('start_path', { p_dog: dog.id, p_path: TRAIT_PATHS[t] }));
   }
   return dog.id;
+}
+
+/** Signed photo URLs last a week; every load signs fresh ones. */
+const PHOTO_URL_TTL = 7 * 24 * 3600;
+
+/**
+ * Uploads a dog's photo (a JPEG data URI from pickDogPhoto) to dog-photos/<member>/<dog>/<time>.jpg,
+ * points the dog at it and removes the previous one. Storage rules only allow the member's own folder.
+ */
+export async function uploadDogPhoto(dogId: string, dataUri: string) {
+  const c = db();
+  const { data: auth } = await c.auth.getUser();
+  if (!auth.user) throw new Error('not_signed_in');
+  const before = check(await c.from('dogs').select('photo_path').eq('id', dogId).single()) as { photo_path: string | null };
+  const path = `${auth.user.id}/${dogId}/${Date.now()}.jpg`;
+  check(await c.storage.from('dog-photos').upload(path, base64ToBytes(dataUri.slice(dataUri.indexOf(',') + 1)), { contentType: 'image/jpeg' }));
+  check(await c.from('dogs').update({ photo_path: path }).eq('id', dogId));
+  if (before.photo_path) await c.storage.from('dog-photos').remove([before.photo_path]);
 }
 
 /** Records vaccine expiry dates (unverified until a partner or PackPass checks the document). */

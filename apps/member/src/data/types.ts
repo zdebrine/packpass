@@ -80,10 +80,14 @@ export interface WaitEntry {
 
 export type ClearanceStatus = 'cleared' | 'expired' | 'working' | 'needs';
 
+/** A bundled sample photo, or an uploaded one (a signed URL, cached by its storage path). */
+export type PhotoSource = PhotoKey | { uri: string; cacheKey?: string };
+
 export interface Dog {
   id: string;
   name: string;
-  photo: PhotoKey;
+  /** None until the member adds one; screens fall back to the dog's initial. */
+  photo?: PhotoSource;
   breed: string;
   age: string;
   stage: string;

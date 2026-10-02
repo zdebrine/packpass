@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import type { PhotoKey } from '@/data/types';
+import type { PhotoKey, PhotoSource } from '@/data/types';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radius } from '@/theme/tokens';
 import { Tag } from './controls';
@@ -85,7 +85,7 @@ export function ClassCard({ layout = 'tile', image, discipline, premium, title, 
 
 export interface AthleteCardProps {
   name: string;
-  photo?: PhotoKey;
+  photo?: PhotoSource;
   breed?: string;
   age?: string;
   stage?: string;

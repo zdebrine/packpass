@@ -13,6 +13,7 @@ import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { dayOffset, expiryLabel, fromIso } from '@/lib/dates';
 import { notice } from '@/lib/notice';
+import { pickDogPhoto } from '@/lib/photos';
 import { useApp, useDog } from '@/store/app';
 import { useClearanceStyle } from '@/features/passport/style';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -68,6 +69,32 @@ function FlipCard() {
   );
 }
 
+/** Not in the designs: a quiet link under the Athlete Card to add or replace the dog's photo. */
+function ChangePhoto() {
+  const { c } = useTheme();
+  const dog = useDog();
+  const setDogPhoto = useApp((s) => s.setDogPhoto);
+  const [state, setState] = useState<'idle' | 'saving' | 'failed'>('idle');
+  const change = async () => {
+    const uri = await pickDogPhoto().catch(() => null);
+    if (!uri) return;
+    setState('saving');
+    try {
+      await setDogPhoto(dog.id, uri);
+      setState('idle');
+    } catch {
+      setState('failed');
+    }
+  };
+  return (
+    <Press onPress={change} disabled={state === 'saving'} scale={false} accessibilityRole="button" style={{ alignSelf: 'center', marginTop: 14, paddingVertical: 4 }}>
+      <Text variant="label" weight="600" color={state === 'failed' ? c.kennelRed : undefined} style={{ textDecorationLine: state === 'saving' ? 'none' : 'underline' }} accessibilityLiveRegion="polite">
+        {state === 'saving' ? 'Uploading photo…' : state === 'failed' ? "Couldn't upload. Try again" : dog.photo ? 'Change photo' : `Add a photo of ${dog.name}`}
+      </Text>
+    </Press>
+  );
+}
+
 function Section({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
     <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
@@ -112,6 +139,7 @@ export default function DogProfile() {
         </View>
 
         <FlipCard />
+        <ChangePhoto />
 
         <View style={{ marginTop: 32 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: 20, marginBottom: 6 }}>
