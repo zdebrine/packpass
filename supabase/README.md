@@ -44,8 +44,18 @@ Schema, security rules and booking logic for the member app. It's deployed to th
   API, policies evaluate `auth.uid()` once per query, and foreign keys have indexes.
 - `migrations/…_push_webhook.sql` — a trigger calls `send-push` (through pg_net) for each notification worth
   pushing, to members with a registered phone. The function URL and a shared secret live in Vault.
+- `migrations/…_partner_dashboard.sql` — what `apps/partner` runs on. `partner_staff` ties an account to a
+  partner (and, for trainers, their trainer profile); PackPass links accounts with `link_partner_staff` (service
+  role only). Every `partner_*` function checks the caller is staff and only touches that partner's classes,
+  sessions and the dogs booked into them: the week's sessions, rosters and manual check-in, capacity and
+  waitlist switches, adding and cancelling sessions, blocking dates (bookings refunded and owners told),
+  session notes, assessment results, checking vaccine records, saving classes (new ones wait in review for
+  PackPass to set the credits; changing length, intensity, group size or type on a live class flags a credit
+  review), trainer profiles, arrival notes, and earnings at the partner's rate per credit. Staff can open the
+  photos and vet records of dogs booked with them. Members no longer see cancelled sessions or classes in review.
 - `catalog.sql` — generated: partners, trainers, classes, training paths and the timetable. Loaded into the
-  hosted project; the partner dashboard will take this over.
+  hosted project. Partners now edit their own classes and schedule from the dashboard; new partners and
+  trainers are still added here (or in the SQL editor).
 - `seed.sql` — local only, generated from the app's sample data (`npm run gen:seed` in `apps/member`): 5 partners,
   17 classes, 2 training paths and 4 weeks of sessions. `select public.seed_demo_member('<user id>')` gives a
   signed-up account Juno's Passport as the designs show it.
@@ -65,8 +75,9 @@ Expo with `--clear` (Metro caches env values).
 ## Tests
 
 - `supabase/tests/run-local.sh` — applies everything to a scratch database on plain Postgres (with a small
-  shim for `auth` and `storage`) and runs `booking.test.sql`: 100 checks covering each rule, credits, holds, reminders, the waitlist,
-  RLS and storage policies. `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
+  shim for `auth` and `storage`) and runs `booking.test.sql` (100 checks: each rule, credits, holds, reminders,
+  the waitlist, RLS and storage policies) and `partner.test.sql` (55 checks: staff access, one partner never
+  reaching another's data, and each dashboard function). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
   PostgREST, with a stand-in for Supabase Auth and Storage: 57 checks, from sign-up with a dog photo and vet record to a password reset and sign-in again.
 
@@ -78,6 +89,9 @@ Set up on Oct 2 2026 through the Supabase MCP tools:
   applied, and the waitlist migration as two parts (`waitlist`, `waitlist_fill`). Before using the CLI there
   (`supabase link --project-ref qovbpxvpnslsjzunxutk`), run `supabase migration repair` so the history matches
   the files. New migrations: apply them the same way, or with `supabase db push` once repaired.
+- The partner dashboard migration went on as two parts (`partner_dashboard`, then `partner_set_repeat`). A
+  staff journey (sessions, classes, earnings, a new class in review that can't be scheduled yet) was run inside
+  the database and rolled back.
 - `catalog.sql` is loaded and `select public.extend_schedule()` made the first four weeks of sessions. `seed.sql`
   is not loaded (it's sample spot counts and a demo helper).
 - pg_cron jobs: `release-expired-holds` (every 15 min), `hold-reminders` (hourly), `monthly-credits` and
@@ -104,7 +118,11 @@ Set up on Oct 2 2026 through the Supabase MCP tools:
       the verified domain.
    4. Under Authentication › Rate Limits, raise the email limit from the default (it's set low for the built-in
       sender), for example to 100 an hour.
-4. **Push:** in `apps/member`, run `eas init` (adds the project id push tokens need) and
+4. **Partner accounts:** have the partner sign up in the member app (or Auth › Users › Add user), then in the
+   SQL editor: `select public.link_partner_staff('owner@their-email', 'ridgeline', 'owner', 'maren');`
+   (role `owner` or `trainer`; the last argument is their trainer profile, or null).
+5. **Auth › Attack Protection:** turn on leaked password protection (the advisors flag it).
+6. **Push:** in `apps/member`, run `eas init` (adds the project id push tokens need) and
    `eas build --profile development`. Expo Go and the web app don't receive remote pushes; reminders still
    show in the app's notifications there. If Expo push security is on, add `EXPO_ACCESS_TOKEN` as a function
    secret.

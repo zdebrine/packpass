@@ -1,0 +1,19 @@
+@import '@fontsource-variable/geist/index.css';
+@import '@fontsource-variable/archivo/wdth.css';
+@import './ds/colors.css';
+@import './ds/typography.css';
+@import './ds/spacing.css';
+@import './ds/base.css';
+@import './ds/pack-components.css';
+
+/* From the prototype's page styles. */
+body { margin: 0; background: var(--bg); }
+a { color: var(--ink); }
+a:hover { color: var(--ink-muted); }
+input, textarea, select { font: inherit; color: inherit; }
+input:focus, textarea:focus, select:focus { outline: none; box-shadow: var(--focus-ring); }
+button { font: inherit; }
+.field { box-sizing: border-box; width: 100%; height: 52px; padding: 0 20px; border: 0; border-radius: 9999px; background: var(--surface-raised); font-size: 16px; }
+.area { box-sizing: border-box; width: 100%; padding: 14px 18px; border: 0; border-radius: 20px; background: var(--surface-raised); font-size: 15px; line-height: 22px; resize: vertical; }
+.link { align-self: flex-start; border: 0; background: none; padding: 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.card { background: var(--surface-raised); border-radius: 28px; }

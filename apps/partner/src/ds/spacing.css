@@ -1,0 +1,8 @@
+:root{
+--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--gutter:20px;--space-6:24px;--space-8:32px;--space-10:40px;--space-12:48px;
+--radius-sm:12px;--radius-tile:20px;--radius-card:28px;--radius-sheet:32px;--radius-pill:9999px;
+--radius-input:9999px;--radius-hero:28px;
+--blur-glass:20px;
+--ease-out:cubic-bezier(0.2,0.8,0.2,1);/* @kind other */--dur-fast:140ms;/* @kind other */--dur-base:260ms;/* @kind other */--dur-slow:520ms;/* @kind other */
+--press-scale:0.97;/* @kind other */
+}

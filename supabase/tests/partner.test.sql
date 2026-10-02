@@ -113,6 +113,33 @@ select p.as_user('00000000-0000-0000-0000-0000000000a5');
 select p.ok(not exists (select 1 from sessions where id = (select id from p.blk)), 'members no longer see a cancelled session');
 select p.expect_error($$select public.book_session((select id from p.blk), (select id from dogs where name = 'Juno'))$$, 'cancelled');
 
+-- Weekly repeat on and off. Free roam runs daily; stopping one weekday keeps the other six.
+reset role;
+create table p.rep as select s.id, extract(dow from s.starts_at at time zone 'America/Chicago')::int dw, (s.starts_at at time zone 'America/Chicago')::time t
+from sessions s where s.class_id = 'free-roam' and s.starts_at > now() + interval '1 day' and s.cancelled_at is null order by s.starts_at limit 1;
+grant select on p.rep to authenticated;
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+select public.partner_set_repeat((select id from p.rep), false);
+reset role;
+select p.ok((select count(*) from timetable where class_id = 'free-roam' and starts = (select t from p.rep)) = 6
+            and not exists (select 1 from timetable where class_id = 'free-roam' and weekday = (select dw from p.rep)), 'stopping a daily class''s repeat drops only that weekday');
+set role authenticated;
+select public.partner_set_repeat((select id from p.rep), true);
+reset role;
+select p.ok((select count(*) from timetable where class_id = 'free-roam' and starts = (select t from p.rep)) = 7, 'and turning it back on restores it');
+
+-- Cancelling one session.
+reset role;
+create table p.one as select s.id from sessions s where s.class_id = 'herding-livestock' and s.starts_at > now() + interval '1 day' and s.cancelled_at is null order by s.starts_at limit 1;
+grant select on p.one to authenticated;
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+select p.expect_error($$select public.partner_cancel_session((select id from p.one), 'Trainer away')$$, 'not_found');
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.ok(public.partner_cancel_session((select id from p.one), 'Trainer away') = 0, 'staff cancel one session');
+select p.expect_error($$select public.partner_cancel_session((select id from p.one), 'Again')$$, 'not_found');
+
 -- ---- Session notes ---------------------------------------------------------------------------------
 reset role;
 update sessions set starts_at = now() - interval '2 hours' where id = (select hf from p.ids);
@@ -200,6 +227,11 @@ select p.as_user('00000000-0000-0000-0000-0000000000a1');
 select public.partner_save_trainer('maren', 'Maren runs the herding program.', array['Herding', 'Recall'], false);
 reset role;
 select p.ok((select bio like 'Maren runs%' and specialties = array['Herding', 'Recall'] and not private_sessions from trainers where id = 'maren'), 'staff edit their trainer profiles');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.partner_save_location(' Gravel lot by the gate ', '');
+reset role;
+select p.ok((select parking = 'Gravel lot by the gate' and meet_at is null from partners where id = 'ridgeline'), 'staff edit parking and meeting notes');
 
 -- ---- Earnings -----------------------------------------------------------------------------------------
 set role authenticated;

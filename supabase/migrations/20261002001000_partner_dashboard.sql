@@ -364,41 +364,90 @@ begin
   return sid;
 end $$;
 
--- Blocks days (weather, holidays). Every session in the range is cancelled: bookings are refunded in
--- full and the owners told, holds and waitlists are closed. Returns the counts for the confirmation.
+-- Turns the weekly repeat of a session's slot on or off (the timetable row for its class, weekday and
+-- time). Turning it off keeps sessions already on the schedule; extend_schedule just stops adding more.
+create function public.partner_set_repeat(p_session uuid, p_repeat boolean)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  s record;
+begin
+  select ss.class_id, ss.starts_at at time zone 'America/Chicago' local into s
+  from public.sessions ss join public.class_types c on c.id = ss.class_id
+  where ss.id = p_session and c.partner_id = public.staff_partner();
+  if not found then raise exception 'not_found'; end if;
+  if p_repeat then
+    insert into public.timetable (class_id, weekday, starts) values (s.class_id, extract(dow from s.local)::smallint, s.local::time) on conflict do nothing;
+  else
+    -- A daily slot (weekday null) becomes the other six days, so only this weekday stops.
+    if exists (select 1 from public.timetable where class_id = s.class_id and weekday is null and starts = s.local::time) then
+      delete from public.timetable where class_id = s.class_id and weekday is null and starts = s.local::time;
+      insert into public.timetable (class_id, weekday, starts)
+      select s.class_id, d, s.local::time from generate_series(0, 6) d where d <> extract(dow from s.local) on conflict do nothing;
+    else
+      delete from public.timetable where class_id = s.class_id and weekday = extract(dow from s.local) and starts = s.local::time;
+    end if;
+  end if;
+end $$;
+
+-- Cancels one session for the partner: bookings are refunded in full and the owners told, holds and
+-- the waitlist are closed. Returns how many dogs were booked. Used by the two functions below.
+create function public.cancel_session_for_partner(p_session uuid, p_reason text, p_message text)
+returns int language plpgsql security definer set search_path = public as $$
+declare
+  s record;
+  b public.bookings;
+  n int := 0;
+begin
+  select ss.id, ss.starts_at, c.title, pa.name pname into s
+  from public.sessions ss join public.class_types c on c.id = ss.class_id join public.partners pa on pa.id = c.partner_id
+  where ss.id = p_session for update of ss;
+  update public.sessions set cancelled_at = now(), cancel_reason = p_reason where id = p_session;
+  for b in update public.bookings set status = 'cancelled', cancelled_at = now()
+           where session_id = p_session and status = 'booked' returning * loop
+    update public.profiles set credits_balance = credits_balance + b.credits_charged where id = b.member_id;
+    insert into public.credit_ledger (member_id, delta, reason, booking_id) values (b.member_id, b.credits_charged, 'refund', b.id);
+    insert into public.notifications (member_id, category, kind, title, body, href)
+    values (b.member_id, 'bookings', 'session_cancelled', s.title || ' is cancelled',
+            to_char(s.starts_at at time zone 'America/Chicago', 'FMDay FMMon FMDD, FMHH12:MI am') || ' at ' || s.pname || ' (' || lower(p_reason) || '). '
+              || b.credits_charged || case when b.credits_charged = 1 then ' credit is' else ' credits are' end || ' back in your balance.'
+              || coalesce(' ' || nullif(trim(p_message), ''), ''),
+            '/book');
+    n := n + 1;
+  end loop;
+  update public.held_spots set status = 'released', closed_at = now() where session_id = p_session and status = 'held';
+  update public.waitlist set status = 'left', closed_at = now() where session_id = p_session and status = 'waiting';
+  return n;
+end $$;
+revoke execute on function public.cancel_session_for_partner from public, anon, authenticated;
+
+-- Cancels one upcoming session (Schedule › Cancel this session).
+create function public.partner_cancel_session(p_session uuid, p_reason text, p_message text default null)
+returns int language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (
+    select 1 from public.sessions s join public.class_types c on c.id = s.class_id
+    where s.id = p_session and c.partner_id = public.staff_partner() and s.cancelled_at is null and s.starts_at > now()
+  ) then raise exception 'not_found'; end if;
+  return public.cancel_session_for_partner(p_session, coalesce(nullif(trim(p_reason), ''), 'Cancelled by the partner'), p_message);
+end $$;
+
+-- Blocks days (weather, holidays): every upcoming session in the range is cancelled as above.
+-- Returns the counts for the confirmation.
 create function public.partner_block_dates(p_from date, p_to date, p_reason text, p_message text default null)
 returns table (sessions int, dogs int) language plpgsql security definer set search_path = public as $$
 declare
   me text := public.staff_partner();
-  pname text;
-  s record;
-  b public.bookings;
+  sid uuid;
   n_s int := 0;
   n_d int := 0;
 begin
   if p_to < p_from or p_to > p_from + 60 then raise exception 'bad_range'; end if;
-  select name into pname from public.partners where id = me;
-  for s in
-    select ss.id, ss.starts_at, c.title from public.sessions ss join public.class_types c on c.id = ss.class_id
+  for sid in
+    select ss.id from public.sessions ss join public.class_types c on c.id = ss.class_id
     where c.partner_id = me and ss.cancelled_at is null and ss.starts_at > now()
       and (ss.starts_at at time zone 'America/Chicago')::date between p_from and p_to
-    for update of ss
   loop
-    update public.sessions set cancelled_at = now(), cancel_reason = p_reason where id = s.id;
-    for b in update public.bookings set status = 'cancelled', cancelled_at = now()
-             where session_id = s.id and status = 'booked' returning * loop
-      update public.profiles set credits_balance = credits_balance + b.credits_charged where id = b.member_id;
-      insert into public.credit_ledger (member_id, delta, reason, booking_id) values (b.member_id, b.credits_charged, 'refund', b.id);
-      insert into public.notifications (member_id, category, kind, title, body, href)
-      values (b.member_id, 'bookings', 'session_cancelled', s.title || ' is cancelled',
-              to_char(s.starts_at at time zone 'America/Chicago', 'FMDay FMMon FMDD, FMHH12:MI am') || ' at ' || pname || ' (' || lower(p_reason) || '). '
-                || b.credits_charged || case when b.credits_charged = 1 then ' credit is' else ' credits are' end || ' back in your balance.'
-                || coalesce(' ' || nullif(trim(p_message), ''), ''),
-              '/book');
-      n_d := n_d + 1;
-    end loop;
-    update public.held_spots set status = 'released', closed_at = now() where session_id = s.id and status = 'held';
-    update public.waitlist set status = 'left', closed_at = now() where session_id = s.id and status = 'waiting';
+    n_d := n_d + public.cancel_session_for_partner(sid, p_reason, p_message);
     n_s := n_s + 1;
   end loop;
   sessions := n_s; dogs := n_d;
@@ -589,6 +638,14 @@ begin
   if not found then raise exception 'not_found'; end if;
 end $$;
 
+-- Where members park and meet the trainer (shown on the class page). Blank clears it.
+create function public.partner_save_location(p_parking text, p_meet_at text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  update public.partners set parking = nullif(trim(coalesce(p_parking, '')), ''), meet_at = nullif(trim(coalesce(p_meet_at, '')), '')
+  where id = public.staff_partner();
+end $$;
+
 -- ---- Earnings ------------------------------------------------------------------------------------------
 
 -- Credits earned per month (sessions that have run, plus late cancellations, which keep their
@@ -627,12 +684,12 @@ $$;
 -- ---- Grants --------------------------------------------------------------------------------------------
 
 revoke execute on function public.partner_sessions, public.partner_roster, public.partner_waitlist, public.partner_check_in,
-  public.partner_update_session, public.partner_add_session, public.partner_block_dates, public.partner_notes,
+  public.partner_update_session, public.partner_add_session, public.partner_block_dates, public.partner_cancel_session, public.partner_set_repeat, public.partner_notes,
   public.partner_send_note, public.partner_assessments, public.partner_record_result, public.partner_check_vaccines,
-  public.partner_save_class, public.partner_save_trainer, public.partner_earnings, public.partner_earnings_by_class
+  public.partner_save_class, public.partner_save_trainer, public.partner_save_location, public.partner_earnings, public.partner_earnings_by_class
   from public, anon;
 grant execute on function public.partner_sessions, public.partner_roster, public.partner_waitlist, public.partner_check_in,
-  public.partner_update_session, public.partner_add_session, public.partner_block_dates, public.partner_notes,
+  public.partner_update_session, public.partner_add_session, public.partner_block_dates, public.partner_cancel_session, public.partner_set_repeat, public.partner_notes,
   public.partner_send_note, public.partner_assessments, public.partner_record_result, public.partner_check_vaccines,
-  public.partner_save_class, public.partner_save_trainer, public.partner_earnings, public.partner_earnings_by_class
+  public.partner_save_class, public.partner_save_trainer, public.partner_save_location, public.partner_earnings, public.partner_earnings_by_class
   to authenticated;

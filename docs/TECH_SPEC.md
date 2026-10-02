@@ -83,7 +83,7 @@ docs/TECH_SPEC.md
 project/                      Claude Design export (reference only, not shipped)
 ```
 
-`apps/` leaves room for the partner dashboard (desktop web) as a second Expo or Next.js app sharing `packages/` (types, API client, tokens) later.
+`apps/partner` is the partner dashboard (desktop web): a Vite + React app on the same Supabase project, using the design system's CSS directly rather than the React Native port. See `apps/partner/README.md`. Shared `packages/` (types, API client) can come later if the two apps start duplicating more than the colour and type tokens.
 
 ## 4. Design system port
 
@@ -146,9 +146,10 @@ Business rules in `src/lib`, unit tested:
    created from onboarding, vaccines, booking, plan booking, cancelling, check-in, the clearance flow and
    notifications, hold reminders, push registration, the waitlist, password reset and dog photos. The app uses the hosted project by default; see `supabase/README.md` for how it
    was set up and the dashboard steps left (code email templates, SMTP).
-3. **v3:** Apple and Google sign-in, a partner view for checking vet records, Stripe plans and
-   credit packs, push delivery switched on (EAS project, webhook, dev build), a real map with the member's location, the partner dashboard writing schedules,
-   assessments and check-in codes, PostHog.
+3. **v3:** the partner dashboard (done: schedules, rosters and check-in, vet records, notes, assessment
+   results, classes, earnings; payouts wait on Stripe Connect). Still to come: Apple and Google sign-in, Stripe
+   plans, credit packs and partner payouts, push delivery switched on (EAS project, dev build), a real map,
+   PostHog, and partner notes and results shown in the member app's Log.
 
 ## 8. Decisions and known gaps
 
