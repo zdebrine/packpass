@@ -1,7 +1,7 @@
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { Easing, FadeInDown, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { HERO_WORDS } from '@/data/fixtures';
 import type { PhotoKey } from '@/data/types';
@@ -27,16 +27,34 @@ function CrossfadePhoto({ name, active }: { name: PhotoKey; active: boolean }) {
   );
 }
 
+/**
+ * Fades the hero word up into place. A plain animated style rather than an `entering` layout
+ * animation: on the web, Reanimated 4.1's custom (withInitialValues) entering animations read a
+ * position snapshot in a cleanup timer, which throws "reading 'top'" if the screen has already
+ * gone (tapping Sign in or Create account during the animation).
+ */
+function RiseIn({ children }: { children: React.ReactNode }) {
+  const t = useSharedValue(0);
+  useEffect(() => {
+    t.value = withTiming(1, { duration: 800, easing: ease });
+  }, [t]);
+  const style = useAnimatedStyle(() => ({ opacity: t.value, transform: [{ translateY: (1 - t.value) * 12 }] }));
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
+
 /** 01a Welcome. "Every dog is" + a cycling ending, with the photo crossfading to match. */
 function Welcome() {
   const [i, setI] = useState(0);
   const top = useTop();
   const bottom = useBottom(34);
 
-  useEffect(() => {
-    const t = setInterval(() => setI((n) => (n + 1) % HERO_WORDS.length), WORD_MS);
-    return () => clearInterval(t);
-  }, []);
+  // Cycle only while Welcome is on screen; it stays mounted (hidden) under Sign in and Sign up.
+  useFocusEffect(
+    useCallback(() => {
+      const t = setInterval(() => setI((n) => (n + 1) % HERO_WORDS.length), WORD_MS);
+      return () => clearInterval(t);
+    }, []),
+  );
 
   return (
     <Screen theme="dark" bleed statusLight>
@@ -52,9 +70,9 @@ function Welcome() {
       <View style={{ position: 'absolute', left: 20, right: 20, bottom, gap: 12 }}>
         <View accessible accessibilityRole="header" accessibilityLabel={`Every dog is ${HERO_WORDS[i][0]}`}>
           <Text variant="display2xl" color="#fff" style={styles.h1} numberOfLines={1}>Every dog is</Text>
-          <Animated.View key={i} entering={FadeInDown.duration(800).easing(ease).withInitialValues({ transform: [{ translateY: 12 }] })}>
+          <RiseIn key={i}>
             <Text variant="display2xl" color="#fff" style={styles.h1} numberOfLines={1} adjustsFontSizeToFit>{HERO_WORDS[i][0]}</Text>
-          </Animated.View>
+          </RiseIn>
         </View>
         <Text color="rgba(255,255,255,0.88)">Drop-in agility, scent work, open fields and skill classes across Austin, matched to your dog.</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4, marginBottom: 14 }}>
