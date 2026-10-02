@@ -7,18 +7,16 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
-import { dogs } from '@/data/fixtures';
 import { RECHECK_QUOTE, SOCIAL_UNLOCKS } from '@/data/passport';
 import { Button } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
 import { IconButton, Screen, useBottom, useTop, themed } from '@/ds/layout';
 import { Gradient, Photo, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
-import { useApp } from '@/store/app';
+import { useApp, useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 import { motion } from '@/theme/tokens';
 
-const juno = dogs.juno;
 const ease = Easing.bezier(...motion.easeOut);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const C = 415; // circumference of r=66
@@ -75,6 +73,7 @@ function ClearanceEarned() {
 }
 
 function Celebration() {
+  const juno = useDog();
   const top = useTop();
   const bottom = useBottom(32);
   const see = useApp((s) => s.seeSocialClearance);

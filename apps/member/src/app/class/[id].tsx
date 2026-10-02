@@ -2,7 +2,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Share, View } from 'react-native';
 
-import { dogs } from '@/data/fixtures';
 import { Button, Tag } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
 import { Badge, Bars, Footer, IconButton, Screen, useTop } from '@/ds/layout';
@@ -10,13 +9,13 @@ import { Photo, PhotoFill, Gradient } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { MapSketch } from '@/features/MapSketch';
 import { assessmentFor, bookingFor, credits as creditsLabel, eligibility, view } from '@/lib/booking';
-import { cancelCopy, dayTime } from '@/lib/dates';
+import { now } from '@/lib/clock';
+import { cancelCopy, dayTime, monthDay } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
 import { comingWithAccounts } from '@/lib/notice';
-import { useApp } from '@/store/app';
+import { useApp, useDog, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
-const juno = dogs.juno;
 
 function Stat({ label, children }: { label: string; children: React.ReactNode }) {
   const { c } = useTheme();
@@ -43,9 +42,11 @@ export default function ClassDetail() {
   const top = useTop();
   const { id } = useLocalSearchParams<{ id: string }>();
   const v = view(id);
-  const social = useApp((s) => s.social);
-  const expired = useApp((s) => s.socialExpired);
+  const juno = useDog();
+  const rules = useRules();
+  const onCalmPath = useApp((s) => s.activePaths.includes('calm-around-dogs'));
   const bookings = useApp((s) => s.bookings);
+  const vaccines = useApp((s) => s.vaccines);
   const [saved, setSaved] = useState(false);
 
   if (!v) {
@@ -61,9 +62,11 @@ export default function ClassDetail() {
   }
 
   const { cls, partner, trainer, session } = v;
-  const el = eligibility(cls, social, expired);
+  const el = eligibility(v, rules, juno.name);
+  const started = session.startsAt <= now();
   const booking = bookingFor(bookings, session.id);
-  const assessment = !el.ok ? assessmentFor(cls) : undefined;
+  const assessment = !el.ok && el.needs === 'herding' ? assessmentFor(cls) : undefined;
+  const firstVaccine = [...vaccines].sort((a, b) => (a.expires < b.expires ? -1 : 1))[0];
   const group = cls.groupSize === 1 ? (cls.sessionType === 'Private' ? '1:1 · Private' : 'Your dogs only') : `${cls.groupSize} dogs · ${session.spotsLeft === 0 ? 'full' : `${session.spotsLeft} left`}`;
   const when = `${cls.openWindow ? `${dayTime(session.startsAt).split(' ')[0]} · ${cls.openWindow}` : dayTime(session.startsAt)} · ${partner.name}`;
 
@@ -105,7 +108,17 @@ export default function ClassDetail() {
               <Badge icon="shield" bg={c.surfaceSunken} fg={c.ink} />
               <View style={{ flex: 1 }}>
                 <Text variant="label" weight="600">{el.reason}</Text>
-                <Text variant="caption" muted style={{ marginTop: 2 }}>Herding partners assess every dog on livestock themselves.</Text>
+                <Text variant="caption" muted style={{ marginTop: 2 }}>
+                  {el.needs === 'herding'
+                    ? 'Herding partners assess every dog on livestock themselves.'
+                    : el.needs === 'social'
+                      ? onCalmPath
+                        ? `${juno.name} is working on it. Finish Calm around dogs to open group classes.`
+                        : 'A Social assessment opens group sport, play and group skills at every partner.'
+                      : firstVaccine
+                        ? `${firstVaccine.type} runs out ${monthDay(new Date(firstVaccine.expires + 'T12:00'))}. Update the record to book this date.`
+                        : `Add ${juno.name}'s vaccine records to book.`}
+                </Text>
               </View>
             </View>
           ) : null}
@@ -177,6 +190,21 @@ export default function ClassDetail() {
             ) : (
               <Button block onPress={() => router.push(`/check-in/scan?booking=${booking.id}`)}>Check in</Button>
             )}
+          </>
+        ) : started ? (
+          <>
+            <Text variant="caption" muted center>This session has already started.</Text>
+            <Button block variant="quiet" onPress={() => router.replace('/book')}>See other classes</Button>
+          </>
+        ) : !el.ok && el.needs === 'social' ? (
+          <>
+            {onCalmPath ? <Button variant="signal" block onPress={() => router.push('/goal/calm-around-dogs')}>See the path</Button> : null}
+            <Button variant="quiet" block onPress={() => router.replace('/book')}>See other classes</Button>
+          </>
+        ) : !el.ok && el.needs === 'vaccines' ? (
+          <>
+            <Button variant="signal" block onPress={() => router.push('/vaccines')}>Update vaccines</Button>
+            <Button variant="quiet" block onPress={() => router.replace('/book')}>See other classes</Button>
           </>
         ) : !el.ok ? (
           <>

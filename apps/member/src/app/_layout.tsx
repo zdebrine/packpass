@@ -9,10 +9,13 @@ import { useEffect, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { isLive, supabase } from '@/api/client';
+import { setLiveClock } from '@/lib/clock';
 import { useApp } from '@/store/app';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+setLiveClock(isLive);
 
 function useHydrated() {
   const [done, setDone] = useState(useApp.persist.hasHydrated());
@@ -44,7 +47,19 @@ export default function RootLayout() {
     ArchivoWideBold: require('../../assets/fonts/ArchivoWideBold.ttf'),
   });
   const hydrated = useHydrated();
-  const ready = fontsLoaded && hydrated;
+  const dataReady = useApp((s) => s.ready);
+  const ready = fontsLoaded && hydrated && dataReady;
+
+  // Live mode: load the catalog and the member, and reload when the session changes.
+  useEffect(() => {
+    if (!supabase) return;
+    const refresh = () => useApp.getState().refresh().catch(() => useApp.setState({ ready: true }));
+    refresh();
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') refresh();
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});

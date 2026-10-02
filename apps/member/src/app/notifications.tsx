@@ -2,28 +2,27 @@ import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { dogs } from '@/data/fixtures';
-import { notifications, type Notif, type NotifCategory } from '@/data/passport';
+import type { Notif, NotifCategory } from '@/data/passport';
 import { Button, Chip, Tag } from '@/ds/controls';
 import { Badge, IconButton, Screen } from '@/ds/layout';
 import { Press } from '@/ds/Press';
 import { Gradient, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
-import { useApp } from '@/store/app';
+import { useApp, useDog, useNotifications } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const FILTERS: ('All' | NotifCategory)[] = ['All', 'Clearances', 'Bookings', 'Notes'];
-const juno = dogs.juno;
 
 /** 12 Notifications */
 export default function Notifications() {
+  const juno = useDog();
   const { c } = useTheme();
   const social = useApp((s) => s.social);
   const read = useApp((s) => s.readNotifications);
   const markRead = useApp((s) => s.markRead);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All');
 
-  const all = notifications(social);
+  const all = useNotifications();
   const ok = (n: Notif) => filter === 'All' || n.cat === filter;
   const fresh = all.filter((n) => n.isNew && ok(n));
   const earlier = all.filter((n) => !n.isNew && ok(n));

@@ -32,7 +32,7 @@ The designs are 390pt phone screens. On web, v1 renders the same mobile layout i
 | Glass, scrims | `expo-blur` (`BlurView`, intensity matched to 20px blur), `expo-linear-gradient` |
 | Motion | `react-native-reanimated` 4: word cycle (3.4s, 800ms slide), photo crossfade (1100ms), card flip (520ms), clearance ring draw and badge pop, press scale 0.97 at 140ms |
 | Sheets | Expo Router `presentation: 'formSheet'` on native; a custom bottom sheet on web |
-| State | v1: one Zustand store (persisted with AsyncStorage / localStorage) over fixtures in `src/data`. v2: TanStack Query over Supabase replaces the fixture reads; the store keeps only UI and onboarding draft state. |
+| State | One Zustand store (`src/store/app.ts`). Sample mode persists it with AsyncStorage / localStorage; live mode loads it from Supabase (`src/api/live.ts`) and refreshes after every write. Screens read the catalog from `src/data/catalog.ts`, which live mode replaces with database rows. |
 | Forms | Controlled inputs plus `zod` validation (email, 8-character password, 6-digit code) |
 | Backend (phase 2) | Supabase: Postgres, Auth (email OTP, Apple, Google), Storage (dog photos, vaccine docs), RLS, Edge Functions |
 | Payments (phase 2) | Stripe Billing for plans, Stripe Payment Sheet for credit packs. Dog classes are real-world services, so App Store in-app purchase rules don't apply; Stripe is allowed on iOS. |
@@ -139,24 +139,41 @@ Business rules in `src/lib`, unit tested:
 
 ## 7. Phasing
 
-1. **v1 (this build):** the Expo app with all 24 screens, navigation between them, interactions the design shows (filters, chips, toggles, flip, code entry, booking states), fixtures for Juno and Otis. Runs on iOS and Android (Expo Go or dev build) and web.
-2. **v2:** Supabase schema, migrations, RLS and auth (Apple, Google, email OTP); dog photo and vaccine upload; real bookings and credit ledger via Edge Functions.
-3. **v3:** Stripe plans and credit packs, Expo Push, real map, QR check-in against partner-issued codes, PostHog.
+1. **v1 (done):** the Expo app with all 24 screens on sample data, running on iOS, Android and web.
+2. **v2 (done, local only):** Supabase schema, row level security, storage buckets and booking functions in
+   `supabase/`, tested on Postgres (41 SQL checks) and end to end through PostgREST (23 checks). The app runs
+   against it when `EXPO_PUBLIC_SUPABASE_*` is set: email sign-up with the 6-digit code, sign-in, the dog
+   created from onboarding, vaccines, booking, plan booking, cancelling, check-in, the clearance flow and
+   notifications. There is no hosted project yet (the EarlyBird Labs free plan is at its 2-project limit).
+3. **v3:** hosted Supabase project, Apple and Google sign-in, photo and document upload, Stripe plans and
+   credit packs, Expo Push, a real map with the member's location, the partner dashboard writing schedules,
+   assessments and check-in codes, PostHog.
 
-## 8. Decisions and known gaps in v1
+## 8. Decisions and known gaps
 
-Decided with the product owner: Expo universal app, sample data only, centered phone layout on web, and Juno's Social clearance shows "Working on it" until the member opens the Clearance earned screen (13), then "Cleared".
+Decided with the product owner: Expo universal app; centered phone layout on web; Juno's Social clearance
+shows "Working on it" until the member opens the Clearance earned screen (13), then "Cleared"; group classes
+need Social except sessions on the dog's own training path; "Book these" books real sessions; Supabase runs
+locally for now.
 
-- **Sample timeline.** The app's clock is fixed at Tue Sep 29 2026, 9:41 am, the moment the designs show. Juno starts at step 2 of Calm around dogs. Settings › Preview states › "Pass re-check" moves her to "re-check passed": a notification appears with the bell dot, and opening it plays screen 13, which flips the Passport to Cleared.
-- **Social gating.** The designs show group classes as bookable and "Cleared" while the Passport says Social is in progress, so v1 doesn't block group classes on Social. The "Cleared" chip and class detail box only show once Juno actually has it. Herding on Livestock is gated by the Herding assessment, as designed. Real gating comes with the backend.
-- **"Book these" on 01j** finishes onboarding but doesn't create bookings yet: the plan rows are week slots, not real sessions in the 7-day sample schedule.
-- **Needs accounts (phase 2), shown as a message:** password reset, vaccine upload, waitlist, buy credits, add to calendar, re-check booking. Apple and Google sign-in skip straight ahead.
-- **Otis** appears in the dog switcher and booking sheet; he has no Passport yet.
+- **Sample timeline.** Sample mode's clock is fixed at Tue Sep 29 2026, 9:41 am. Juno starts at step 2 of Calm
+  around dogs. Settings › Preview states › "Pass re-check" stands in for the partner recording the re-check.
+- **The Social gate and new members.** A new dog has no Social clearance, so its starting month (01j) can only
+  book path sessions, privates and sniff spaces; the plan shows the rest as "Needs a Social clearance" and
+  "Book these" skips them. The plan builder should lead with a Social assessment for dogs without one (open
+  question below).
+- **Vaccines.** Bookings need Rabies, DHPP and Bordetella current on the day. Members enter expiry months on
+  the vaccines screen; records are unverified until a partner checks the paperwork (`verified` column).
+- **Live-mode gaps:** dog photos use the sample photo (no upload yet); distances are measured from Austin ·
+  South, not the member's location; the plan is always Regular; Apple and Google sign-in show a message.
+- **No cancel button.** The designs don't have one; the store and `cancel_booking` support it.
+- **Otis** appears in the dog switcher and booking sheet; sample mode checks the rules against Juno's records.
 - **Web QR scanning** in expo-camera loads jsQR from cdn.jsdelivr.net at runtime. The 4-digit code works without it.
-- **Glass on Android** uses expo-blur's experimental blur; on older devices it falls back to a translucent fill.
+- **Glass on Android** uses expo-blur's experimental blur; older devices fall back to a translucent fill.
 
 ## 9. Open questions
 
-- Should "Book these" on 01j book real sessions in the first month, and how should it handle weeks beyond the schedule window?
-- Should group classes be blocked until Social is cleared? The design shows Juno booked into Herding Fundamentals and group play while her path is in progress.
-- Production clock: replace the fixed `NOW` with the device clock once data comes from Supabase.
+- Starting plans for dogs without Social: lead with a Social assessment, or let new dogs into some group
+  classes (open play, sniff spaces) without one?
+- Where does cancelling live in the UI? The designs have no cancel button; `cancel_booking` exists.
+- Which Supabase project and region for production, and when (the free plan is at its project limit)?

@@ -133,6 +133,12 @@ export const classes: Record<string, ClassType> = {
     description: 'Sam works Juno at a distance from a calm helper dog and closes the gap as she settles. Each session ends before she gets stuck.',
     partnerId: 'eastside', trainerId: 'sam', image: 'lab', requirements: [VAX],
   }),
+  'social-recheck': C({
+    id: 'social-recheck', title: 'Social re-check', discipline: 'Assessment', category: 'Skills', sessionType: 'Assessment',
+    credits: 2, durationMin: 30, intensity: 2, groupSize: 1, suits: 'Any energy', suitsNote: 'One dog at a time', balance: 'Social',
+    description: 'Sam watches Juno in a calm small group and checks how she reads other dogs, recovers from a startle and settles. Passing earns the Social clearance, which opens group sport, play and group skills at every PackPass partner.',
+    partnerId: 'eastside', trainerId: 'sam', image: 'tunnel', grants: 'social', requirements: [VAX],
+  }),
   'parallel-walk': C({
     id: 'parallel-walk', title: 'Parallel walk', discipline: 'Skills', category: 'Skills', sessionType: 'Private',
     credits: 3, durationMin: 45, intensity: 2, groupSize: 1, suits: 'Any energy', suitsNote: 'Private session', balance: 'Social',
@@ -148,8 +154,11 @@ const at = (dayOffset: number, hhmm: string) => {
   return new Date(2026, 8, 29 + dayOffset, h, m);
 };
 
-/** [classId, time, spots today]. These repeat daily for the 7 days Book shows. */
-const DAILY: [string, string, number][] = [
+/** Days of sessions in the sample schedule. Book shows the first 7; 01j plans across all 4 weeks. */
+export const SCHEDULE_DAYS = 28;
+
+/** [classId, time, spots today]. These run every day. */
+export const DAILY: [string, string, number][] = [
   ['agility-drop-in', '18:30', 4],
   ['lure-sprint', '19:00', 0],
   ['herding-assessment', '18:45', 2],
@@ -165,29 +174,36 @@ const DAILY: [string, string, number][] = [
   ['calm-private', '19:00', 2],
 ];
 
-/** Sessions on specific days (Herding Fundamentals runs Thursdays only). */
-const EXTRA: [string, number, string, number][] = [
-  ['herding-fundamentals', 2, '07:30', 4],
-  ['herding-fundamentals', 2, '09:00', 3],
-  ['herding-fundamentals', 2, '17:30', 6],
-  ['herding-livestock', 4, '08:00', 1],
-  ['loose-leash', 4, '09:00', 1],
-  ['parallel-walk', 2, '16:00', 1],
+/** [classId, weekday (0 = Sunday), time, spots]. These run once a week (Herding Fundamentals is Thursdays only). */
+export const WEEKLY: [string, number, string, number][] = [
+  ['herding-fundamentals', 4, '07:30', 4],
+  ['herding-fundamentals', 4, '09:00', 3],
+  ['herding-fundamentals', 4, '17:30', 6],
+  ['parallel-walk', 4, '16:00', 1],
+  ['herding-livestock', 6, '08:00', 1],
+  ['loose-leash', 6, '09:00', 1],
+  ['social-recheck', 6, '10:00', 2],
 ];
 
 const spotsFor = (today: number, day: number, cap: number) =>
   day === 0 ? today : Math.min(cap, Math.max(0, today + ((day * 7 + today * 3) % 5) - 1));
 
+const sid = (classId: string, d: number, time: string) => `${classId}.${d}.${time.replace(':', '')}`;
+
 export const sessions: Session[] = [
   ...DAILY.flatMap(([classId, time, spots]) =>
-    Array.from({ length: 7 }, (_, d) => ({
-      id: `${classId}.${d}.${time.replace(':', '')}`,
+    Array.from({ length: SCHEDULE_DAYS }, (_, d) => ({
+      id: sid(classId, d, time),
       classId,
       startsAt: at(d, time),
       spotsLeft: spotsFor(spots, d, classes[classId].groupSize),
     })),
   ),
-  ...EXTRA.map(([classId, d, time, spots]) => ({ id: `${classId}.${d}.${time.replace(':', '')}`, classId, startsAt: at(d, time), spotsLeft: spots })),
+  ...WEEKLY.flatMap(([classId, weekday, time, spots]) =>
+    Array.from({ length: SCHEDULE_DAYS }, (_, d) => d)
+      .filter((d) => at(d, time).getDay() === weekday)
+      .map((d) => ({ id: sid(classId, d, time), classId, startsAt: at(d, time), spotsLeft: spots })),
+  ),
 ];
 
 export const sessionById = (id: string) => sessions.find((s) => s.id === id);
@@ -199,19 +215,29 @@ export const INITIAL_BOOKINGS = [
 ];
 export const INITIAL_CREDITS = 7;
 
+/** Juno's vaccine records (Dog profile › Health and care). Bookings need all three current on the day. */
+export const JUNO_VACCINES = [
+  { type: 'Rabies', expires: new Date(2028, 2, 31) },
+  { type: 'DHPP', expires: new Date(2027, 0, 31) },
+  { type: 'Bordetella', expires: new Date(2026, 9, 14) },
+];
+
 // ---- Today ---------------------------------------------------------------------------------
 
 export const monthDone = [
   { meta: 'Done · Sep 12 · Physical', title: 'Lure Sprint Heats · 2 credits', photo: 'sprint' as PhotoKey },
   { meta: 'Done · Sep 19 · Physical', title: 'Agility drop-in · 2 credits', photo: 'weave' as PhotoKey },
 ];
-export const monthSuggestion = { sessionId: 'scent-work.1.1800', meta: 'Suggested · Wed 6:00 pm · Mental' };
+/** Classes Today suggests to balance the month, best first. The first one Juno can book is shown. */
+export const monthSuggestions = ['scent-work', 'sniff-space'];
 
-export const recommendedSessionIds = [
-  'scent-work.1.1800',
-  'agility-drop-in.2.1830',
-  'focus-recall.3.1730',
-  'loose-leash.4.0900',
+/** [classId, day to start looking from] for "Recommended for Juno". Ones Juno can't book are skipped. */
+export const recommended: [string, number][] = [
+  ['scent-work', 1],
+  ['agility-drop-in', 2],
+  ['focus-recall', 3],
+  ['loose-leash', 4],
+  ['sniff-space', 1],
 ];
 
 // ---- Log -----------------------------------------------------------------------------------
@@ -278,19 +304,14 @@ export const PLAN_GOALS = [
   { trait: 'Nervous with new dogs', title: 'Calm around dogs', outcome: '4 steps · Ends with a Social clearance and group sport' },
 ];
 
-export const MONTH_PLAN = [
-  { when: 'Week 1 · Tue 6:00 pm', title: 'Scent Work I', meta: 'Northside Canine · 2 credits · Mental', photo: 'grass' as PhotoKey, credits: 2 },
-  { when: 'Week 1 · Sat 9:00 am', title: 'Agility drop-in', meta: 'Ridgeline Dog Sport · 2 credits · Physical', photo: 'weave' as PhotoKey, credits: 2 },
-  { when: 'Week 2 · Thu 6:30 pm', title: 'Small-group play', meta: 'Eastside Dog Club · 1 credit · Social', photo: 'tunnel' as PhotoKey, credits: 1 },
-  { when: 'Week 3 · Sun 5:00 pm', title: 'Open field', meta: 'Eastfield Park · 1 credit · Physical', photo: 'leap' as PhotoKey, credits: 1 },
-  { when: 'Week 4 · Tue 5:30 pm', title: 'Focus and Recall', meta: 'Northside Canine · 2 credits · Mental', photo: 'hurdle' as PhotoKey, credits: 2 },
+/**
+ * 01j "Juno's month": five sessions over 4 weeks that fit Regular. [classId, day offset] picks the
+ * real session to book; each row's swap is another class with the same balance category.
+ */
+export const MONTH_PLAN: { classId: string; day: number; swap: { classId: string; day: number } }[] = [
+  { classId: 'scent-work', day: 0, swap: { classId: 'sniff-space', day: 0 } },
+  { classId: 'agility-drop-in', day: 4, swap: { classId: 'lure-sprint', day: 4 } },
+  { classId: 'small-group-play', day: 9, swap: { classId: 'free-roam', day: 9 } },
+  { classId: 'open-field', day: 19, swap: { classId: 'fitness', day: 19 } },
+  { classId: 'focus-recall', day: 21, swap: { classId: 'herding-fundamentals', day: 23 } },
 ];
-
-/** Swap options for the month plan, same balance category and credit cost. */
-export const MONTH_SWAPS: Record<string, { title: string; meta: string; photo: PhotoKey }> = {
-  'Scent Work I': { title: 'Sniff space', meta: 'South Fork Yard · 1 credit · Mental', photo: 'wall' },
-  'Agility drop-in': { title: 'Lure Sprint Heats', meta: 'Eastfield Park · 2 credits · Physical', photo: 'sprint' },
-  'Small-group play': { title: 'Free roam', meta: 'Eastside Dog Club · 1 credit · Social', photo: 'grass' },
-  'Open field': { title: 'Fitness and conditioning', meta: 'Northside Canine · 2 credits · Physical', photo: 'hurdle' },
-  'Focus and Recall': { title: 'Herding Fundamentals', meta: 'Ridgeline Dog Sport · 2 credits · Mental', photo: 'collie' },
-};

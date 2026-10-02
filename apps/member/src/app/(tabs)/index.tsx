@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
-import { dogs, monthDone, monthSuggestion, NOW, PLAN, recommendedSessionIds } from '@/data/fixtures';
-import { goals, isComplete, notifications, stepIndex } from '@/data/passport';
+import { monthDone, monthSuggestions, PLAN, recommended } from '@/data/fixtures';
+import { goals, isComplete, stepIndex } from '@/data/passport';
 import { AthleteCard, ClassCard } from '@/ds/cards';
 import { Button, Tag } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
@@ -11,13 +11,13 @@ import { Press } from '@/ds/Press';
 import { Glass, HeroScrim, Photo, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { MapSketch } from '@/features/MapSketch';
-import { activeBookings, bookingFor, credits as creditsLabel, timeLabel, view } from '@/lib/booking';
+import { activeBookings, bookError, bookingFor, credits as creditsLabel, nextSession, timeLabel } from '@/lib/booking';
+import { now } from '@/lib/clock';
 import { monthDay, relativeDay, time, weekday } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
-import { useApp } from '@/store/app';
+import { useApp, useDog, useNotifications, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
-const juno = dogs.juno;
 
 /** 02 Today */
 export default function Today() {
@@ -27,20 +27,30 @@ export default function Today() {
   const credits = useApp((s) => s.credits);
   const social = useApp((s) => s.social);
   const read = useApp((s) => s.readNotifications);
+  const juno = useDog();
+  const rules = useRules();
+  const notes = useNotifications();
+  const canBook = (id: string) => !bookError(id, juno.id, rules);
 
-  const upcoming = activeBookings(bookings).filter((x) => x.booking.status === 'booked' && x.v.session.startsAt >= NOW);
+  const upcoming = activeBookings(bookings).filter((x) => x.booking.status === 'booked' && x.v.session.startsAt >= now());
   const upNext = upcoming[0];
-  const unread = notifications(social).some((n) => n.isNew && !read.includes(n.id));
-  const goal = goals(social).find((g) => !isComplete(g))!;
-  const step = goal.steps[stepIndex(goal)];
-  const stepView = step?.sessionId ? view(step.sessionId) : undefined;
-  const stepBooked = step?.sessionId ? !!bookingFor(bookings, step.sessionId) : false;
-  const suggestion = view(monthSuggestion.sessionId)!;
-  const suggestionBooked = !!bookingFor(bookings, monthSuggestion.sessionId);
+  const unread = notes.some((n) => n.isNew && !read.includes(n.id));
+  const goal = goals(social).find((g) => !isComplete(g));
+  const step = goal ? goal.steps[stepIndex(goal)] : undefined;
+  const stepView = step?.classId ? nextSession(step.classId) : undefined;
+  const stepBooked = !!step?.classId && upcoming.some((x) => x.v.cls.id === step.classId);
+  // The first suggestion Juno can book that isn't booked yet.
+  const suggestion = monthSuggestions
+    .map((id) => nextSession(id, 1))
+    .find((v) => v && canBook(v.session.id) && !bookingFor(bookings, v.session.id));
+  const picks = recommended
+    .map(([id, from]) => nextSession(id, from))
+    .filter((v): v is NonNullable<typeof v> => !!v && canBook(v.session.id))
+    .slice(0, 4);
 
   const month = [
     ...monthDone.map((m) => ({ key: m.title, meta: m.meta, title: m.title, photo: m.photo, status: 'Done' as string | null, onPress: undefined as undefined | (() => void) })),
-    ...upcoming.map(({ booking, v }) => ({
+    ...upcoming.slice(0, 4).map(({ booking, v }) => ({
       key: booking.id,
       meta: `Booked · ${weekday(v.session.startsAt).slice(0, 3)} ${monthDay(v.session.startsAt)} · ${v.cls.balance}`,
       title: `${v.cls.title} · ${creditsLabel(booking.credits)}`,
@@ -48,9 +58,9 @@ export default function Today() {
       status: 'Booked',
       onPress: () => router.push(`/class/${v.session.id}`),
     })),
-    ...(suggestionBooked ? [] : [{
+    ...(!suggestion ? [] : [{
       key: 'suggested',
-      meta: monthSuggestion.meta,
+      meta: `Suggested · ${weekday(suggestion.session.startsAt).slice(0, 3)} ${time(suggestion.session.startsAt)} · ${suggestion.cls.balance}`,
       title: `${suggestion.cls.title} · ${creditsLabel(suggestion.cls.credits)}`,
       photo: suggestion.cls.image,
       status: null,
@@ -77,7 +87,7 @@ export default function Today() {
             </Press>
           </View>
           <View style={{ position: 'absolute', left: 20, right: 20, bottom: 52 }}>
-            <View style={{ marginBottom: 14 }}><Tag tone="glass">{`${weekday(NOW)} · ${monthDay(NOW)}`}</Tag></View>
+            <View style={{ marginBottom: 14 }}><Tag tone="glass">{`${weekday(now())} · ${monthDay(now())}`}</Tag></View>
             <Text variant="displayXl" color="#fff" accessibilityRole="header">{`${juno.name} is due for a hard day.`}</Text>
             <Text variant="label" color="rgba(255,255,255,0.9)" style={{ marginTop: 8 }}>{`Scent work would round out ${juno.name}'s month.`}</Text>
           </View>
@@ -132,6 +142,7 @@ export default function Today() {
             </View>
           </View>
 
+          {goal ? (
           <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
             <SectionTitle title="Next goal" onMore={() => router.push(`/goal/${goal.id}`)} />
             <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 14 }}>
@@ -144,7 +155,7 @@ export default function Today() {
                 <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 10, borderRadius: 20, backgroundColor: c.bg }}>
                   <Photo name={stepView.cls.image} style={{ width: 52, height: 52, borderRadius: 12 }} />
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text variant="label" weight="600">{step.title}</Text>
+                    <Text variant="label" weight="600">{step?.title}</Text>
                     <Text variant="caption" muted>{`${stepView.cls.sessionType} · ${stepView.trainer.name} · ${weekday(stepView.session.startsAt).slice(0, 3)} ${timeLabel(stepView)}`}</Text>
                   </View>
                   <Text variant="label" weight="600" num style={{ paddingRight: 6 }}>{creditsLabel(stepView.cls.credits)}</Text>
@@ -157,13 +168,15 @@ export default function Today() {
               ) : null}
             </View>
           </View>
+          ) : null}
 
           <View style={{ marginTop: 32 }}>
             <SectionTitle title={`Recommended for ${juno.name}`} onMore={() => router.push('/book')} style={{ paddingHorizontal: 20 }} />
             <Text variant="caption" muted style={{ marginTop: -8, marginBottom: 14, marginHorizontal: 20 }}>{`Two sprint days this month. These add mental work and fit ${juno.name}'s clearances.`}</Text>
+            {picks.length === 0 ? <Text muted style={{ marginHorizontal: 20 }}>Nothing open to book right now.</Text> : null}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}>
-              {recommendedSessionIds.map((id) => {
-                const v = view(id)!;
+              {picks.map((v) => {
+                const id = v.session.id;
                 return (
                   <ClassCard
                     key={id}

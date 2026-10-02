@@ -2,51 +2,25 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { NOW } from '@/data/fixtures';
+import { now } from '@/lib/clock';
 import { Button, Chip } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
 import { Field, Footer, Screen, Toggle, themed } from '@/ds/layout';
 import { Press } from '@/ds/Press';
 import { Text } from '@/ds/Text';
-import { Body, ChipRow, FieldGroup, Intro, StepHeader } from '@/features/onboarding/parts';
+import { Body, ChipRow, FieldGroup, Intro, Select, StepHeader } from '@/features/onboarding/parts';
 import { useApp } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const YEARS = Array.from({ length: 16 }, (_, i) => NOW.getFullYear() - i);
+const YEARS = Array.from({ length: 16 }, (_, i) => now().getFullYear() - i);
 
 function lifeStage(month: number, year: number) {
-  const months = (NOW.getFullYear() - year) * 12 + (NOW.getMonth() - month);
+  const months = (now().getFullYear() - year) * 12 + (now().getMonth() - month);
   const yrs = Math.floor(months / 12);
   const age = months < 12 ? `${Math.max(0, months)} months old` : `${yrs} ${yrs === 1 ? 'year' : 'years'} old`;
   const stage = months < 12 ? 'Puppy' : yrs < 8 ? 'Prime' : 'Senior';
   return `${age} · ${stage}`;
-}
-
-/** Pill that opens an inline list of options. */
-function Select<T extends string | number>({ value, label, options, onPick }: { value: T; label: string; options: T[]; onPick: (v: T) => void }) {
-  const { c } = useTheme();
-  const [open, setOpen] = useState(false);
-  return (
-    <View style={{ flex: 1, gap: 8 }}>
-      <Press
-        onPress={() => setOpen((o) => !o)}
-        accessibilityLabel={label}
-        accessibilityState={{ expanded: open }}
-        style={{ height: 52, borderRadius: 9999, backgroundColor: c.surfaceRaised, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-      >
-        <Text>{String(value)}</Text>
-        <Icon name="chevron-down" size={18} color={c.inkMuted} />
-      </Press>
-      {open ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {options.map((o) => (
-            <Chip key={o} selected={o === value} onPress={() => { onPick(o); setOpen(false); }}>{String(o)}</Chip>
-          ))}
-        </View>
-      ) : null}
-    </View>
-  );
 }
 
 /** 01f Step 2 · Details */

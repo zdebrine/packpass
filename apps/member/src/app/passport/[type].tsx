@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn, SlideInDown } from 'react-native-reanimated';
 
-import { dogs } from '@/data/fixtures';
+import { nextSession } from '@/lib/booking';
 import { HERDING, socialClearance, STATUS_LABEL } from '@/data/passport';
 import { Button } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
@@ -11,15 +11,15 @@ import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { useClearanceStyle } from '@/features/passport/style';
 import { comingWithAccounts } from '@/lib/notice';
-import { useApp } from '@/store/app';
+import { useApp, useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 import { motion } from '@/theme/tokens';
 
-const juno = dogs.juno;
 const close = () => (router.canGoBack() ? router.back() : router.replace('/dog'));
 
 /** 09 Clearance detail (sheet over the Passport) */
 export default function ClearanceDetail() {
+  const juno = useDog();
   const { c } = useTheme();
   const top = useTop();
   const bottom = useBottom(34);
@@ -71,7 +71,7 @@ export default function ClearanceDetail() {
           {k.status === 'needs' ? (
             <View style={{ marginTop: 20, padding: 18, borderRadius: 20, backgroundColor: c.surfaceRaised, gap: 12 }}>
               <Text variant="label">{k.note}</Text>
-              <Button block onPress={() => router.replace('/book/herding-assessment.0.1845')}>Book assessment</Button>
+              <Button block onPress={() => { const a = nextSession('herding-assessment'); if (a) router.replace(`/book/${a.session.id}`); }}>Book assessment</Button>
             </View>
           ) : null}
 

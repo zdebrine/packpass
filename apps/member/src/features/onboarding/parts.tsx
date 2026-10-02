@@ -1,8 +1,11 @@
 import { router } from 'expo-router';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
 
+import { Chip } from '@/ds/controls';
+import { Icon } from '@/ds/Icon';
 import { IconButton } from '@/ds/layout';
+import { Press } from '@/ds/Press';
 import { Text } from '@/ds/Text';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -58,3 +61,30 @@ export function FieldGroup({ label, children, note }: { label: string; children:
 export function ChipRow({ children }: { children: ReactNode }) {
   return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{children}</View>;
 }
+
+/** Pill that opens an inline list of options. */
+export function Select<T extends string | number>({ value, label, options, onPick }: { value: T; label: string; options: T[]; onPick: (v: T) => void }) {
+  const { c } = useTheme();
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ flex: 1, gap: 8 }}>
+      <Press
+        onPress={() => setOpen((o) => !o)}
+        accessibilityLabel={label}
+        accessibilityState={{ expanded: open }}
+        style={{ height: 52, borderRadius: 9999, backgroundColor: c.surfaceRaised, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+      >
+        <Text>{String(value)}</Text>
+        <Icon name="chevron-down" size={18} color={c.inkMuted} />
+      </Press>
+      {open ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {options.map((o) => (
+            <Chip key={o} selected={o === value} onPress={() => { onPick(o); setOpen(false); }}>{String(o)}</Chip>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+

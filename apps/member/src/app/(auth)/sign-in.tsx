@@ -6,6 +6,8 @@ import { Button } from '@/ds/controls';
 import { Field, Screen, useBottom, themed } from '@/ds/layout';
 import { Press } from '@/ds/Press';
 import { Text } from '@/ds/Text';
+import { isLive } from '@/api/client';
+import { errorCopy } from '@/api/errors';
 import { comingWithAccounts } from '@/lib/notice';
 import { BackButton, Body, Intro } from '@/features/onboarding/parts';
 import { useApp } from '@/store/app';
@@ -19,7 +21,7 @@ function TextLink({ children, onPress }: { children: string; onPress: () => void
   );
 }
 
-/** 01c Sign in. With sample data, any email and a password of 8 or more characters signs in. */
+/** 01c Sign in. Live: Supabase email and password. Sample data: any email and a password of 8 or more characters. */
 function SignIn() {
   const { c } = useTheme();
   const bottom = useBottom(34);
@@ -27,15 +29,24 @@ function SignIn() {
   const update = useApp((s) => s.updateDraft);
   const signIn = useApp((s) => s.signIn);
   const [pw, setPw] = useState('');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | false>(false);
+  const [busy, setBusy] = useState(false);
 
-  const submit = () => {
-    if (pw.length < 8 || !draft.email.includes('@')) return setError(true);
-    signIn();
-    router.replace('/');
+  const submit = async () => {
+    setBusy(true);
+    try {
+      await signIn(draft.email.trim(), pw);
+      router.replace(useApp.getState().onboarded ? '/' : '/onboarding/dog');
+    } catch (e) {
+      const msg = (e as Error).message;
+      setError(msg === 'bad_credentials' || /invalid login/i.test(msg) ? 'mismatch' : errorCopy(e));
+    } finally {
+      setBusy(false);
+    }
   };
-  const social = () => {
-    signIn();
+  const social = async () => {
+    if (isLive) return comingWithAccounts('Sign in with Apple or Google');
+    await signIn('alex@kim.co', 'sample-password');
     router.replace('/');
   };
 
@@ -48,11 +59,11 @@ function SignIn() {
         <Field label="Password" value={pw} onChangeText={(v) => { setPw(v); setError(false); }} secureTextEntry autoComplete="current-password" textContentType="password" onSubmitEditing={submit} />
         {error ? (
           <View style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft }} accessibilityLiveRegion="polite">
-            <Text variant="label" weight="600" color={c.kennelRed}>That email and password don't match. Try again or reset your password.</Text>
+            <Text variant="label" weight="600" color={c.kennelRed}>{error === 'mismatch' ? "That email and password don't match. Try again or reset your password." : error}</Text>
           </View>
         ) : null}
         <TextLink onPress={() => comingWithAccounts('Reset your password')}>Forgot password</TextLink>
-        <Button block onPress={submit}>Sign in</Button>
+        <Button block disabled={busy} onPress={submit}>{busy ? 'Signing in…' : 'Sign in'}</Button>
         <Text variant="caption" muted center style={{ marginTop: 6 }}>Or</Text>
         <View style={{ gap: 8 }}>
           <Button variant="quiet" block onPress={social}>Continue with Apple</Button>

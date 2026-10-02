@@ -9,10 +9,9 @@ import { Badge, IconButton, Meter, Screen } from '@/ds/layout';
 import { Press } from '@/ds/Press';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
-import { useApp } from '@/store/app';
+import { useApp, useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
-const juno = dogs.juno;
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 // August is shown from a lighter sample pattern; September is the design's heat map.
@@ -23,6 +22,7 @@ const MONTHS = [
 
 /** 07 Log */
 export default function Log() {
+  const juno = useDog();
   const { c } = useTheme();
   const social = useApp((s) => s.social);
   const [m, setM] = useState(1);

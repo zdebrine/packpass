@@ -3,13 +3,12 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
-import { NOW } from '@/data/fixtures';
+import { now } from '@/lib/clock';
 import { AthleteCard } from '@/ds/cards';
 import { Button } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
 import { Screen, useBottom, themed } from '@/ds/layout';
 import { Text } from '@/ds/Text';
-import { comingWithAccounts } from '@/lib/notice';
 import { Intro, StepHeader } from '@/features/onboarding/parts';
 import { useApp } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -21,7 +20,7 @@ function Reveal() {
   const bottom = useBottom(34);
   const d = useApp((s) => s.draft);
   const name = d.dogName.trim() || 'Your dog';
-  const yrs = NOW.getFullYear() - d.birthYear - (NOW.getMonth() < d.birthMonth ? 1 : 0);
+  const yrs = now().getFullYear() - d.birthYear - (now().getMonth() < d.birthMonth ? 1 : 0);
 
   const t = useSharedValue(0);
   useEffect(() => {
@@ -51,7 +50,7 @@ function Reveal() {
             breed={d.mixed ? 'Mixed breed' : d.breed || undefined}
             age={yrs < 1 ? 'Puppy' : `${yrs} yrs`}
             stage={yrs < 1 ? undefined : yrs < 8 ? 'Prime' : 'Senior'}
-            since={NOW.getFullYear()}
+            since={now().getFullYear()}
             stats={[{ value: 0, label: 'Sessions' }, { value: 0, label: 'Hours active' }, { value: 0, label: 'Disciplines' }]}
           />
         </Animated.View>
@@ -61,7 +60,7 @@ function Reveal() {
           <Icon name="syringe" />
           <Text variant="label" style={{ flex: 1 }}>{`Upload ${name}'s vaccination records before the first booking.`}</Text>
         </View>
-        <Button block onPress={() => comingWithAccounts('Upload vaccination records')}>Upload records</Button>
+        <Button block onPress={() => router.push('/vaccines')}>Upload records</Button>
         <Button variant="quiet" block onPress={() => router.push('/onboarding/month')}>{`See ${name}'s month`}</Button>
       </View>
     </Screen>

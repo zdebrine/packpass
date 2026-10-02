@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ScrollView, Share, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated';
 
-import { disciplineLevels, dogs, TRAIT_SPECIAL } from '@/data/fixtures';
+import { disciplineLevels, TRAIT_SPECIAL } from '@/data/fixtures';
 import { goals, HERDING, isComplete, socialClearance, STATUS_LABEL, stepIndex, type Clearance } from '@/data/passport';
 import { AthleteCard } from '@/ds/cards';
 import { Button, Chip, Tag } from '@/ds/controls';
@@ -11,15 +11,16 @@ import { Badge, Bars, IconButton, Screen } from '@/ds/layout';
 import { Press } from '@/ds/Press';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
+import { dayOffset, expiryLabel, fromIso } from '@/lib/dates';
 import { notice } from '@/lib/notice';
-import { useApp } from '@/store/app';
+import { useApp, useDog } from '@/store/app';
 import { useClearanceStyle } from '@/features/passport/style';
 import { useTheme } from '@/theme/ThemeProvider';
 import { motion } from '@/theme/tokens';
 
-const juno = dogs.juno;
 
 function FlipCard() {
+  const juno = useDog();
   const { c } = useTheme();
   const [flipped, setFlipped] = useState(false);
   const deg = useDerivedValue(() => withTiming(flipped ? 180 : 0, { duration: motion.slow, easing: Easing.bezier(...motion.easeOut) }));
@@ -81,11 +82,14 @@ function Section({ title, right, children }: { title: string; right?: React.Reac
 
 /** 08 Dog profile · Passport */
 export default function DogProfile() {
+  const juno = useDog();
   const { c } = useTheme();
   const social = useApp((s) => s.social);
   const expired = useApp((s) => s.socialExpired);
   const traits = useApp((s) => s.draft.traits).filter((t) => !TRAIT_SPECIAL.includes(t));
   const styleFor = useClearanceStyle();
+  const dogs = useApp((s) => s.dogs);
+  const vaccines = useApp((s) => s.vaccines);
   const clearances = [socialClearance(social, expired), HERDING];
 
   return (
@@ -93,7 +97,7 @@ export default function DogProfile() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 10, paddingBottom: 32 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16 }}>
           <View style={{ flexDirection: 'row', gap: 6 }}>
-            {Object.values(dogs).map((d) => (
+            {dogs.map((d) => (
               <Chip
                 key={d.id}
                 selected={d.id === juno.id}
@@ -169,17 +173,23 @@ export default function DogProfile() {
           </View>
         </View>
 
-        <Section title="Health and care">
+        <Section title="Health and care" right={<Button variant="quiet" size="sm" onPress={() => router.push('/vaccines')}>Update</Button>}>
           <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 16 }}>
-            {[['Rabies', 'Expires Mar 2028', false], ['DHPP', 'Expires Jan 2027', false], ['Bordetella', 'Expires Oct 14', true]].map(([n, e, due]) => (
-              <View key={n as string} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <View>
-                  <Text variant="label" weight="600">{n as string}</Text>
-                  <Text variant="caption" muted>{e as string}</Text>
+            {(['Rabies', 'DHPP', 'Bordetella'] as const).map((type) => {
+              const rec = vaccines.find((v) => v.type === type);
+              const exp = rec ? fromIso(rec.expires) : null;
+              const days = exp ? dayOffset(exp) : -1;
+              const status = !exp ? 'Not on file' : days < 0 ? 'Expired' : days <= 30 ? 'Due soon' : 'Current';
+              return (
+                <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View>
+                    <Text variant="label" weight="600">{type}</Text>
+                    <Text variant="caption" muted>{exp ? `${days < 0 ? 'Expired' : 'Expires'} ${expiryLabel(exp)}` : 'Add the date from the vet record'}</Text>
+                  </View>
+                  <Tag tone={status === 'Current' ? 'neutral' : 'warning'}>{status}</Tag>
                 </View>
-                <Tag tone={due ? 'warning' : 'neutral'}>{due ? 'Due soon' : 'Current'}</Tag>
-              </View>
-            ))}
+              );
+            })}
           </View>
           <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 14, marginTop: 8 }}>
             {[['Allergies', 'Chicken'], ['Medication', 'None'], ['Triggers', 'Nervous around men in hats']].map(([k, v]) => (

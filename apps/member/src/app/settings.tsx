@@ -1,14 +1,13 @@
 import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
-import { dogs, INITIAL_CREDITS } from '@/data/fixtures';
+import { INITIAL_CREDITS } from '@/data/fixtures';
 import { Button, Chip } from '@/ds/controls';
 import { IconButton, Screen, Toggle } from '@/ds/layout';
 import { Text } from '@/ds/Text';
-import { useApp, type Appearance } from '@/store/app';
+import { useApp, type Appearance, useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
-const juno = dogs.juno;
 
 function Row({ title, sub, right }: { title: string; sub?: string; right: React.ReactNode }) {
   const { c } = useTheme();
@@ -28,6 +27,7 @@ function Row({ title, sub, right }: { title: string; sub?: string; right: React.
  * states the designs show (re-check passed, clearance expired, out of credits, nothing booked).
  */
 export default function Settings() {
+  const juno = useDog();
   const { c } = useTheme();
   const s = useApp();
   const stageLabel = { working: 'Working on it', earned: 'Re-check passed, not opened yet', cleared: 'Cleared' }[s.social];

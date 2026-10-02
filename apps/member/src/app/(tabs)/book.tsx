@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { NOW, partners, sessions } from '@/data/fixtures';
+import { catalog } from '@/data/catalog';
 import type { Category, SessionType } from '@/data/types';
 import { Chip, Tag } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
@@ -13,8 +13,9 @@ import { Text } from '@/ds/Text';
 import { ClassRow } from '@/features/book/ClassRow';
 import { MapSketch } from '@/features/MapSketch';
 import { eligibility, sessionsFor, timeLabel, view, type SessionView } from '@/lib/booking';
+import { now } from '@/lib/clock';
 import { addMinutes, dayOffset, shortDay } from '@/lib/dates';
-import { useApp } from '@/store/app';
+import { useApp, useDog, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const CATS: Category[] = ['Sport', 'Scent', 'Play', 'Skills'];
@@ -52,8 +53,8 @@ export default function Book() {
   const [query, setQuery] = useState('');
   const [partnerId, setPartnerId] = useState('ridgeline');
   const sociability = useApp((s) => s.draft.social);
-  const social = useApp((s) => s.social);
-  const expired = useApp((s) => s.socialExpired);
+  const rules = useRules();
+  const dog = useDog();
 
   const fitsDog = (v: SessionView) => !(sociability === 'Prefers solo' && v.cls.sessionType === 'Class' && v.cls.groupSize > 1);
   const q = query.trim().toLowerCase();
@@ -66,12 +67,12 @@ export default function Book() {
   const hero = all.find((v) => v.cls.id === HERO_CLASS);
   const list = all.filter((v) => v.cls.id !== HERO_CLASS);
   const count = all.length;
-  const dayLabel = day === 0 ? 'Today' : shortDay(addMinutes(NOW, day * 1440));
+  const dayLabel = day === 0 ? 'Today' : shortDay(addMinutes(now(), day * 1440));
 
   // Map: every session at each partner on the selected day, any category.
   const byPartner = useMemo(() => {
     const m: Record<string, SessionView[]> = {};
-    sessions.filter((s) => dayOffset(s.startsAt) === day).forEach((s) => {
+    catalog.sessions.filter((s) => dayOffset(s.startsAt) === day).forEach((s) => {
       const v = view(s.id)!;
       (m[v.partner.id] ??= []).push(v);
     });
@@ -80,7 +81,7 @@ export default function Book() {
   }, [day]);
 
   if (mode === 'Map') {
-    const p = partners[partnerId];
+    const p = catalog.partners[partnerId] ?? Object.values(catalog.partners)[0];
     const here = byPartner[partnerId] ?? [];
     const PINS: { id: string; left: number; top: number; label: (n: number) => string }[] = [
       { id: 'northside', left: 52, top: 196, label: (n) => `${n} classes` },
@@ -93,15 +94,15 @@ export default function Book() {
       <Screen bleed>
         <MapSketch variant="full" style={{ flex: 1 }}>
           <View style={{ position: 'absolute', left: 180, top: 246, width: 16, height: 16, borderRadius: 9999, backgroundColor: c.ink, boxShadow: `0 0 0 5px rgba(14,15,14,0.14), inset 0 0 0 2px ${c.bg}` }} accessibilityLabel="You are here" />
-          {PINS.map((pin) => {
+          {PINS.filter((pin) => catalog.partners[pin.id]).map((pin) => {
             const n = byPartner[pin.id]?.length ?? 0;
             const on = pin.id === partnerId;
             return (
-              <Press key={pin.id} onPress={() => setPartnerId(pin.id)} accessibilityLabel={`${partners[pin.id].name}, ${n} sessions`} style={{ position: 'absolute', left: pin.left, top: pin.top, alignItems: 'center' }}>
+              <Press key={pin.id} onPress={() => setPartnerId(pin.id)} accessibilityLabel={`${catalog.partners[pin.id].name}, ${n} sessions`} style={{ position: 'absolute', left: pin.left, top: pin.top, alignItems: 'center' }}>
                 <View style={{ height: on ? 40 : 32, paddingHorizontal: on ? 16 : 12, borderRadius: 9999, backgroundColor: on ? c.inverse : c.bg, boxShadow: c.shadowFloat, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   {on ? <Icon name="map-pin" size={16} color={c.onInverse} /> : null}
                   <Text variant={on ? 'label' : 'caption'} weight="600" color={on ? c.onInverse : c.ink} style={on ? null : { fontSize: 13 }}>
-                    {on ? `${partners[pin.id].short} · ${n}` : pin.label(n)}
+                    {on ? `${catalog.partners[pin.id].short} · ${n}` : pin.label(n)}
                   </Text>
                 </View>
                 {on ? <View style={{ width: 10, height: 10, backgroundColor: c.inverse, transform: [{ rotate: '45deg' }], marginTop: -6 }} /> : null}
@@ -136,7 +137,7 @@ export default function Book() {
     );
   }
 
-  const heroEl = hero ? eligibility(hero.cls, social, expired) : null;
+  const heroEl = hero ? eligibility(hero, rules, dog.name) : null;
 
   return (
     <Screen>
@@ -159,11 +160,11 @@ export default function Book() {
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12, flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
           {Array.from({ length: 7 }, (_, d) => (
-            <Chip key={d} selected={day === d} onPress={() => setDay(d)}>{d === 0 ? 'Today' : shortDay(addMinutes(NOW, d * 1440))}</Chip>
+            <Chip key={d} selected={day === d} onPress={() => setDay(d)}>{d === 0 ? 'Today' : shortDay(addMinutes(now(), d * 1440))}</Chip>
           ))}
         </ScrollView>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10, flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
-          <Chip selected={fits} onPress={() => setFits((f) => !f)}>Fits Juno</Chip>
+          <Chip selected={fits} onPress={() => setFits((f) => !f)}>{`Fits ${dog.name}`}</Chip>
           {TYPES.map((t) => (
             <Chip key={t} selected={types.includes(t)} onPress={() => setTypes((s) => (s.includes(t) ? s.filter((x) => x !== t) : [...s, t]))}>{t}</Chip>
           ))}
@@ -188,7 +189,7 @@ export default function Book() {
                 <Text style={{ fontSize: 13, lineHeight: 18, marginTop: 6 }} color="rgba(255,255,255,0.85)">
                   {[timeLabel(hero), `${hero.cls.durationMin} min`, hero.partner.name, `${hero.partner.distanceMi} mi`, hero.session.spotsLeft === 0 ? 'Full. Waitlist open' : hero.session.spotsLeft === 1 ? 'Last spot' : `${hero.session.spotsLeft} spots left`].join(' · ')}
                 </Text>
-                {heroEl && !heroEl.ok ? <View style={{ marginTop: 10, flexDirection: 'row' }}><Tag tone="glass" icon="shield">Needs assessment</Tag></View> : null}
+                {heroEl && !heroEl.ok ? <View style={{ marginTop: 10, flexDirection: 'row' }}><Tag tone="glass" icon="shield">{heroEl.needs === 'herding' ? 'Needs assessment' : heroEl.needs === 'social' ? 'Needs Social' : 'Vaccines due'}</Tag></View> : null}
               </View>
             </Press>
           </View>

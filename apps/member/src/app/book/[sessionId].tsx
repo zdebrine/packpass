@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn, SlideInDown } from 'react-native-reanimated';
 
-import { dogs, PLAN } from '@/data/fixtures';
+import { errorCopy } from '@/api/errors';
+import { PLAN } from '@/data/fixtures';
 import { Button, Chip, Tag } from '@/ds/controls';
 import { Grabber, useBottom } from '@/ds/layout';
 import { Photo, PhotoFill, Scrim } from '@/ds/Surface';
@@ -12,7 +13,7 @@ import { Text } from '@/ds/Text';
 import { credits as creditsLabel, eligibility, sameDaySessions, view } from '@/lib/booking';
 import { cancelCopy, dayTimeInline, relativeDay, time } from '@/lib/dates';
 import { comingWithAccounts } from '@/lib/notice';
-import { useApp } from '@/store/app';
+import { useApp, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 import { motion } from '@/theme/tokens';
 
@@ -26,13 +27,15 @@ export default function BookingSheet() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const first = view(sessionId);
   const [selected, setSelected] = useState(sessionId);
-  const [dogId, setDogId] = useState('juno');
+  const dogs = useApp((s) => s.dogs);
+  const [dogId, setDogId] = useState(dogs[0]?.id ?? 'juno');
   const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const credits = useApp((s) => s.credits);
   const bookings = useApp((s) => s.bookings);
-  const social = useApp((s) => s.social);
-  const expired = useApp((s) => s.socialExpired);
-  const book = useApp((s) => s.book);
+  const rules = useRules();
+  const book = useApp((s) => s.bookSession);
 
   const v = view(selected) ?? first;
   if (!v) return null;
@@ -40,11 +43,15 @@ export default function BookingSheet() {
   const cost = cls.credits;
   const short = credits < cost;
   const already = bookings.some((b) => b.sessionId === session.id && b.dogId === dogId && b.status !== 'cancelled');
-  const el = eligibility(cls, social, expired);
-  const dog = dogs[dogId];
+  const dog = dogs.find((d) => d.id === dogId) ?? dogs[0];
+  const el = eligibility(v, rules, dog?.name);
 
-  const confirm = () => {
-    book(session.id, dogId, cost);
+  const confirm = async () => {
+    setBusy(true);
+    setError(null);
+    const r = await book(session.id, dogId);
+    setBusy(false);
+    if (!r.ok) return setError(errorCopy(r.error));
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     setDone(true);
   };
@@ -88,7 +95,7 @@ export default function BookingSheet() {
             <Text variant="label" style={{ marginTop: 22, marginBottom: 10 }}>Time</Text>
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
               {sameDaySessions(v).map((s) => (
-                <Chip key={s.id} selected={s.id === session.id} onPress={() => s.spotsLeft > 0 && setSelected(s.id)} style={s.spotsLeft === 0 ? { opacity: 0.4 } : undefined}>
+                <Chip key={s.id} selected={s.id === session.id} onPress={() => { if (s.spotsLeft > 0) { setSelected(s.id); setError(null); } }} style={s.spotsLeft === 0 ? { opacity: 0.4 } : undefined}>
                   {cls.openWindow ? cls.openWindow : time(s.startsAt)}
                 </Chip>
               ))}
@@ -96,8 +103,8 @@ export default function BookingSheet() {
 
             <Text variant="label" style={{ marginTop: 20, marginBottom: 10 }}>Dog</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              {Object.values(dogs).map((d) => (
-                <Chip key={d.id} selected={d.id === dogId} onPress={() => setDogId(d.id)} leading={<Photo name={d.photo} style={{ width: 28, height: 28, borderRadius: 9999 }} />}>{d.name}</Chip>
+              {dogs.map((d) => (
+                <Chip key={d.id} selected={d.id === dogId} onPress={() => { setDogId(d.id); setError(null); }} leading={<Photo name={d.photo} style={{ width: 28, height: 28, borderRadius: 9999 }} />}>{d.name}</Chip>
               ))}
             </View>
 
@@ -108,11 +115,16 @@ export default function BookingSheet() {
               </Text>
             </View>
 
+            {error ? (
+              <View style={{ marginTop: 16, paddingVertical: 14, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft }} accessibilityLiveRegion="polite">
+                <Text variant="label" weight="600" color={c.kennelRed}>{error}</Text>
+              </View>
+            ) : null}
             <View style={{ gap: 8, marginTop: 16 }}>
               {!el.ok ? (
                 <Text variant="label" muted>{el.reason}</Text>
               ) : already ? (
-                <Button block disabled>{`${dog.name} is booked for this`}</Button>
+                <Button block disabled>{`${dog?.name ?? 'Your dog'} is booked for this`}</Button>
               ) : session.spotsLeft === 0 ? (
                 <Button block onPress={() => comingWithAccounts('Join the waitlist')}>Join the waitlist</Button>
               ) : short ? (
@@ -121,7 +133,7 @@ export default function BookingSheet() {
                   <Button variant="quiet" block onPress={() => router.replace('/book')}>Pick a 1-credit class</Button>
                 </>
               ) : (
-                <Button block onPress={confirm}>Confirm booking</Button>
+                <Button block disabled={busy} onPress={confirm}>{busy ? 'Booking…' : 'Confirm booking'}</Button>
               )}
             </View>
           </>

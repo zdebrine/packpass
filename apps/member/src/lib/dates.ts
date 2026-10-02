@@ -1,4 +1,4 @@
-import { NOW } from '@/data/fixtures';
+import { now as clock } from './clock';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -6,7 +6,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
 /** Whole days between today and `d` (0 = today). */
-export const dayOffset = (d: Date, now = NOW) =>
+export const dayOffset = (d: Date, now = clock()) =>
   Math.round((startOfDay(d).getTime() - startOfDay(now).getTime()) / 86_400_000);
 
 /** "7:30 am", "6:00 pm" */
@@ -26,7 +26,7 @@ export const shortDay = (d: Date) => `${DAYS[d.getDay()].slice(0, 3)} ${d.getDat
 export const monthDay = (d: Date) => `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 
 /** "Today", "Tomorrow", or the weekday, for times within the next week. */
-export function relativeDay(d: Date, now = NOW) {
+export function relativeDay(d: Date, now = clock()) {
   const off = dayOffset(d, now);
   if (off === 0) return 'Today';
   if (off === 1) return 'Tomorrow';
@@ -43,17 +43,27 @@ export const dayTimeInline = (d: Date) => dayTime(d).replace(/^(Today|Tomorrow)/
  * Cancellation copy for a session, using the 12-hour free-cancel rule.
  * "Free cancellation until Wednesday 7:30 pm"
  */
-export function cancelCopy(startsAt: Date, now = NOW) {
+export function cancelCopy(startsAt: Date, now = clock()) {
   const deadline = new Date(startsAt.getTime() - 12 * 3_600_000);
   if (deadline <= now) return 'Inside 12 hours, so cancelling now uses the credits';
   return `Free cancellation until ${dayTimeInline(deadline)}`;
 }
 
 /** "Starts in 6 min · 7:30 am" or "Thursday · 7:30 am" */
-export function startsCopy(startsAt: Date, now = NOW) {
+export function startsCopy(startsAt: Date, now = clock()) {
   const mins = Math.round((startsAt.getTime() - now.getTime()) / 60_000);
   if (mins > 0 && mins <= 60) return `Starts in ${mins} min · ${time(startsAt)}`;
   return `${relativeDay(startsAt, now)} · ${time(startsAt)}`;
 }
 
 export const addMinutes = (d: Date, mins: number) => new Date(d.getTime() + mins * 60_000);
+
+/** Parses "2026-10-14" as a local date. */
+export const fromIso = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
+/** "Oct 14" this year, "Mar 2028" otherwise (vaccine expiry). */
+export const expiryLabel = (d: Date, now = clock()) =>
+  d.getFullYear() === now.getFullYear() ? monthDay(d) : `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;

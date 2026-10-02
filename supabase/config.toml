@@ -1,0 +1,39 @@
+# Supabase CLI config for local development (`supabase start`). See supabase/README.md.
+project_id = "packpass"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:8081"
+additional_redirect_urls = ["packpass://", "exp://127.0.0.1:8081"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# The app's 01d screen verifies a 6-digit code.
+enable_confirmations = true
+otp_length = 6
+otp_expiry = 3600

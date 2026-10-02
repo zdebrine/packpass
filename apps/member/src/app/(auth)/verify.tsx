@@ -7,6 +7,9 @@ import { Footer, Screen, themed } from '@/ds/layout';
 import { Press } from '@/ds/Press';
 import { Text } from '@/ds/Text';
 import { BackButton, Intro } from '@/features/onboarding/parts';
+import { isLive } from '@/api/client';
+import { errorCopy } from '@/api/errors';
+import { resendCode } from '@/api/live';
 import { useApp } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts } from '@/theme/tokens';
@@ -18,6 +21,21 @@ function Verify() {
   const [code, setCode] = useState('');
   const [resendIn, setResendIn] = useState(24);
   const input = useRef<TextInput>(null);
+  const verifyEmail = useApp((s) => s.verifyEmail);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const verify = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await verifyEmail(code);
+      router.push('/onboarding/dog');
+    } catch (e) {
+      setError(/expired|invalid/i.test((e as Error).message) ? 'That code is wrong or has expired. Check the email or resend it.' : errorCopy(e));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -55,7 +73,7 @@ function Verify() {
           {resendIn > 0 ? (
             <Text variant="label" muted>{`Resend in 0:${String(resendIn).padStart(2, '0')}`}</Text>
           ) : (
-            <Press onPress={() => setResendIn(24)} scale={false}><Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Resend code</Text></Press>
+            <Press onPress={() => { setResendIn(24); if (isLive) resendCode(email).catch(() => {}); }} scale={false}><Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Resend code</Text></Press>
           )}
           <Press onPress={() => router.back()} scale={false} accessibilityRole="link">
             <Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Change email</Text>
@@ -63,8 +81,9 @@ function Verify() {
         </View>
       </View>
       <Footer>
-        <Button block disabled={code.length < 6} onPress={() => router.push('/onboarding/dog')}>Verify</Button>
-        <Text variant="caption" muted center>Any 6 digits work in this preview.</Text>
+        {error ? <Text variant="label" weight="600" color={c.kennelRed} center accessibilityLiveRegion="polite">{error}</Text> : null}
+        <Button block disabled={code.length < 6 || busy} onPress={verify}>{busy ? 'Checking…' : 'Verify'}</Button>
+        {isLive ? null : <Text variant="caption" muted center>Any 6 digits work in this preview.</Text>}
       </Footer>
     </Screen>
   );

@@ -90,8 +90,8 @@ export interface PathStep {
   meta: string;
   state: StepState;
   stateLabel: string;
-  sessionId?: string;
-  credits?: number;
+  /** The class to book for this step. */
+  classId?: string;
 }
 export interface Goal {
   id: 'calm-around-dogs' | 'loose-leash-walking';
@@ -119,7 +119,7 @@ export function goals(stage: SocialStage): Goal[] {
         ]
       : [
           { title: 'Distance work', meta: 'Private session · Sam Reyes · 3 credits', state: 'done', stateLabel: 'Done Sep 19' },
-          { title: 'Parallel walk', meta: 'Private session · Sam Reyes · 3 credits', state: 'next', stateLabel: 'Next', sessionId: 'parallel-walk.2.1600', credits: 3 },
+          { title: 'Parallel walk', meta: 'Private session · Sam Reyes · 3 credits', state: 'next', stateLabel: 'Next', classId: 'parallel-walk' },
           { title: 'Small-group play', meta: 'Small group · Eastside Dog Club · 2 credits', state: 'locked', stateLabel: 'Opens after step 2' },
           { title: 'Social re-check', meta: 'Assessment · Eastside Dog Club · 2 credits', state: 'final', stateLabel: 'Unlocks the Social clearance and group sport' },
         ],
@@ -131,7 +131,7 @@ export function goals(stage: SocialStage): Goal[] {
     updated: 'Started from your traits at sign-up',
     trainers: 'leash',
     steps: [
-      { title: '1:1 intro', meta: 'Private session · Ana Ruiz · 3 credits', state: 'next', stateLabel: 'Next', sessionId: 'loose-leash.4.0900', credits: 3 },
+      { title: '1:1 intro', meta: 'Private session · Ana Ruiz · 3 credits', state: 'next', stateLabel: 'Next', classId: 'loose-leash' },
       { title: 'Quiet streets', meta: 'Private session · Ana Ruiz · 3 credits', state: 'locked', stateLabel: 'Opens after step 1' },
       { title: 'Calm walk past dogs', meta: 'Small group · Northside Canine · 2 credits', state: 'final', stateLabel: 'Ends with a calm walk past other dogs' },
     ],
@@ -139,20 +139,35 @@ export function goals(stage: SocialStage): Goal[] {
   return [calm, leash];
 }
 
+/** Classes on each path, in order (matches path_steps in supabase/seed.sql). */
+export const PATH_CLASSES: Record<Goal['id'], string[]> = {
+  'calm-around-dogs': ['calm-private', 'parallel-walk', 'small-group-play', 'social-recheck'],
+  'loose-leash-walking': ['loose-leash', 'loose-leash', 'focus-recall'],
+};
+
 export const stepIndex = (g: Goal) => {
   const i = g.steps.findIndex((s) => s.state === 'next');
   return i === -1 ? g.steps.length : i;
 };
 export const isComplete = (g: Goal) => g.steps.every((s) => s.state === 'done');
 
-export const PATH_TRAINERS = {
+export interface PathTrainer {
+  name: string;
+  meta: string;
+  tags: string[];
+  photo: PhotoKey;
+  /** Class to book with this trainer, if they're on PackPass. */
+  classId?: string;
+}
+
+export const PATH_TRAINERS: Record<'reactivity' | 'leash' | 'behaviorist', PathTrainer[]> = {
   reactivity: [
-    { name: 'Sam Reyes', meta: 'Eastside Dog Club · 1.8 mi · 3 credits', tags: ['Reactivity', 'Calm exposure'], photo: 'rail' as PhotoKey, sessionId: 'calm-private.0.1900' },
-    { name: 'Ana Ruiz', meta: 'Northside Canine · 1.1 mi · 3 credits', tags: ['Separation', 'Reactivity'], photo: 'grass' as PhotoKey, sessionId: 'loose-leash.0.1815' },
+    { name: 'Sam Reyes', meta: 'Eastside Dog Club · 1.8 mi · 3 credits', tags: ['Reactivity', 'Calm exposure'], photo: 'rail' as PhotoKey, classId: 'calm-private' },
+    { name: 'Ana Ruiz', meta: 'Northside Canine · 1.1 mi · 3 credits', tags: ['Separation', 'Reactivity'], photo: 'grass' as PhotoKey, classId: 'loose-leash' },
     { name: 'Theo Grant', meta: 'In-home visits · 4 credits', tags: ['Separation', 'Puppy foundations'], photo: 'leap' as PhotoKey },
   ],
   leash: [
-    { name: 'Ana Ruiz', meta: 'Northside Canine · 1.1 mi · 3 credits', tags: ['Reactivity', 'Recall'], photo: 'grass' as PhotoKey, sessionId: 'loose-leash.4.0900' },
+    { name: 'Ana Ruiz', meta: 'Northside Canine · 1.1 mi · 3 credits', tags: ['Reactivity', 'Recall'], photo: 'grass' as PhotoKey, classId: 'loose-leash' },
     { name: 'Theo Grant', meta: 'In-home visits · 4 credits', tags: ['Leash skills', 'Puppy foundations'], photo: 'leap' as PhotoKey },
   ],
   behaviorist: [

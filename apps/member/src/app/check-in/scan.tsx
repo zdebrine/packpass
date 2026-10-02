@@ -5,7 +5,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 
-import { NOW, photos } from '@/data/fixtures';
+import { isLive } from '@/api/client';
+import { errorCopy } from '@/api/errors';
+import { photos } from '@/data/fixtures';
+import { now } from '@/lib/clock';
 import { Button } from '@/ds/controls';
 import { IconButton, Screen, useTop, themed } from '@/ds/layout';
 import { Photo } from '@/ds/Surface';
@@ -45,18 +48,28 @@ function Scan() {
   const [codeMode, setCodeMode] = useState(false);
   const [code, setCode] = useState('');
   const handled = useRef(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const upcoming = activeBookings(bookings).filter((x) => x.booking.status === 'booked' && x.v.session.startsAt >= NOW);
+  const upcoming = activeBookings(bookings).filter((x) => x.booking.status === 'booked' && x.v.session.startsAt >= now());
   const target = upcoming.find((x) => x.booking.id === bookingId) ?? upcoming[0];
 
   useEffect(() => {
     if (perm && !perm.granted && perm.canAskAgain) requestPerm().catch(() => {});
   }, [perm, requestPerm]);
 
-  const done = () => {
+  /** `code` is the scanned QR payload or the 4-digit fallback. The server checks it in live mode. */
+  const done = async (code: string) => {
     if (handled.current || !target) return;
     handled.current = true;
-    checkIn(target.booking.id);
+    setError(null);
+    try {
+      await checkIn(target.booking.id, code);
+    } catch (e) {
+      setError(errorCopy(e));
+      // Let the camera try again after a moment.
+      setTimeout(() => (handled.current = false), 1500);
+      return;
+    }
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     router.replace(`/check-in/done?booking=${target.booking.id}`);
   };
@@ -66,7 +79,7 @@ function Scan() {
   return (
     <Screen theme="dark" bleed statusLight style={{ backgroundColor: '#000' }}>
       {live ? (
-        <CameraView style={StyleSheet.absoluteFill} facing="back" enableTorch={torch} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} onBarcodeScanned={done} />
+        <CameraView style={StyleSheet.absoluteFill} facing="back" enableTorch={torch} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} onBarcodeScanned={(r) => done(r.data)} />
       ) : (
         <>
           <Image source={photos.wall} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={2} />
@@ -108,8 +121,9 @@ function Scan() {
           ) : (
             <Text variant="label">Nothing booked to check in to.</Text>
           )}
+          {error ? <Text variant="label" weight="600" color="#f08470" accessibilityLiveRegion="polite">{error}</Text> : null}
           {codeMode ? (
-            <CodeEntry code={code} setCode={setCode} onSubmit={done} />
+            <CodeEntry code={code} setCode={setCode} onSubmit={() => done(code)} />
           ) : (
             <Button variant="quiet" block disabled={!target} onPress={() => setCodeMode(true)}>Enter code instead</Button>
           )}
@@ -142,7 +156,7 @@ function CodeEntry({ code, setCode, onSubmit }: { code: string; setCode: (s: str
         accessibilityLabel="Check-in code"
         style={{ height: 52, borderRadius: 9999, backgroundColor: c.surfaceRaised, paddingHorizontal: 20, color: c.ink, fontFamily: fonts.display, fontSize: 22, letterSpacing: 8, textAlign: 'center' }}
       />
-      <Text variant="caption" muted center>The code is on the sign at the entrance. Any 4 digits work in this preview.</Text>
+      <Text variant="caption" muted center>The code is on the sign at the entrance. {isLive ? "Ask the trainer if you can't find it." : 'Any 4 digits work in this preview.'}</Text>
       <Button block disabled={code.length < 4} onPress={onSubmit}>Check in</Button>
     </View>
   );

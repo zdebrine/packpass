@@ -8,7 +8,7 @@ import { Icon, type IconName } from '@/ds/Icon';
 import { Badge, Bars, IconButton, Screen } from '@/ds/layout';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
-import { bookingFor } from '@/lib/booking';
+import { activeBookings, credits as creditsLabel, nextSession } from '@/lib/booking';
 import { useApp } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -52,7 +52,8 @@ export default function GoalDetail() {
           {g.steps.map((s, n) => {
             const d = dot[s.state];
             const isLast = n === g.steps.length - 1;
-            const booked = s.sessionId ? !!bookingFor(bookings, s.sessionId) : false;
+            const next = s.classId ? nextSession(s.classId) : undefined;
+            const booked = !!s.classId && activeBookings(bookings).some((x) => x.booking.status === 'booked' && x.v.cls.id === s.classId);
             return (
               <View key={s.title} style={{ flexDirection: 'row', gap: 14 }}>
                 <View style={{ alignItems: 'center', width: 36 }}>
@@ -63,9 +64,9 @@ export default function GoalDetail() {
                   <Text variant="heading">{s.title}</Text>
                   <Text variant="caption" muted style={{ marginTop: 2 }}>{s.meta}</Text>
                   <Text variant="caption" weight="600" color={d.color} style={{ marginTop: 4 }}>{booked ? 'Booked' : s.stateLabel}</Text>
-                  {s.state === 'next' && s.sessionId && !booked ? (
+                  {s.state === 'next' && next && !booked ? (
                     <View style={{ marginTop: 12, flexDirection: 'row' }}>
-                      <Button variant="signal" size="sm" onPress={() => router.push(`/book/${s.sessionId}`)}>{`Book step ${n + 1} · ${s.credits} credits`}</Button>
+                      <Button variant="signal" size="sm" onPress={() => router.push(`/book/${next.session.id}`)}>{`Book step ${n + 1} · ${creditsLabel(next.cls.credits)}`}</Button>
                     </View>
                   ) : null}
                 </View>
@@ -106,8 +107,8 @@ export default function GoalDetail() {
                     ))}
                   </View>
                 </View>
-                {'sessionId' in t && t.sessionId ? (
-                  <Button size="sm" onPress={() => router.push(`/class/${t.sessionId}`)}>Book</Button>
+                {t.classId && nextSession(t.classId) ? (
+                  <Button size="sm" onPress={() => router.push(`/class/${nextSession(t.classId!)!.session.id}`)}>Book</Button>
                 ) : (
                   <Button size="sm" variant="quiet" fill={c.bg} onPress={() => router.push('/book')}>Find</Button>
                 )}
