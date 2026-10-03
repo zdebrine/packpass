@@ -9,12 +9,12 @@ insert into public.partners (id, name, short_name, type, street, address, lat, l
   ('eastside', 'Eastside Dog Club', 'Eastside', 'facility', 'E Cesar Chavez St', '1914 E Cesar Chavez St', 30.258, -97.723, 4.9, 'Back lot, use the side gate', 'Side gate by the yard'),
   ('southfork', 'South Fork Yard', 'South Fork', 'outdoor_space', 'S Lamar Blvd', '3600 S Lamar Blvd', 30.24, -97.786, 4.6, 'Two spots by the yard gate', 'Yard gate');
 
-insert into public.trainers (id, partner_id, name, credential, photo_url, rating) values
-  ('maren', 'ridgeline', 'Maren Holt', 'AKC herding judge · 14 years', 'lab', 4.9),
-  ('dev', 'ridgeline', 'Dev Patel', 'Agility and sprint coach · 9 years', 'sprint', 4.8),
-  ('ana', 'northside', 'Ana Ruiz', 'Reactivity and recall · CPDT-KA', 'grass', 4.9),
-  ('sam', 'eastside', 'Sam Reyes', 'Reactivity specialist · 11 years', 'rail', 5),
-  ('lena', 'eastfield', 'Lena Brooks', 'Open field host · Pet first aid', 'leap', 4.7);
+insert into public.trainers (id, partner_id, name, credential, photo_url, rating, specialties) values
+  ('maren', 'ridgeline', 'Maren Holt', 'AKC herding judge · 14 years', 'lab', 4.9, '{"Herding","Recall"}'),
+  ('dev', 'ridgeline', 'Dev Patel', 'Agility and sprint coach · 9 years', 'sprint', 4.8, '{"Fitness and conditioning","Recall"}'),
+  ('ana', 'northside', 'Ana Ruiz', 'Reactivity and recall · CPDT-KA', 'grass', 4.9, '{"Reactivity","Recall","Leash skills"}'),
+  ('sam', 'eastside', 'Sam Reyes', 'Reactivity specialist · 11 years', 'rail', 5, '{"Reactivity","Separation"}'),
+  ('lena', 'eastfield', 'Lena Brooks', 'Open field host · Pet first aid', 'leap', 4.7, '{"Puppy foundations"}');
 
 insert into public.class_types (id, partner_id, trainer_id, title, discipline, category, session_type, credits, duration_min,
   intensity, group_size, suits, suits_note, balance, description, image, premium, requires, grants, open_window, requirements) values
@@ -36,9 +36,9 @@ insert into public.class_types (id, partner_id, trainer_id, title, discipline, c
   ('social-recheck', 'eastside', 'sam', 'Social re-check', 'Assessment', 'skills', 'assessment', 2, 30, 2, 1, 'Any energy', 'One dog at a time', 'social', 'Sam watches Juno in a calm small group and checks how she reads other dogs, recovers from a startle and settles. Passing earns the Social clearance, which opens group sport, play and group skills at every PackPass partner.', 'tunnel', false, null, 'social', null, '[{"icon":"syringe","text":"Rabies, DHPP and Bordetella current"}]'::jsonb),
   ('parallel-walk', 'eastside', 'sam', 'Parallel walk', 'Skills', 'skills', 'private', 3, 45, 2, 1, 'Any energy', 'Private session', 'social', 'Juno and a steady helper dog walk the same route on opposite sides of the street, then closer. Step 2 of Calm around dogs.', 'wall', false, null, null, null, '[{"icon":"syringe","text":"Rabies, DHPP and Bordetella current"}]'::jsonb);
 
-insert into public.training_paths (id, title, lede, grants) values
-  ('calm-around-dogs', 'Calm around dogs', 'Finish this path to earn a Social clearance and access to group sport.', 'social'),
-  ('loose-leash-walking', 'Loose leash walking', 'Finish this path to walk your dog past other dogs on a loose leash.', null);
+insert into public.training_paths (id, title, lede, grants, specialties) values
+  ('calm-around-dogs', 'Calm around dogs', 'Finish this path to earn a Social clearance and access to group sport.', 'social', '{"Reactivity","Separation","Behaviorist"}'),
+  ('loose-leash-walking', 'Loose leash walking', 'Finish this path to walk your dog past other dogs on a loose leash.', null, '{"Leash skills","Recall","Puppy foundations"}');
 
 insert into public.path_steps (path_id, position, title, class_id) values
   ('calm-around-dogs', 1, 'Distance work', 'calm-private'),

@@ -4,7 +4,7 @@ import { errorCopy, saveTrainer, type Trainer } from '@/lib/api';
 import { usePartner } from '@/lib/partner';
 import { Avatar, Button, Chip, ErrorLine, Field, Row, Tag, Toggle } from '@/ui/kit';
 
-const SPECS = ['Reactivity', 'Separation', 'Puppy foundations', 'Fitness and conditioning', 'Recall', 'Scent work', 'Herding', 'Behaviorist'];
+const SPECS = ['Reactivity', 'Separation', 'Leash skills', 'Puppy foundations', 'Fitness and conditioning', 'Recall', 'Scent work', 'Herding', 'Behaviorist'];
 
 /** 08 Trainer profile: bio, specialties and private sessions for each trainer (just "Your profile" for a solo trainer). */
 export function Trainers() {

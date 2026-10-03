@@ -28,6 +28,10 @@ export interface Trainer {
   credential: string;
   photo: PhotoKey;
   rating: number;
+  /** Live mode: set by the partner on the dashboard. */
+  partnerId?: string;
+  specialties?: string[];
+  privateSessions?: boolean;
 }
 
 export interface ClassType {

@@ -65,7 +65,7 @@ export async function hasSession() {
 /** Loads partners, trainers, classes and the next 4 weeks of sessions into the shared catalog. */
 export async function loadCatalog() {
   const c = db();
-  const [partners, trainers, classes, sessions] = await Promise.all([
+  const [partners, trainers, classes, sessions, paths] = await Promise.all([
     c.from('partners').select('*').then(check),
     c.from('trainers').select('*').then(check),
     c.from('class_types').select('*').then(check),
@@ -74,6 +74,7 @@ export async function loadCatalog() {
       .lte('starts_at', new Date(Date.now() + 29 * 86_400_000).toISOString())
       .order('starts_at')
       .then(check),
+    c.from('training_paths').select('id, specialties').then(check),
   ]);
   setCatalog({
     partners: Object.fromEntries((partners as any[]).map((p): [string, Partner] => [p.id, {
@@ -83,6 +84,7 @@ export async function loadCatalog() {
     }])),
     trainers: Object.fromEntries((trainers as any[]).map((t): [string, Trainer] => [t.id, {
       id: t.id, name: t.name, credential: t.credential ?? '', photo: photo(t.photo_url, 'lab'), rating: Number(t.rating ?? 0),
+      partnerId: t.partner_id, specialties: t.specialties ?? [], privateSessions: t.private_sessions ?? true,
     }])),
     classes: Object.fromEntries((classes as any[]).map((k): [string, ClassType] => [k.id, {
       id: k.id, title: k.title, discipline: k.discipline, category: cap(k.category), sessionType: cap(k.session_type),
@@ -93,6 +95,7 @@ export async function loadCatalog() {
       requirements: k.requirements ?? [],
     }])),
     sessions: (sessions as any[]).map((s): Session => ({ id: s.id, classId: s.class_id, startsAt: new Date(s.starts_at), spotsLeft: s.spots_left })),
+    pathSpecialties: Object.fromEntries((paths as any[]).map((p) => [p.id, p.specialties ?? []])),
   });
 }
 

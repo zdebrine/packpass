@@ -10,7 +10,7 @@ import { Badge, Bars, IconButton, Screen } from '@/ds/layout';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { activeBookings, credits as creditsLabel, nextSession } from '@/lib/booking';
-import { useGoals } from '@/lib/paths';
+import { useGoalTrainers, useGoals } from '@/lib/paths';
 import { useApp, useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -28,6 +28,7 @@ export default function GoalDetail() {
   const { goals, available } = useGoals();
   const all = [...goals, ...available];
   const g = all.find((x) => x.id === id) ?? all[0];
+  const liveTrainers = useGoalTrainers(g);
   if (!g) return <Screen><View style={{ padding: 20 }}><Text muted>That path isn't available.</Text></View></Screen>;
   const start = async () => {
     setStarting(true); setError(null);
@@ -44,7 +45,7 @@ export default function GoalDetail() {
     final: { bg: c.surfaceRaised, fg: c.inkFaint, icon: 'shield', line: 'transparent', color: c.inkMuted },
   };
   const showBehaviorist = behaviorNote && g.id === 'calm-around-dogs';
-  const trainers = showBehaviorist && who === 'Behaviorist' ? PATH_TRAINERS.behaviorist : PATH_TRAINERS[g.trainers];
+  const trainers = liveTrainers ?? (showBehaviorist && who === 'Behaviorist' ? PATH_TRAINERS.behaviorist : PATH_TRAINERS[g.trainers]);
 
   return (
     <Screen>
@@ -112,6 +113,7 @@ export default function GoalDetail() {
             </View>
           ) : null}
           <View style={{ gap: 8 }}>
+            {trainers.length ? null : <Text variant="label" muted>No trainers list this specialty yet. Classes on the path are above.</Text>}
             {trainers.map((t) => (
               <View key={t.name} style={{ flexDirection: 'row', gap: 14, alignItems: 'center', paddingVertical: 12, paddingLeft: 12, paddingRight: 14, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
                 <Photo name={t.photo} style={{ width: 52, height: 52, borderRadius: 9999 }} />

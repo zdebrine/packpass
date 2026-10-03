@@ -5,7 +5,7 @@ import { nextSession } from '@/lib/booking';
 import { setLiveClock } from '@/lib/clock';
 import { liveHerding, liveSocial } from '@/lib/clearances';
 import { liveLog } from '@/lib/log';
-import { liveGoal } from '@/lib/paths';
+import { liveGoal, pathTrainers } from '@/lib/paths';
 import { statsOf } from '@/lib/stats';
 import { useApp } from '@/store/app';
 
@@ -72,6 +72,11 @@ const S = () => useApp.getState();
   const calm = () => liveGoal(S().paths!.find((p) => p.id === 'calm-around-dogs')!, 'Juno', S().log ?? []);
   ok(S().paths!.length === 2 && calm().steps[0].state === 'next' && calm().steps[0].classId === 'calm-private' && calm().steps[3].state === 'final',
      'paths load from the database, starting at step 1');
+  const calmTrainers = pathTrainers('calm-around-dogs', S().paths!.find((p) => p.id === 'calm-around-dogs')!.steps.map((x) => x.classId));
+  const leashTrainers = pathTrainers('loose-leash-walking', S().paths!.find((p) => p.id === 'loose-leash-walking')!.steps.map((x) => x.classId));
+  ok(calmTrainers[0]?.name === 'Sam Reyes' && calmTrainers[0].classId === 'calm-private' && calmTrainers[0].tags.includes('Reactivity')
+     && !calmTrainers.some((t) => t.name === 'Maren Holt'), 'a path lists trainers who teach it or suit it, best match first');
+  ok(leashTrainers[0]?.name === 'Ana Ruiz' && leashTrainers[0].classId === 'loose-leash', 'and each path has its own list');
   // A partner checks the dog in to step 1's class: the step is done and step 2 is next.
   psql(`insert into sessions (class_id, starts_at, capacity, packpass_spots, spots_left) values ('calm-private', now() - interval '1 hour', 1, 1, 0)`);
   const stepBooking = psql(`insert into bookings (session_id, dog_id, member_id, credits_charged) select id, '${S().dogs[0].id}', '${userId}', 3 from sessions where class_id = 'calm-private' and starts_at < now() order by starts_at desc limit 1 returning id`);

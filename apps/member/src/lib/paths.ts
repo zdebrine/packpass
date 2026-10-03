@@ -2,7 +2,7 @@
 // them from my_paths: the steps, which are done (and when), and which is next.
 import { isLive } from '@/api/client';
 import { catalog } from '@/data/catalog';
-import { goals as sampleGoals, type Goal, type PathStep } from '@/data/passport';
+import { goals as sampleGoals, type Goal, type PathStep, type PathTrainer } from '@/data/passport';
 import type { LogEntry, PathProgress } from '@/data/types';
 import { useApp, useDog } from '@/store/app';
 import { credits } from './booking';
@@ -68,4 +68,43 @@ export function useGoals(): { goals: Goal[]; available: Goal[] } {
   if (!isLive || !paths) return { goals: sampleGoals(social), available: [] };
   const all = paths.map((p) => liveGoal(p, dog.name, log ?? []));
   return { goals: all.filter((g) => g.started), available: all.filter((g) => !g.started) };
+}
+
+/**
+ * "Trainers for this" in live mode: trainers who teach one of the path's classes or list a specialty
+ * that suits it, best match first, then nearest. Each links to their class on the path, else their
+ * private session, else any class they teach.
+ */
+export function pathTrainers(pathId: string, stepClasses: string[]): PathTrainer[] {
+  const specs = catalog.pathSpecialties[pathId] ?? [];
+  const classes = Object.values(catalog.classes);
+  return Object.values(catalog.trainers)
+    .map((t) => {
+      const mine = classes.filter((k) => k.trainerId === t.id);
+      // Their class for the earliest step in the list (callers put the steps still to do first).
+      const onPath = stepClasses.map((id) => mine.find((k) => k.id === id)).find(Boolean);
+      const matched = (t.specialties ?? []).filter((x) => specs.includes(x));
+      const cls = onPath ?? (t.privateSessions !== false ? mine.find((k) => k.sessionType === 'Private') : undefined) ?? mine[0];
+      const partner = catalog.partners[t.partnerId ?? cls?.partnerId ?? ''];
+      return { t, cls, matched, partner, score: matched.length * 2 + (onPath ? 3 : 0) };
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score || (a.partner?.distanceMi ?? 99) - (b.partner?.distanceMi ?? 99))
+    .map(({ t, cls, matched, partner }) => ({
+      name: t.name,
+      meta: [partner ? `${partner.name} · ${partner.distanceMi} mi` : null, cls ? credits(cls.credits) : null].filter(Boolean).join(' · '),
+      tags: [...matched, ...(t.specialties ?? []).filter((x) => !matched.includes(x))].slice(0, 2),
+      photo: t.photo,
+      classId: cls?.id,
+    }));
+}
+
+/** Trainers for a goal: from the catalog in live mode, the designs' lists in sample mode. */
+export function useGoalTrainers(goal: Goal | undefined): PathTrainer[] | null {
+  const paths = useApp((s) => s.paths);
+  if (!isLive || !paths || !goal) return null;
+  const p = paths.find((x) => x.id === goal.id);
+  const steps = p?.steps ?? [];
+  const todo = steps.filter((s) => !p?.completedAt && s.position >= (p?.nextStep ?? 1));
+  return pathTrainers(goal.id, [...todo, ...steps.filter((s) => !todo.includes(s))].map((s) => s.classId));
 }
