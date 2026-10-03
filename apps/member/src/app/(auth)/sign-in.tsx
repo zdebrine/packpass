@@ -8,6 +8,7 @@ import { Press } from '@/ds/Press';
 import { Text } from '@/ds/Text';
 import { isLive } from '@/api/client';
 import { errorCopy } from '@/api/errors';
+import { resendCode } from '@/api/live';
 import { comingWithAccounts } from '@/lib/notice';
 import { BackButton, Body, Intro } from '@/features/onboarding/parts';
 import { useApp } from '@/store/app';
@@ -39,7 +40,13 @@ function SignIn() {
       router.replace(useApp.getState().onboarded ? '/' : '/onboarding/dog');
     } catch (e) {
       const msg = (e as Error).message;
-      setError(msg === 'bad_credentials' || /invalid login/i.test(msg) ? 'mismatch' : errorCopy(e));
+      if (msg === 'email_not_confirmed') {
+        // Signed up but never entered the code: send a fresh one and go back to that step.
+        await resendCode(draft.email.trim()).catch(() => {});
+        router.push('/verify');
+        return;
+      }
+      setError(msg === 'bad_credentials' || msg === 'invalid_credentials' || /invalid login/i.test(msg) ? 'mismatch' : errorCopy(e));
     } finally {
       setBusy(false);
     }
@@ -59,7 +66,7 @@ function SignIn() {
         <Field label="Password" value={pw} onChangeText={(v) => { setPw(v); setError(false); }} secureTextEntry autoComplete="current-password" textContentType="password" onSubmitEditing={submit} />
         {error ? (
           <View style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft }} accessibilityLiveRegion="polite">
-            <Text variant="label" weight="600" color={c.kennelRed}>{error === 'mismatch' ? "That email and password don't match. Try again or reset your password." : error}</Text>
+            <Text variant="label" weight="600" color={c.kennelRed}>{error === 'mismatch' ? "That email and password don't match. Try again, or use Forgot password (also if you were invited and never set one)." : error}</Text>
           </View>
         ) : null}
         <TextLink onPress={() => router.push('/reset')}>Forgot password</TextLink>

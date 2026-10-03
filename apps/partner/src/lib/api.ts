@@ -36,6 +36,24 @@ export const signIn = async (email: string, password: string) => {
   if (error) throw new Error(error.message);
 };
 export const signOut = async () => { await db.auth.signOut(); };
+/** Emails a 6-digit code for setting or resetting the password (supabase/templates/recovery.html). */
+export const sendPasswordCode = async (email: string) => {
+  const { error } = await db.auth.resetPasswordForEmail(email);
+  if (error) throw new Error(error.message);
+};
+/**
+ * Sets the password with a code: the one from "Set or reset password", or the one in a PackPass invite
+ * email (supabase/templates/invite.html). Either signs the account in.
+ */
+export async function setPasswordWithCode(email: string, code: string, password: string) {
+  const first = await db.auth.verifyOtp({ email, token: code, type: 'recovery' });
+  if (first.error) {
+    const invite = await db.auth.verifyOtp({ email, token: code, type: 'invite' });
+    if (invite.error) throw new Error(first.error.message);
+  }
+  const { error } = await db.auth.updateUser({ password });
+  if (error) throw new Error(error.message);
+}
 
 /** The signed-in account's staff row and partner, or null if it isn't linked to one. */
 export async function loadStaff(): Promise<{ staff: Staff; partner: Partner } | null> {
@@ -123,5 +141,9 @@ const COPY: Record<string, string> = {
 };
 export const errorCopy = (e: unknown) => {
   const m = e instanceof Error ? e.message : String(e);
-  return COPY[m] ?? (/invalid login/i.test(m) ? 'That email and password don\'t match.' : m || 'Something went wrong. Try again.');
+  if (/invalid login/i.test(m)) return 'That email and password don\'t match. Invited and never set one? Use Set or reset password.';
+  if (/only request this after|rate limit/i.test(m)) return 'We just sent a code. Wait a minute before asking for another.';
+  if (/expired|invalid.*(token|otp)|token.*invalid/i.test(m)) return 'That code is wrong or has expired. Send a new one.';
+  if (/password should be|weak/i.test(m)) return 'Use at least 8 characters for the password.';
+  return COPY[m] ?? (m || 'Something went wrong. Try again.');
 };

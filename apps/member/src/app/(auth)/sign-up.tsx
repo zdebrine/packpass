@@ -51,7 +51,10 @@ function SignUp() {
         </View>
       </Body>
       <Footer>
-        {error ? <Text variant="label" weight="600" color="#f08470" center accessibilityLiveRegion="polite">{error}</Text> : null}
+        {error ? <Text variant="label" weight="600" color="#f08470" center accessibilityLiveRegion="polite">{errorCopy(error)}</Text> : null}
+        {error === 'already_registered' || error === 'user_already_exists' ? (
+          <Button variant="quiet" block onPress={() => router.replace('/sign-in')}>Sign in instead</Button>
+        ) : null}
         <Button
           block
           disabled={!valid || busy}
@@ -62,7 +65,7 @@ function SignUp() {
               await signUp(draft.email.trim(), pw);
               router.push('/verify');
             } catch (e) {
-              setError(errorCopy(e));
+              setError((e as Error).message || 'error');
             } finally {
               setBusy(false);
             }

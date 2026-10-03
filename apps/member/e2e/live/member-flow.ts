@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 
+import { errorCopy } from '@/api/errors';
 import { catalog } from '@/data/catalog';
 import { nextSession } from '@/lib/booking';
 import { setLiveClock } from '@/lib/clock';
@@ -26,6 +27,11 @@ const S = () => useApp.getState();
   // 01b / 01d
   await S().signUp(email, 'herding4life');
   let threw = '';
+  try { await S().signIn(email, 'herding4life'); } catch (e) { threw = (e as Error).message; }
+  ok(threw === 'email_not_confirmed', 'signing in before entering the code says the email isn\'t confirmed (the app sends a new code)');
+  await S().signUp(email, 'herding4life');
+  ok(true, 'signing up again before confirming just sends the code again');
+  threw = '';
   try { await S().verifyEmail('000000'); } catch (e) { threw = (e as Error).message; }
   ok(/invalid|expired/i.test(threw), 'a wrong email code is rejected');
   await S().verifyEmail('123456');
@@ -199,6 +205,9 @@ const S = () => useApp.getState();
   threw = '';
   try { await S().signIn(email, 'wrong-password'); } catch (e) { threw = (e as Error).message; }
   ok(/invalid/i.test(threw), 'a wrong password is rejected');
+  threw = '';
+  try { await S().signUp(email, 'another-password'); } catch (e) { threw = (e as Error).message; }
+  ok(threw === 'already_registered' && /already an account/.test(errorCopy(threw)), 'signing up with an email that has an account says so instead of waiting for a code');
   // Forgot password: the emailed code (123456 in the stand-in) sets a new password and signs in.
   await S().requestPasswordReset(email);
   threw = '';

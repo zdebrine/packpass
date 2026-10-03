@@ -38,12 +38,24 @@ enable_confirmations = true
 otp_length = 6
 otp_expiry = 3600
 
-# The app types a 6-digit code (01d sign-up, and password reset), so the emails carry the code, not a link.
-# Paste the same templates into the hosted project's Auth › Email Templates.
+# The apps type a 6-digit code (sign-up, password reset, partner invites), so every email carries the code,
+# not a link. supabase/scripts/setup-auth.mjs puts the same templates on the hosted project.
 [auth.email.template.confirmation]
-subject = "Your PackPass code"
+subject = "Your PackPass code: {{ .Token }}"
 content_path = "./supabase/templates/confirmation.html"
 
 [auth.email.template.recovery]
 subject = "Reset your PackPass password"
 content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.invite]
+subject = "You're on PackPass Partner"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.magic_link]
+subject = "Your PackPass sign-in code"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new email for PackPass"
+content_path = "./supabase/templates/email_change.html"

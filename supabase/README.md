@@ -34,7 +34,8 @@ Schema, security rules and booking logic for the member app. It's deployed to th
   session gets a spot back, a trigger books the first dog in line (`book_as`, the body of `book_session` for a
   given member) until 12 hours before the start, skipping and telling anyone who can't book any more; inside 12
   hours it tells everyone waiting instead.
-- `templates/` — the sign-up and password-reset emails, sending the 6-digit code the app asks for.
+- `templates/` — every auth email (sign-up, reset, partner invite, sign-in code, email change), each carrying the
+  6-digit code the apps ask for. `scripts/setup-auth.mjs` puts them and Resend SMTP on the hosted project.
 - `functions/send-push` — Edge Function that sends `hold_expiring`, `holds_released` and `clearance_earned`
   notifications to the member's phones through the Expo push API, and forgets devices Expo reports as gone.
   The logic is in `push.ts`, tested with `node --test supabase/functions/send-push/push.test.ts`.
@@ -113,26 +114,17 @@ Set up on Oct 2 2026 through the Supabase MCP tools:
   gate, a hold, a cancel and refund, check-in codes hidden), and the advisors are clean apart from the member
   API functions, which check the caller themselves.
 
-### Still to do in the dashboard
+### Still to do
 
-1. **Auth › Email Templates:** paste `templates/confirmation.html` into "Confirm signup" and
-   `templates/recovery.html` into "Reset password". The defaults send a link; the app asks for a 6-digit code.
-2. **Auth › Providers › Email:** check the email OTP length is 6.
-3. **Email through Resend.** Supabase's built-in email only reaches members of the EarlyBird Labs team and a few
-   messages an hour, so other people can't finish signing up without this.
-   1. In Resend, add and verify the sending domain (Domains › Add domain, then the DNS records it lists).
-   2. Easiest: Resend › Integrations › Supabase, pick the `packpass` project and the sender
-      (for example `PackPass <hello@your-domain>`). It fills in Supabase's SMTP settings for you.
-   3. Or by hand, in Supabase › Authentication › Emails › SMTP Settings: host `smtp.resend.com`, port `465`,
-      username `resend`, password a Resend API key with sending access, sender name `PackPass`, sender email on
-      the verified domain.
-   4. Under Authentication › Rate Limits, raise the email limit from the default (it's set low for the built-in
-      sender), for example to 100 an hour.
-4. **Partner accounts:** have the partner sign up in the member app (or Auth › Users › Add user), then in the
+Every key and setting the build needs is listed in `docs/SETUP.md`. For email: verify a sending domain in
+Resend, then `supabase/scripts/setup-auth.mjs` sets Resend SMTP, the code-based templates in `templates/`
+(sign-up, reset, invite, sign-in code, email change), code length and rate limits in one go.
+
+1. **Partner accounts:** have the partner sign up in the member app (or Auth › Users › Add user), then in the
    SQL editor: `select public.link_partner_staff('owner@their-email', 'ridgeline', 'owner', 'maren');`
    (role `owner` or `trainer`; the last argument is their trainer profile, or null).
-5. **Auth › Attack Protection:** turn on leaked password protection (the advisors flag it).
-6. **Push:** in `apps/member`, run `eas init` (adds the project id push tokens need) and
+2. **Auth › Attack Protection:** turn on leaked password protection (the advisors flag it).
+3. **Push:** in `apps/member`, run `eas init` (adds the project id push tokens need) and
    `eas build --profile development`. Expo Go and the web app don't receive remote pushes; reminders still
    show in the app's notifications there. If Expo push security is on, add `EXPO_ACCESS_TOKEN` as a function
    secret.

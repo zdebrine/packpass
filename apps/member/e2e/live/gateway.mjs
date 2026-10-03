@@ -93,11 +93,13 @@ http.createServer(async (req, res) => {
   if (p.startsWith('/storage/v1/')) return storage(req, res, p.slice('/storage/v1'.length), url);
   if (p === '/auth/v1/signup') {
     const { email, password, data } = await readBody(req);
-    if (users.has(email)) return json(res, 422, { msg: 'User already registered', error_code: 'user_already_exists' });
+    // Like GoTrue with email confirmation on: a confirmed email gets a stand-in user with no identities and
+    // no email; an unconfirmed one gets the code again.
+    if (users.has(email)) return json(res, 200, { ...userObj(users.get(email).id, email), identities: users.get(email).confirmed ? [] : [{ provider: 'email' }] });
     const id = crypto.randomUUID();
     psql(`insert into auth.users (id, email, raw_user_meta_data) values ('${id}', '${email}', '${JSON.stringify(data || {}).replace(/'/g, "''")}')`);
     users.set(email, { id, password, confirmed: false });
-    return json(res, 200, userObj(id, email));
+    return json(res, 200, { ...userObj(id, email), identities: [{ provider: 'email' }] });
   }
   if (p === '/auth/v1/verify') {
     const { email, token } = await readBody(req);
@@ -109,7 +111,8 @@ http.createServer(async (req, res) => {
   if (p === '/auth/v1/token') {
     const { email, password } = await readBody(req);
     const u = users.get(email);
-    if (!u || u.password !== password || !u.confirmed) return json(res, 400, { msg: 'Invalid login credentials', error_code: 'invalid_credentials' });
+    if (u && u.password === password && !u.confirmed) return json(res, 400, { msg: 'Email not confirmed', error_code: 'email_not_confirmed' });
+    if (!u || u.password !== password) return json(res, 400, { msg: 'Invalid login credentials', error_code: 'invalid_credentials' });
     return json(res, 200, session(u.id, email));
   }
   if (p === '/auth/v1/recover') {

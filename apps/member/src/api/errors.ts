@@ -24,6 +24,17 @@ const COPY: Record<string, string> = {
   waitlist_closed: 'The waitlist for this session is closed.',
   already_waiting: 'Already on the waitlist for this session.',
   not_full: 'A spot just opened. Book it now.',
+  // Supabase Auth
+  already_registered: 'There\'s already an account with this email. Sign in, or use Forgot password if you never set one.',
+  user_already_exists: 'There\'s already an account with this email. Sign in instead.',
+  over_email_send_rate_limit: 'We just sent you an email. Wait a minute before asking for another.',
+  over_request_rate_limit: 'Too many tries just now. Wait a minute and try again.',
+  otp_expired: 'That code is wrong or has expired. Check the latest email, or send a new code.',
+  invalid_credentials: 'That email and password don\'t match.',
+  email_not_confirmed: 'Confirm your email first. We\'ve sent you a new code.',
+  email_address_invalid: 'That email address doesn\'t look right.',
+  same_password: 'Pick a password you haven\'t used here before.',
+  signup_disabled: 'New accounts are paused right now. Try again later.',
 };
 
 /** Short, human sentence for an error code or a raw error. */

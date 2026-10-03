@@ -14,15 +14,24 @@ const photo = (k: string | null | undefined, fallback: PhotoKey): PhotoKey => (P
 const cap = <T extends string>(s: string) => (s.charAt(0).toUpperCase() + s.slice(1)) as T;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function check(r: { data: any; error: { message: string } | null }): any {
-  if (r.error) throw new Error(r.error.message);
+/** Throws the error's code when Supabase Auth gives one (e.g. over_email_send_rate_limit), else its message. */
+function check(r: { data: any; error: { message: string; code?: string } | null }): any {
+  if (r.error) throw new Error(r.error.code && AUTH_CODES.has(r.error.code) ? r.error.code : r.error.message);
   return r.data;
 }
+/** Auth error codes the app has copy for (src/api/errors.ts). */
+const AUTH_CODES = new Set([
+  'over_email_send_rate_limit', 'over_request_rate_limit', 'otp_expired', 'invalid_credentials', 'email_not_confirmed',
+  'email_address_invalid', 'user_already_exists', 'weak_password', 'same_password', 'signup_disabled',
+]);
 
 // ---- Auth ----------------------------------------------------------------------------------
 
 export async function signUp(email: string, password: string, name: string) {
-  check(await db().auth.signUp({ email, password, options: { data: { name } } }));
+  const data = check(await db().auth.signUp({ email, password, options: { data: { name } } }));
+  // An email that already has a confirmed account gets a stand-in user with no identities, and no email is
+  // sent, so there's no code to enter. Say so instead of waiting on the code screen.
+  if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) throw new Error('already_registered');
 }
 
 /** Confirms the 6-digit code from the sign-up email (01d). */

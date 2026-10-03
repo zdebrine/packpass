@@ -19,7 +19,8 @@ function Verify() {
   const { c } = useTheme();
   const email = useApp((s) => s.draft.email);
   const [code, setCode] = useState('');
-  const [resendIn, setResendIn] = useState(24);
+  // Supabase allows one email a minute per address.
+  const [resendIn, setResendIn] = useState(60);
   const input = useRef<TextInput>(null);
   const verifyEmail = useApp((s) => s.verifyEmail);
   const [busy, setBusy] = useState(false);
@@ -31,7 +32,7 @@ function Verify() {
       await verifyEmail(code);
       router.push('/onboarding/dog');
     } catch (e) {
-      setError(/expired|invalid/i.test((e as Error).message) ? 'That code is wrong or has expired. Check the email or resend it.' : errorCopy(e));
+      setError(/expired|invalid/i.test((e as Error).message) ? errorCopy('otp_expired') : errorCopy(e));
     } finally {
       setBusy(false);
     }
@@ -71,9 +72,9 @@ function Verify() {
         />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           {resendIn > 0 ? (
-            <Text variant="label" muted>{`Resend in 0:${String(resendIn).padStart(2, '0')}`}</Text>
+            <Text variant="label" muted>{`Resend in ${Math.floor(resendIn / 60)}:${String(resendIn % 60).padStart(2, '0')}`}</Text>
           ) : (
-            <Press onPress={() => { setResendIn(24); if (isLive) resendCode(email).catch(() => {}); }} scale={false}><Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Resend code</Text></Press>
+            <Press onPress={() => { setResendIn(60); setError(null); if (isLive) resendCode(email).catch((e) => setError(errorCopy(e))); }} scale={false}><Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Resend code</Text></Press>
           )}
           <Press onPress={() => router.back()} scale={false} accessibilityRole="link">
             <Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Change email</Text>

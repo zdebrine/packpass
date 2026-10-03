@@ -1,0 +1,79 @@
+# Keys and settings
+
+Everything PackPass needs from outside services, where each piece goes, and what's done. Nothing secret goes
+in the repo: the apps only carry the Supabase publishable key, which is meant to be public (row level
+security protects the data). Secrets live in the service that uses them: Supabase settings, Supabase Vault,
+Edge Function secrets, EAS or Vercel.
+
+## Status
+
+| What | Used for | Where it lives | Status |
+| --- | --- | --- | --- |
+| Supabase URL and publishable key | Both apps talk to the database | `apps/member/.env`, `apps/partner/.env` (public) | Done |
+| Push webhook secret and function URL | Database → `send-push` function | Supabase Vault | Done |
+| Resend sending domain (DNS records) | Emails come from your domain | Your domain's DNS, verified in Resend | **To do** |
+| Resend API key | Supabase sends sign-in emails through Resend | Supabase Auth › SMTP password (set by the script) | **To do** |
+| Code-based email templates | Sign-up, reset and invite emails carry a 6-digit code | Supabase Auth › Email Templates (set by the script) | **To do** |
+| Supabase personal access token | Lets `setup-auth.mjs` change Auth settings | Your shell only, or the Claude environment | **To do** (setup only) |
+| Site URL and redirect URLs | Where any email link lands (codes don't need it) | Supabase Auth › URL Configuration (script: `SITE_URL`) | Once the dashboard has a URL |
+| EAS project | Push tokens, phone builds | `eas init` writes the id into `apps/member/app.json` | To do |
+| Apple push key (.p8) / Android FCM key | Push on real phones | EAS credentials (`eas credentials`) | To do, with store accounts |
+| Apple Developer and Google Play accounts | TestFlight and store builds | Apple / Google | To do |
+| Apple and Google sign-in | The "Continue with Apple/Google" buttons (show "coming soon" now) | Supabase Auth › Providers, plus Apple/Google consoles | Later |
+| Stripe keys | Plans, credit packs, partner payouts (Connect) | Publishable key in the apps; secret and webhook secret as Edge Function secrets | Later |
+| Maps key | A real map instead of the drawn one | Google Maps or Mapbox key in the app config | Later |
+| Vercel project | Hosting the partner dashboard | Vercel env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY` | Later |
+
+## 1. Email through Resend (do this first)
+
+Sign-up, password reset and partner invites all send a 6-digit code. Until this is done the project uses
+Supabase's test sender: links instead of codes, a couple of emails an hour, and only to the Supabase team.
+
+1. **Domain.** In Resend › Domains › Add domain, add the domain you'll send from (for example `packpass.app`).
+   Resend lists three or four DNS records (MX, SPF and DKIM TXT). Add them where the domain is registered,
+   then press Verify. Verification usually takes minutes, sometimes a few hours.
+   No domain yet? Resend's `onboarding@resend.dev` sender works for testing, but only delivers to the email
+   on your Resend account.
+2. **Resend API key.** Resend › API Keys › Create. "Full access" lets the setup script check and add the
+   domain for you; "Sending access" is enough for the emails themselves.
+3. **Supabase access token.** supabase.com/dashboard/account/tokens › Generate new token.
+4. **Run the setup script** from the repo root (Node 18 or newer). It sets SMTP, all five templates, 6-digit
+   codes for an hour, one email a minute per address and 100 an hour in all, and prints what it set:
+
+   ```bash
+   SUPABASE_ACCESS_TOKEN=sbp_… RESEND_API_KEY=re_… MAIL_FROM=hello@packpass.app \
+     node supabase/scripts/setup-auth.mjs
+   ```
+
+   Add `--dry-run` first to see the settings without changing anything. To have Claude run it instead, add
+   `SUPABASE_ACCESS_TOKEN`, `RESEND_API_KEY` and `MAIL_FROM` as environment variables in the cloud
+   environment's settings and allow `api.supabase.com` and `api.resend.com` under network access, then start
+   a new session.
+
+   Prefer clicking? Resend › Integrations › Supabase fills in the SMTP settings, and the five files in
+   `supabase/templates` go into Supabase › Authentication › Email Templates with the subjects listed in
+   `supabase/config.toml`.
+5. **Try it.** Sign up in the member app with a new email: the code should arrive from your domain within a
+   few seconds. For your own account (invited from the dashboard, so it has no password yet), use Forgot
+   password in the app or Set or reset password on the partner dashboard.
+
+## 2. Push notifications on phones
+
+1. `cd apps/member && npx eas-cli init` (creates the EAS project and writes its id into `app.json`).
+2. With an Apple Developer account: `npx eas-cli credentials` › iOS › Push Notifications, and let EAS create
+   the push key. For Android, upload a Firebase (FCM v1) service account key the same way.
+3. `npx eas-cli build --profile development` and install the build. Expo Go and the web app don't receive
+   remote pushes; the in-app notifications list works everywhere.
+4. Only if you turn on Expo's enhanced push security: add `EXPO_ACCESS_TOKEN` as a Supabase Edge Function
+   secret (Edge Functions › Secrets).
+
+## 3. Later
+
+- **Apple / Google sign-in:** an Apple Services ID and sign-in key, and Google OAuth client IDs (web, iOS,
+  Android), entered in Supabase › Authentication › Providers. The app's buttons then switch on.
+- **Stripe:** the publishable key goes in the apps' env files; the secret key and webhook signing secret go
+  in Edge Function secrets (never in the repo). Partner payouts use Stripe Connect.
+- **Maps:** a Google Maps (or Mapbox) key for real maps on the class and booking screens.
+- **Vercel:** create the project from `apps/partner`, set the two `VITE_` variables, add a rewrite of every
+  path to `index.html`, then put the URL in Supabase as the Site URL (`SITE_URL` in the setup script).
+- **Leaked password protection:** Supabase › Authentication › Attack Protection, where your plan offers it.

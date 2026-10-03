@@ -37,7 +37,11 @@ export function useStaffSession() {
   }, []);
   useEffect(() => {
     load();
-    const { data } = db.auth.onAuthStateChange((e) => { if (e === 'SIGNED_IN' || e === 'SIGNED_OUT') load(); });
+    // USER_UPDATED: a reset or invite code signs in as PASSWORD_RECOVERY, then saving the password updates the
+    // user. load runs outside the callback, since Supabase calls made inside it wait on the auth lock.
+    const { data } = db.auth.onAuthStateChange((e) => {
+      if (e === 'SIGNED_IN' || e === 'SIGNED_OUT' || e === 'USER_UPDATED') setTimeout(load, 0);
+    });
     return () => data.subscription.unsubscribe();
   }, [load]);
   return { status, reload: load };
