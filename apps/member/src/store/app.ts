@@ -6,7 +6,7 @@ import { isLive } from '@/api/client';
 import * as live from '@/api/live';
 import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, TRAIT_SPECIAL } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
-import type { Booking, ClearanceRecord, Dog, LogEntry, PhotoSource, PickedDoc, VaccineRecord, WaitEntry } from '@/data/types';
+import type { Booking, ClearanceRecord, Dog, LogEntry, PathProgress, PhotoSource, PickedDoc, VaccineRecord, WaitEntry } from '@/data/types';
 import { now } from '@/lib/clock';
 import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
@@ -110,6 +110,10 @@ interface AppState extends Demo {
   log: LogEntry[] | null;
   /** Live mode: the main dog's clearance rows. Null in sample mode (the Passport shows the designs' Juno). */
   clearanceRecords: ClearanceRecord[] | null;
+  /** Live mode: every training path with the main dog's progress. Null in sample mode (the designs' two paths). */
+  paths: PathProgress[] | null;
+  /** Starts a training path for a dog (live mode; sample mode's paths are already started). */
+  startPath: (dogId: string, pathId: string) => Promise<void>;
   /** Live mode: catalog and member are loaded. */
   ready: boolean;
 
@@ -185,6 +189,7 @@ const fresh = {
   socialClearanceId: null as string | null,
   log: null as LogEntry[] | null,
   clearanceRecords: null as ClearanceRecord[] | null,
+  paths: null as PathProgress[] | null,
   social: 'working' as SocialStage,
   socialExpired: false,
   behaviorNote: false,
@@ -193,7 +198,7 @@ const fresh = {
 // Live mode starts empty and fills from Supabase on sign-in.
 if (isLive) {
   Object.assign(fresh, {
-    dogs: [], credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], remoteNotifications: [], log: [], clearanceRecords: [],
+    dogs: [], credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], remoteNotifications: [], log: [], clearanceRecords: [], paths: [],
   });
 }
 
@@ -251,6 +256,9 @@ export const useApp = create<AppState>()(
 
         setAppearance: (appearance) => set({ appearance }),
         updateDraft: (patch) => set((s) => ({ draft: { ...s.draft, ...patch } })),
+        startPath: async (dogId, pathId) => {
+          if (isLive) await thenRefresh(() => live.startPath(dogId, pathId));
+        },
         saveTraits: async (dogId) => {
           if (isLive) await thenRefresh(() => live.saveTraits(dogId, get().draft.traits));
         },
@@ -378,7 +386,7 @@ export const useApp = create<AppState>()(
         },
         signOut: async () => {
           if (isLive) await live.signOut(get().pushToken);
-          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [], clearanceRecords: [] } : {}) });
+          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [], clearanceRecords: [], paths: [] } : {}) });
         },
         setDogPhoto: async (dogId, dataUri) => {
           if (isLive) {
@@ -417,6 +425,7 @@ export const useApp = create<AppState>()(
           }
           await live.loadCatalog();
           const [m, log] = await Promise.all([live.loadMember(), live.loadLog().catch(() => null)]);
+          const paths = m?.dogs[0] ? await live.loadPaths(m.dogs[0].id).catch(() => null) : [];
           if (!m) {
             set({ ready: true, signedIn: false, onboarded: false });
             return;
@@ -438,6 +447,7 @@ export const useApp = create<AppState>()(
             readNotifications: m.readNotifications,
             log: log ?? get().log,
             clearanceRecords: m.clearances,
+            paths: paths ?? get().paths,
             pendingPlan: m.holds,
             waitlist: m.waitlist,
             vaccineRecord: m.vaccineRecord,

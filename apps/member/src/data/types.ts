@@ -81,6 +81,19 @@ export interface WaitEntry {
   place: number;
 }
 
+/** A training path and the main dog's progress on it (my_paths). Not started: startedAt is null. */
+export interface PathProgress {
+  id: string;
+  title: string;
+  lede: string;
+  grants: ClearanceType | null;
+  startedAt: Date | null;
+  /** 1-based step the dog is on; past the last step when complete. */
+  nextStep: number;
+  completedAt: Date | null;
+  steps: { position: number; title: string; classId: string; doneAt: Date | null }[];
+}
+
 /** A clearance on the dog's Passport, as the partner recorded it. */
 export interface ClearanceRecord {
   id: string;

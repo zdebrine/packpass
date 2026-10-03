@@ -5,6 +5,7 @@ import { nextSession } from '@/lib/booking';
 import { setLiveClock } from '@/lib/clock';
 import { liveHerding, liveSocial } from '@/lib/clearances';
 import { liveLog } from '@/lib/log';
+import { liveGoal } from '@/lib/paths';
 import { statsOf } from '@/lib/stats';
 import { useApp } from '@/store/app';
 
@@ -68,6 +69,18 @@ const S = () => useApp.getState();
   ok(S().vaccines.length === 3, 'vaccines entered during onboarding are saved with the dog');
   ok(S().activePaths.includes('calm-around-dogs') && S().activePaths.includes('loose-leash-walking'), 'traits start both training paths');
   ok(S().social === 'working', 'Social starts as working on it');
+  const calm = () => liveGoal(S().paths!.find((p) => p.id === 'calm-around-dogs')!, 'Juno', S().log ?? []);
+  ok(S().paths!.length === 2 && calm().steps[0].state === 'next' && calm().steps[0].classId === 'calm-private' && calm().steps[3].state === 'final',
+     'paths load from the database, starting at step 1');
+  // A partner checks the dog in to step 1's class: the step is done and step 2 is next.
+  psql(`insert into sessions (class_id, starts_at, capacity, packpass_spots, spots_left) values ('calm-private', now() - interval '1 hour', 1, 1, 0)`);
+  const stepBooking = psql(`insert into bookings (session_id, dog_id, member_id, credits_charged) select id, '${S().dogs[0].id}', '${userId}', 3 from sessions where class_id = 'calm-private' and starts_at < now() order by starts_at desc limit 1 returning id`);
+  psql(`update bookings set status = 'checked_in', checked_in_at = now() where id = '${stepBooking}'`);
+  await S().refresh();
+  ok(calm().steps[0].state === 'done' && /^Done /.test(calm().steps[0].stateLabel) && calm().steps[1].state === 'next' && /^Step 1 done /.test(calm().updated),
+     'checking in to a step\'s class completes it, and the next step opens');
+  ok(S().remoteNotifications!.some((n) => n.title === 'Step 1 of 4 done' && n.href === '/goal/calm-around-dogs'), 'and the member is told');
+  psql(`update bookings set status = 'cancelled' where id = '${stepBooking}'`); // keep the booking counts below as they were
   ok(Object.keys(catalog.classes).length >= 16 && catalog.sessions.length > 300, 'the catalog loads from Supabase');
 
   // Distances: from the area picked in onboarding, or anywhere the member chooses.

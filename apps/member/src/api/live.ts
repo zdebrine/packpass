@@ -3,7 +3,7 @@
 
 import { setCatalog } from '@/data/catalog';
 import type { Goal, Notif } from '@/data/passport';
-import type { Booking, ClassType, ClearanceRecord, Dog, LogEntry, Partner, PhotoKey, PickedDoc, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
+import type { Booking, ClassType, ClearanceRecord, Dog, LogEntry, PathProgress, Partner, PhotoKey, PickedDoc, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
 import type { OnboardingDraft, SocialStage } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { db } from './client';
@@ -183,8 +183,8 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     vaccines: vax.map((v) => ({ type: ({ rabies: 'Rabies', dhpp: 'DHPP', bordetella: 'Bordetella' } as const)[v.type as 'rabies'], expires: v.expires_on })),
     notifications: notes.map((n): Notif => ({
       id: n.id,
-      icon: n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : n.kind === 'waitlist_booked' ? 'calendar-check' : n.kind.startsWith('waitlist') || n.kind.startsWith('hold') ? 'clock' : 'message-square',
-      tone: n.kind === 'clearance_earned' ? 'clr' : 'n',
+      icon: n.kind === 'path_step' ? 'check' : n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : n.kind === 'waitlist_booked' ? 'calendar-check' : n.kind.startsWith('waitlist') || n.kind.startsWith('hold') ? 'clock' : 'message-square',
+      tone: n.kind === 'clearance_earned' ? 'clr' : n.kind === 'path_step' ? 'path' : 'n',
       title: n.title, body: n.body, time: relTime(n.created_at),
       cat: cap(n.category), isNew: Date.now() - new Date(n.created_at).getTime() < 3 * 86_400_000 || !n.read_at,
       href: n.href ?? undefined,
@@ -198,6 +198,21 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
       assessor: k.assessor, strengths: k.strengths ?? [], workingOn: k.working_on ?? [], quote: k.quote, seen: !!k.seen_at,
     })),
   };
+}
+
+/** Every training path, with the dog's progress and the date each step was done. */
+export async function loadPaths(dogId: string): Promise<PathProgress[]> {
+  const rows = check(await db().rpc('my_paths', { p_dog: dogId })) as any[];
+  const date = (x: string | null) => (x ? new Date(x) : null);
+  return rows.map((r) => ({
+    id: r.path_id, title: r.title, lede: r.lede, grants: r.grants, startedAt: date(r.started_at), nextStep: r.next_step ?? 1,
+    completedAt: date(r.completed_at),
+    steps: (r.steps ?? []).map((x: any) => ({ position: x.position, title: x.title, classId: x.class_id, doneAt: date(x.done_at) })),
+  }));
+}
+
+export async function startPath(dogId: string, pathId: string) {
+  check(await db().rpc('start_path', { p_dog: dogId, p_path: pathId }));
 }
 
 /** The member's sessions that have run, newest first (07 Log). */

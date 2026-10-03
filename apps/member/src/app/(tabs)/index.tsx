@@ -3,7 +3,8 @@ import { ScrollView, View } from 'react-native';
 
 import { catalog } from '@/data/catalog';
 import { monthSuggestions, PLAN, recommended } from '@/data/fixtures';
-import { goals, isComplete, stepIndex } from '@/data/passport';
+import { isComplete, stepIndex } from '@/data/passport';
+import { useGoals } from '@/lib/paths';
 import { AthleteCard, ClassCard } from '@/ds/cards';
 import { Button, Tag } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
@@ -40,7 +41,7 @@ export default function Today() {
   const upcoming = activeBookings(bookings).filter((x) => x.booking.status === 'booked' && x.v.session.startsAt >= now());
   const upNext = upcoming[0];
   const unread = notes.some((n) => n.isNew && !read.includes(n.id));
-  const goal = goals(social).find((g) => !isComplete(g));
+  const goal = useGoals().goals.find((g) => !isComplete(g));
   const step = goal ? goal.steps[stepIndex(goal)] : undefined;
   const stepView = step?.classId ? nextSession(step.classId) : undefined;
   const stepBooked = !!step?.classId && upcoming.some((x) => x.v.cls.id === step.classId);

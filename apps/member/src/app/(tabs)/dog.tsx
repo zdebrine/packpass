@@ -4,9 +4,11 @@ import { ScrollView, Share, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated';
 
 import { TRAIT_SPECIAL } from '@/data/fixtures';
-import { goals, isComplete, STATUS_LABEL, stepIndex, type Clearance } from '@/data/passport';
+import { isComplete, STATUS_LABEL, stepIndex, type Clearance } from '@/data/passport';
 import { useClearances } from '@/lib/clearances';
+import { useGoals } from '@/lib/paths';
 import { useDogStats } from '@/lib/stats';
+import { isLive } from '@/api/client';
 import { AthleteCard } from '@/ds/cards';
 import { Button, Chip, Tag } from '@/ds/controls';
 import { Badge, Bars, IconButton, Screen } from '@/ds/layout';
@@ -121,6 +123,7 @@ export default function DogProfile() {
   const dogs = useApp((s) => s.dogs);
   const vaccines = useApp((s) => s.vaccines);
   const passport = useClearances();
+  const paths = useGoals();
   const clearances = [passport.social, passport.herding];
 
   return (
@@ -168,7 +171,8 @@ export default function DogProfile() {
 
         <Section title="Next goals">
           <View style={{ gap: 8 }}>
-            {goals(social).map((g) => {
+            {paths.goals.length ? null : <Text variant="label" muted>{`No path started yet. Pick one below and ${juno.name} works through it a class at a time.`}</Text>}
+            {paths.goals.map((g) => {
               const i = stepIndex(g);
               const done = isComplete(g);
               const next = g.steps[i];
@@ -180,11 +184,22 @@ export default function DogProfile() {
                   </View>
                   <Bars total={g.steps.length} done={done ? g.steps.length : i} />
                   <Text variant="caption" muted>
-                    {done ? 'Done. Social cleared.' : g.id === 'calm-around-dogs' ? `Next: ${next.title} · private session · Earns Social` : `Next: ${next.title} with Ana Ruiz`}
+                    {isLive
+                      ? done ? g.steps[g.steps.length - 1].stateLabel : `Next: ${next.title} · ${next.meta}`
+                      : done ? 'Done. Social cleared.' : g.id === 'calm-around-dogs' ? `Next: ${next.title} · private session · Earns Social` : `Next: ${next.title} with Ana Ruiz`}
                   </Text>
                 </Press>
               );
             })}
+            {paths.available.map((g) => (
+              <Press key={g.id} onPress={() => router.push(`/goal/${g.id}`)} style={{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20, borderWidth: 1, borderColor: c.surfaceSunken, gap: 6 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+                  <Text variant="heading" style={{ flex: 1 }}>{g.title}</Text>
+                  <Text variant="caption" muted>{`${g.steps.length} steps`}</Text>
+                </View>
+                <Text variant="caption" muted>{g.lede}</Text>
+              </Press>
+            ))}
           </View>
         </Section>
 

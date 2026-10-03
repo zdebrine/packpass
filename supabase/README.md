@@ -55,6 +55,10 @@ Schema, security rules and booking logic for the member app. It's deployed to th
   photos and vet records of dogs booked with them. Members no longer see cancelled sessions or classes in review.
 - `migrations/…_member_log.sql` — `my_log` for the member app's Log: the dogs' sessions that have run, with the
   trainer's note and any assessment result (strengths, working on, the assessor's words).
+- `migrations/…_path_progress.sql` — training path progress. Checking a dog in to its current step's class (QR
+  scan or the partner's roster) completes the step, records the date in `dog_path_steps` and tells the owner; a
+  session note counts as a check-in. Assessment steps only finish with a pass. `my_paths(dog)` lists every path
+  with the dog's progress, for the app's goal screens.
 - `catalog.sql` — generated: partners, trainers, classes, training paths and the timetable. Loaded into the
   hosted project. Partners now edit their own classes and schedule from the dashboard; new partners and
   trainers are still added here (or in the SQL editor).
@@ -78,10 +82,10 @@ Expo with `--clear` (Metro caches env values).
 
 - `supabase/tests/run-local.sh` — applies everything to a scratch database on plain Postgres (with a small
   shim for `auth` and `storage`) and runs `booking.test.sql` (100 checks: each rule, credits, holds, reminders,
-  the waitlist, RLS and storage policies) and `partner.test.sql` (60 checks: staff access, one partner never
+  the waitlist, RLS and storage policies) and `partner.test.sql` (70 checks: staff access, one partner never
   reaching another's data, and each dashboard function). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
-  PostgREST, with a stand-in for Supabase Auth and Storage: 59 checks, from sign-up with a dog photo and vet record to a password reset and sign-in again.
+  PostgREST, with a stand-in for Supabase Auth and Storage: 66 checks, from sign-up with a dog photo and vet record to a password reset and sign-in again.
 
 ## The hosted project
 
@@ -91,7 +95,7 @@ Set up on Oct 2 2026 through the Supabase MCP tools:
   applied, and the waitlist migration as two parts (`waitlist`, `waitlist_fill`). Before using the CLI there
   (`supabase link --project-ref qovbpxvpnslsjzunxutk`), run `supabase migration repair` so the history matches
   the files. New migrations: apply them the same way, or with `supabase db push` once repaired.
-- `member_log` is applied too.
+- `member_log` and `path_progress` are applied too.
 - The partner dashboard migration went on as two parts (`partner_dashboard`, then `partner_set_repeat`). A
   staff journey (sessions, classes, earnings, a new class in review that can't be scheduled yet) was run inside
   the database and rolled back.

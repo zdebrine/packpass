@@ -206,6 +206,53 @@ select p.ok(not exists (select 1 from public.my_log() where booking_id in ((sele
 reset role;
 select p.expect_error($$set local role anon; select public.my_log()$$, 'permission denied');
 
+-- ---- Training path progress ---------------------------------------------------------------------------
+reset role;
+select p.ok((select next_step from dog_paths where dog_id = (select juno from p.ids) and path_id = 'calm-around-dogs') = 1, 'Juno starts Calm around dogs at step 1');
+insert into sessions (class_id, starts_at, capacity, packpass_spots, spots_left) values
+  ('calm-private', now() - interval '5 hours', 1, 1, 0), ('parallel-walk', now() - interval '4 hours', 1, 1, 0), ('small-group-play', now() - interval '20 hours', 6, 6, 5);
+insert into bookings (session_id, dog_id, member_id, credits_charged)
+select s.id, (select juno from p.ids), '00000000-0000-0000-0000-0000000000a3', 2 from sessions s
+where s.starts_at < now() and s.starts_at > now() - interval '1 day' and s.class_id in ('calm-private', 'parallel-walk', 'small-group-play')
+  and s.capacity <= 6 and not exists (select 1 from bookings b where b.session_id = s.id);
+create table p.steps as select
+  (select b.id from bookings b join sessions s on s.id = b.session_id where s.class_id = 'calm-private' and b.dog_id = (select juno from p.ids) and s.starts_at < now() order by s.starts_at desc limit 1) one,
+  (select b.id from bookings b join sessions s on s.id = b.session_id where s.class_id = 'parallel-walk' and b.dog_id = (select juno from p.ids) and s.starts_at < now() order by s.starts_at desc limit 1) two,
+  (select b.id from bookings b join sessions s on s.id = b.session_id where s.class_id = 'small-group-play' and b.dog_id = (select juno from p.ids) and s.starts_at < now() order by s.starts_at desc limit 1) play;
+grant select on p.steps to authenticated;
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+select public.partner_check_in((select play from p.steps));
+reset role;
+select p.ok((select next_step from dog_paths where dog_id = (select juno from p.ids) and path_id = 'calm-around-dogs') = 1, 'a later step''s class doesn''t count out of order');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+select public.partner_check_in((select one from p.steps));
+reset role;
+select p.ok((select next_step from dog_paths where dog_id = (select juno from p.ids) and path_id = 'calm-around-dogs') = 2
+            and exists (select 1 from dog_path_steps where dog_id = (select juno from p.ids) and path_id = 'calm-around-dogs' and position = 1 and booking_id = (select one from p.steps)),
+            'checking in to the current step''s class completes the step');
+select p.ok(exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-0000000000a3' and kind = 'path_step' and title = 'Step 1 of 4 done' and body like 'Distance work · Juno. Next: Parallel walk.'),
+            'and tells the owner what''s next');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+select public.partner_send_note((select two from p.steps), 'Walked the fence line calmly twice.', '{}');
+reset role;
+select p.ok((select status from bookings where id = (select two from p.steps)) = 'checked_in'
+            and (select next_step from dog_paths where dog_id = (select juno from p.ids) and path_id = 'calm-around-dogs') = 3,
+            'a session note checks the dog in, which moves the path on');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a3');
+select p.ok((select count(*) from public.my_paths((select juno from p.ids))) = 2, 'my_paths lists every path');
+select p.ok((select next_step = 3 and steps -> 0 ->> 'done_at' is not null and steps -> 1 ->> 'done_at' is not null and steps -> 2 ->> 'done_at' is null
+             from public.my_paths((select juno from p.ids)) where path_id = 'calm-around-dogs'), 'with the date each step was done');
+select p.ok((select started_at is null from public.my_paths((select juno from p.ids)) where path_id = 'loose-leash-walking'), 'and paths the dog hasn''t started');
+select p.ok((select count(*) from dog_path_steps) = 2, 'owners read their dog''s step history');
+select p.as_user('00000000-0000-0000-0000-0000000000a5');
+select p.ok(not exists (select 1 from public.my_paths((select juno from p.ids))) and not exists (select 1 from dog_path_steps where dog_id = (select juno from p.ids)),
+            'other members can''t see another dog''s paths');
+reset role;
+
 -- ---- Vet records ------------------------------------------------------------------------------------
 reset role;
 insert into storage.objects (bucket_id, name, owner) values

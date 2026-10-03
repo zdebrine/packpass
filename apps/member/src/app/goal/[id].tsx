@@ -2,26 +2,39 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Share, View } from 'react-native';
 
-import { goals, isComplete, PATH_TRAINERS, stepIndex, type StepState } from '@/data/passport';
+import { errorCopy } from '@/api/errors';
+import { isComplete, PATH_TRAINERS, stepIndex, type StepState } from '@/data/passport';
 import { Button, Chip } from '@/ds/controls';
 import { Icon, type IconName } from '@/ds/Icon';
 import { Badge, Bars, IconButton, Screen } from '@/ds/layout';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { activeBookings, credits as creditsLabel, nextSession } from '@/lib/booking';
-import { useApp } from '@/store/app';
+import { useGoals } from '@/lib/paths';
+import { useApp, useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /** 10 Goal detail · training path */
 export default function GoalDetail() {
   const { c } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const social = useApp((s) => s.social);
   const behaviorNote = useApp((s) => s.behaviorNote);
   const bookings = useApp((s) => s.bookings);
+  const startPath = useApp((s) => s.startPath);
+  const dog = useDog();
   const [who, setWho] = useState<'Behaviorist' | 'Trainer'>('Behaviorist');
-  const g = goals(social).find((x) => x.id === id) ?? goals(social)[0];
-  const i = stepIndex(g);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { goals, available } = useGoals();
+  const all = [...goals, ...available];
+  const g = all.find((x) => x.id === id) ?? all[0];
+  if (!g) return <Screen><View style={{ padding: 20 }}><Text muted>That path isn't available.</Text></View></Screen>;
+  const start = async () => {
+    setStarting(true); setError(null);
+    try { await startPath(dog.id, g.id); } catch (e) { setError(errorCopy(e)); } finally { setStarting(false); }
+  };
+  const notStarted = g.started === false;
+  const i = notStarted ? 0 : stepIndex(g);
   const done = isComplete(g);
 
   const dot: Record<StepState, { bg: string; fg: string; icon: IconName; line: string; color: string }> = {
@@ -38,14 +51,20 @@ export default function GoalDetail() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 10, paddingBottom: 32 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20 }}>
           <IconButton icon="chevron-left" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/dog'))} />
-          <IconButton icon="share" label="Share" onPress={() => Share.share({ message: `Juno's training path on PackPass: ${g.title}.` }).catch(() => {})} />
+          <IconButton icon="share" label="Share" onPress={() => Share.share({ message: `${dog.name}'s training path on PackPass: ${g.title}.` }).catch(() => {})} />
         </View>
         <View style={{ paddingTop: 20, paddingHorizontal: 20 }}>
           <Text variant="wide" muted>Training path · From you</Text>
           <Text variant="displayXl" style={{ marginTop: 10 }} accessibilityRole="header">{`${g.title}.`}</Text>
           <Text style={{ marginTop: 10 }}>{g.lede}</Text>
           <Bars total={g.steps.length} done={done ? g.steps.length : i} style={{ marginTop: 18 }} />
-          <Text variant="caption" muted style={{ marginTop: 8 }}>{done ? g.updated : `Step ${i + 1} of ${g.steps.length} · ${g.updated}`}</Text>
+          <Text variant="caption" muted style={{ marginTop: 8 }}>{done || notStarted ? g.updated : `Step ${i + 1} of ${g.steps.length} · ${g.updated}`}</Text>
+          {notStarted ? (
+            <View style={{ marginTop: 16, gap: 8 }}>
+              <Button block disabled={starting} onPress={start}>{starting ? 'Starting…' : `Start this path with ${dog.name}`}</Button>
+              {error ? <Text variant="caption" color={c.kennelRed}>{error}</Text> : <Text variant="caption" muted>{`Step 1 opens right away. Each step finishes when ${dog.name} checks in to that class.`}</Text>}
+            </View>
+          ) : null}
         </View>
 
         <View style={{ marginTop: 28, paddingHorizontal: 20 }}>
@@ -79,7 +98,7 @@ export default function GoalDetail() {
           <View style={{ marginTop: 12, paddingHorizontal: 20 }}>
             <View style={{ padding: 18, borderRadius: 20, backgroundColor: c.surfaceRaised, flexDirection: 'row', gap: 14, alignItems: 'flex-start' }}>
               <Icon name="stethoscope" />
-              <Text variant="label" style={{ flex: 1 }}>Some of this can need more than a trainer. A certified behaviorist works with Juno's vet on a plan, and can join the path at any step.</Text>
+              <Text variant="label" style={{ flex: 1 }}>Some of this can need more than a trainer. {`A certified behaviorist works with ${dog.name}'s vet on a plan, and can join the path at any step.`}</Text>
             </View>
           </View>
         ) : null}

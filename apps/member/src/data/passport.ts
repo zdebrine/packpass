@@ -100,6 +100,8 @@ export interface Goal {
   updated: string;
   steps: PathStep[];
   trainers: 'reactivity' | 'leash';
+  /** Live mode: false for a path the dog hasn't started (shown with a Start button). */
+  started?: boolean;
 }
 
 export function goals(stage: SocialStage): Goal[] {
