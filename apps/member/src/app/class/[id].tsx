@@ -62,7 +62,7 @@ export default function ClassDetail() {
       <Screen>
         <View style={{ padding: 20, gap: 16 }}>
           <IconButton icon="chevron-left" label="Back" onPress={() => router.back()} />
-          <Text variant="displayLg">This session isn't available.</Text>
+          <Text variant="displayLg">This session isn’t available.</Text>
           <Button onPress={() => router.replace('/book')}>Find a class</Button>
         </View>
       </Screen>

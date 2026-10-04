@@ -13,7 +13,6 @@ const photo = (k: string | null | undefined, fallback: PhotoKey): PhotoKey => (P
 
 const cap = <T extends string>(s: string) => (s.charAt(0).toUpperCase() + s.slice(1)) as T;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 /** Throws the error's code when Supabase Auth gives one (e.g. over_email_send_rate_limit), else its message. */
 function check(r: { data: any; error: { message: string; code?: string } | null }): any {
   if (r.error) throw new Error(r.error.code && AUTH_CODES.has(r.error.code) ? r.error.code : r.error.message);
@@ -112,6 +111,7 @@ export async function loadCatalog() {
 
 export interface MemberSnapshot {
   name: string;
+  email: string;
   credits: number;
   dogs: Dog[];
   bookings: Booking[];
@@ -180,6 +180,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
 
   return {
     name: profile.name,
+    email: profile.email ?? auth.user.email ?? '',
     credits: profile.credits_balance,
     dogs: dogs.map((d) => ({
       id: d.id, name: d.name, photo: photoUrl.has(d.photo_path) ? { uri: photoUrl.get(d.photo_path)!, cacheKey: d.photo_path } : undefined, breed: d.mixed ? 'Mixed breed' : d.breed ?? '',
@@ -225,6 +226,36 @@ export async function loadPaths(dogId: string): Promise<PathProgress[]> {
 
 export async function startPath(dogId: string, pathId: string) {
   check(await db().rpc('start_path', { p_dog: dogId, p_path: pathId }));
+}
+
+// ---- Account (Settings) -------------------------------------------------------------------
+
+export async function saveName(name: string) {
+  const { data: auth } = await db().auth.getUser();
+  check(await db().from('profiles').update({ name: name.trim() }).eq('id', auth.user!.id));
+}
+
+export async function changePassword(password: string) {
+  check(await db().auth.updateUser({ password }));
+}
+
+/**
+ * Deletes the account and everything in it (supabase/migrations/…_delete_account.sql). The member's files
+ * go first, through Storage: the dogs' photos and vet records, found from the rows that point at them.
+ */
+export async function deleteAccount() {
+  const c = db();
+  const dogs = check(await c.from('dogs').select('id, photo_path')) as { id: string; photo_path: string | null }[];
+  const docs = dogs.length
+    ? (check(await c.from('vaccinations').select('document_path').in('dog_id', dogs.map((d) => d.id))) as { document_path: string | null }[])
+    : [];
+  const photos = dogs.map((d) => d.photo_path).filter(Boolean) as string[];
+  const records = Array.from(new Set(docs.map((d) => d.document_path).filter(Boolean) as string[]));
+  if (photos.length) check(await c.storage.from('dog-photos').remove(photos));
+  if (records.length) check(await c.storage.from('vaccine-docs').remove(records));
+  check(await c.rpc('delete_my_account'));
+  // The account is gone on the server; clear the session on this device.
+  await c.auth.signOut({ scope: 'local' }).catch(() => {});
 }
 
 /** The member's sessions that have run, newest first (07 Log). */

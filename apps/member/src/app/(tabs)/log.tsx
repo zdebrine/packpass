@@ -32,7 +32,7 @@ export default function Log() {
           <Text variant="displayXl" accessibilityRole="header">Log</Text>
           <View style={{ marginTop: 20, padding: 20, borderRadius: 28, backgroundColor: c.surfaceRaised }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
-              <Text variant="title">This month's balance</Text>
+              <Text variant="title">This month’s balance</Text>
               <Text variant="caption" muted>{`Resets ${monthHeader().resets}`}</Text>
             </View>
             <View style={{ gap: 12 }}>

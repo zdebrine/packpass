@@ -204,7 +204,11 @@ release 24 hours before the session, and members are reminded a day before that;
   anywhere the member picks in Settings › Distances from: another area, or "My location" (when-in-use
   permission, a recent fix is enough). The Today pill shows which and opens that setting. Sample mode keeps the
   designs' distances until the member picks somewhere.
-- **Settings** in the live app is Appearance, Distances from and Sign out; Preview states is sample mode only.
+- **Settings** in the live app is Account, Appearance, Distances from and Sign out; Preview states is sample mode only.
+  Account (not in the designs): edit the name, see the email, change the password (8+ characters), and Delete
+  account, a screen listing what goes (Passport, Log, upcoming bookings, credits) with a two-step confirmation.
+  It deletes the dogs' photos and vet records from Storage, then calls `delete_my_account()`, signs out and
+  returns to Welcome. Changing the email isn't offered yet.
 - **Today's hero** shows the member's dog (a field photo until they add one).
 - **Live-mode gaps:** the plan is always Regular; Apple and Google sign-in and buying credits show a message.
 - **Cancelling** lives on the class detail screen (05) when the session is booked: "Cancel booking" under

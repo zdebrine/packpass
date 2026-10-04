@@ -357,4 +357,22 @@ select public.grant_monthly_credits();
 select t.ok((select credits_balance from profiles where email = 'alex@kim.co') = 20, 'rollover is capped at one month: min(14, 10) + 10');
 select t.ok((select credits_reset_on from profiles where email = 'alex@kim.co') > current_date, 'the next reset moves to the 1st of next month');
 
+-- ---- Deleting an account ---------------------------------------------------------------------
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000e1', 'leaving@dog.co');
+select public.seed_demo_member('00000000-0000-0000-0000-0000000000e1');
+create table t.leaving as select b.session_id sid, s.spots_left before from bookings b join sessions s on s.id = b.session_id
+  where b.member_id = '00000000-0000-0000-0000-0000000000e1' and b.status = 'booked';
+select t.expect_error($$set local role anon; select public.delete_my_account()$$, 'permission denied');
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e1', false);
+select public.delete_my_account();
+reset role;
+select t.ok(not exists (select 1 from auth.users where id = '00000000-0000-0000-0000-0000000000e1')
+            and not exists (select 1 from profiles where id = '00000000-0000-0000-0000-0000000000e1')
+            and not exists (select 1 from dogs where owner_id = '00000000-0000-0000-0000-0000000000e1')
+            and not exists (select 1 from bookings where member_id = '00000000-0000-0000-0000-0000000000e1'),
+            'deleting an account removes the member, their dogs and bookings');
+select t.ok((select spots_left from sessions where id = (select sid from t.leaving)) = (select before from t.leaving) + 1, 'and gives their upcoming spots back');
+
 drop schema t cascade;

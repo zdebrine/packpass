@@ -29,7 +29,7 @@ export default function GoalDetail() {
   const all = [...goals, ...available];
   const g = all.find((x) => x.id === id) ?? all[0];
   const liveTrainers = useGoalTrainers(g);
-  if (!g) return <Screen><View style={{ padding: 20 }}><Text muted>That path isn't available.</Text></View></Screen>;
+  if (!g) return <Screen><View style={{ padding: 20 }}><Text muted>That path isn’t available.</Text></View></Screen>;
   const start = async () => {
     setStarting(true); setError(null);
     try { await startPath(dog.id, g.id); } catch (e) { setError(errorCopy(e)); } finally { setStarting(false); }

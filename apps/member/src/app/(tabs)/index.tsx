@@ -30,7 +30,6 @@ export default function Today() {
   const top = useTop();
   const bookings = useApp((s) => s.bookings);
   const credits = useApp((s) => s.credits);
-  const social = useApp((s) => s.social);
   const read = useApp((s) => s.readNotifications);
   const juno = useDog();
   const from = useOriginLabel();

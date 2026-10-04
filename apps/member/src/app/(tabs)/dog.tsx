@@ -4,7 +4,7 @@ import { ScrollView, Share, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated';
 
 import { TRAIT_SPECIAL } from '@/data/fixtures';
-import { isComplete, STATUS_LABEL, stepIndex, type Clearance } from '@/data/passport';
+import { isComplete, STATUS_LABEL, stepIndex } from '@/data/passport';
 import { useClearances } from '@/lib/clearances';
 import { useGoals } from '@/lib/paths';
 import { useDogStats } from '@/lib/stats';
@@ -116,7 +116,6 @@ function Section({ title, right, children }: { title: string; right?: React.Reac
 export default function DogProfile() {
   const juno = useDog();
   const { c } = useTheme();
-  const social = useApp((s) => s.social);
   const draftTraits = useApp((s) => s.draft.traits);
   const traits = (juno.traits ?? draftTraits).filter((t) => !TRAIT_SPECIAL.includes(t));
   const styleFor = useClearanceStyle();

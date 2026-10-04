@@ -96,7 +96,7 @@ export default function Notifications() {
               </View>
               <View style={{ padding: 16, gap: 14 }}>
                 <Text variant="label">Calm around dogs is complete. Group sport, play and group skills are now open at every PackPass partner.</Text>
-                <Button block onPress={() => { markRead(['n-recheck']); router.push('/clearance-earned'); }}>See what's unlocked</Button>
+                <Button block onPress={() => { markRead(['n-recheck']); router.push('/clearance-earned'); }}>See what’s unlocked</Button>
               </View>
             </View>
           ) : null}

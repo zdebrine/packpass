@@ -65,7 +65,7 @@ export default function ClearanceDetail() {
           {k.status === 'working' && social === 'earned' ? (
             <View style={{ marginTop: 20, padding: 18, borderRadius: 20, backgroundColor: c.turfSoft, gap: 12 }}>
               <Text variant="label"><Text variant="label" weight="600" color={c.turf}>{`${juno.name} passed the re-check.`}</Text>{' Open the result to add Social to the Passport.'}</Text>
-              <Button block onPress={() => router.replace('/clearance-earned')}>See what's unlocked</Button>
+              <Button block onPress={() => router.replace('/clearance-earned')}>See what’s unlocked</Button>
             </View>
           ) : k.status === 'working' ? (
             <View style={{ marginTop: 20, padding: 18, borderRadius: 20, backgroundColor: c.turfSoft, gap: 12 }}>

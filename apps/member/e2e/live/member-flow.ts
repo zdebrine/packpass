@@ -223,6 +223,25 @@ const S = () => useApp.getState();
   ok(S().onboarded && S().bookings.length === 5, 'signing back in restores the dog and bookings');
   ok(S().pendingPlan.length === 1, 'held spots follow the member to a new sign-in');
 
+  // Settings › Account: name, password, then delete the account.
+  await S().saveName('Sam Rivera');
+  ok(psql(`select name from profiles where id = '${userId}'`) === 'Sam Rivera' && S().account.name === 'Sam Rivera', 'the name can be changed');
+  threw = '';
+  try { await S().changePassword('short'); } catch (e) { threw = (e as Error).message; }
+  ok(threw === 'weak_password', 'a short new password is refused');
+  await S().changePassword('border-collie-2');
+  await S().signOut();
+  await S().signIn(email, 'border-collie-2');
+  ok(S().signedIn, 'the new password signs in');
+  const heldSession = psql(`select session_id from held_spots where member_id = '${userId}' and status = 'held' limit 1`);
+  const heldSpots = Number(psql(`select spots_left from sessions where id = '${heldSession}'`));
+  await S().deleteAccount();
+  ok(!S().signedIn && !S().onboarded && S().dogs.length === 0, 'deleting the account signs out and clears the app');
+  ok(psql(`select (select count(*) from auth.users where id = '${userId}') + (select count(*) from profiles where id = '${userId}') + (select count(*) from bookings where member_id = '${userId}')`) === '0',
+     'and removes the member, their dogs and bookings');
+  ok(psql(`select count(*) from storage.objects where name like '${userId}/%'`) === '0', 'and their photo and vet records');
+  ok(Number(psql(`select spots_left from sessions where id = '${heldSession}'`)) === heldSpots + 1, 'and gives their held spot back');
+
   console.log(`\nAll ${n} live-mode checks passed.`);
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

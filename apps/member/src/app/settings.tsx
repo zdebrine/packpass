@@ -7,6 +7,7 @@ import { Button, Chip } from '@/ds/controls';
 import { IconButton, Screen, Toggle } from '@/ds/layout';
 import { Text } from '@/ds/Text';
 import { isLive } from '@/api/client';
+import { AccountSection } from '@/features/account/AccountSection';
 import { currentOrigin } from '@/lib/here';
 import { AREAS } from '@/lib/location';
 import { useApp, type Appearance, useDog, useOriginLabel } from '@/store/app';
@@ -27,7 +28,7 @@ function Row({ title, sub, right }: { title: string; sub?: string; right: React.
 }
 
 /**
- * Settings: appearance, where distances are measured from, sign out. In sample mode, "Preview states"
+ * Settings: account (name, password, delete), appearance, where distances are measured from, sign out. In sample mode, "Preview states"
  * stands in for the design file's Tweaks panel: it moves the sample data into the states the designs
  * show (re-check passed, clearance expired, out of credits, nothing booked). Live mode hides it.
  */
@@ -50,6 +51,8 @@ export default function Settings() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 40, gap: 8 }}>
         <IconButton icon="chevron-left" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/dog'))} />
         <Text variant="displayXl" style={{ marginTop: 20, marginBottom: 20 }} accessibilityRole="header">Settings</Text>
+
+        <AccountSection />
 
         <Text variant="title" style={{ marginBottom: 6 }}>Appearance</Text>
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>

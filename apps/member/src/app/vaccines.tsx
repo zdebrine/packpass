@@ -50,7 +50,7 @@ export default function Vaccines() {
     setError(null);
     try {
       await save(rows.map((r): Vaccine => ({ type: r.type, expires: iso(r.year!, r.month!) })), doc);
-      router.canGoBack() ? router.back() : router.replace('/dog');
+      if (router.canGoBack()) router.back(); else router.replace('/dog');
     } catch (e) {
       setError(errorCopy(e));
     } finally {

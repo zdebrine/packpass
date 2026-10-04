@@ -66,6 +66,10 @@ Schema, security rules and booking logic for the member app. It's deployed to th
 - `migrations/…_admin.sql` — PackPass admins (`packpass_admins`) and the admin functions behind the dashboard's
   PackPass pages: the class review queue and `admin_set_class` (credit cost, premium, live or paused), partners,
   trainers, and linking staff accounts by email.
+- `migrations/…_delete_account.sql` — `delete_my_account()` for Settings › Delete account (the App Store requires
+  it): gives upcoming bookings and held spots back, leaves waitlists, then deletes the auth user, which cascades
+  to everything the member owns. The app removes their Storage files first. Past bookings go too, so a partner's
+  earnings for those sessions drop; payouts will be recorded separately once Stripe is in.
 - `catalog.sql` — generated: partners, trainers, classes, training paths and the timetable. Loaded into the
   hosted project. Partners now edit their own classes and schedule from the dashboard; new partners and
   trainers are still added here (or in the SQL editor).
@@ -88,11 +92,11 @@ Expo with `--clear` (Metro caches env values).
 ## Tests
 
 - `supabase/tests/run-local.sh` — applies everything to a scratch database on plain Postgres (with a small
-  shim for `auth` and `storage`) and runs `booking.test.sql` (100 checks: each rule, credits, holds, reminders,
+  shim for `auth` and `storage`) and runs `booking.test.sql` (103 checks: each rule, credits, holds, reminders,
   the waitlist, RLS and storage policies) and `partner.test.sql` (85 checks: staff access, one partner never
   reaching another's data, and each dashboard function). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
-  PostgREST, with a stand-in for Supabase Auth and Storage: 68 checks, from sign-up with a dog photo and vet record to a password reset and sign-in again.
+  PostgREST, with a stand-in for Supabase Auth and Storage: 78 checks, from sign-up with a dog photo and vet record to a password reset, account settings and deleting the account.
 
 ## The hosted project
 
@@ -103,6 +107,8 @@ Set up on Oct 2 2026 through the Supabase MCP tools:
   (`supabase link --project-ref qovbpxvpnslsjzunxutk`), run `supabase migration repair` so the history matches
   the files. New migrations: apply them the same way, or with `supabase db push` once repaired.
 - `member_log`, `path_progress`, `path_specialties` and `admin` are applied too; zdebrine@gmail.com is an admin.
+- **Not applied yet:** `delete_account`. Paste `migrations/20261002001500_delete_account.sql` into the SQL editor
+  and run it (the MCP tool held it for a confirmation it couldn't get, since it deletes from `auth.users`).
 - The partner dashboard migration went on as two parts (`partner_dashboard`, then `partner_set_repeat`). A
   staff journey (sessions, classes, earnings, a new class in review that can't be scheduled yet) was run inside
   the database and rolled back.

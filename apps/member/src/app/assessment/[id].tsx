@@ -135,7 +135,7 @@ function SampleResult() {
             <>
               <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 12 }}>
                 <Text variant="wide" color={c.turf}>Social · Working on it</Text>
-                <Text variant="displayMd">Not yet. Here's the path.</Text>
+                <Text variant="displayMd">Not yet. Here’s the path.</Text>
                 <Bars total={4} done={1} />
                 <Text variant="caption" muted>Calm around dogs · Step 2 of 4. A private session and a small-group play, then a re-check.</Text>
               </View>
@@ -160,7 +160,7 @@ function SampleResult() {
       </ScrollView>
       <Footer>
         {cleared ? (
-          <Button block onPress={() => router.push(social === 'earned' ? '/clearance-earned' : '/passport/social')}>See Juno's Passport</Button>
+          <Button block onPress={() => router.push(social === 'earned' ? '/clearance-earned' : '/passport/social')}>See Juno’s Passport</Button>
         ) : (
           <Button block onPress={() => router.push('/goal/calm-around-dogs')}>See the path</Button>
         )}

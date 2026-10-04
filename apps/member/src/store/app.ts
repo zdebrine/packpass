@@ -114,6 +114,12 @@ interface AppState extends Demo {
   paths: PathProgress[] | null;
   /** Starts a training path for a dog (live mode; sample mode's paths are already started). */
   startPath: (dogId: string, pathId: string) => Promise<void>;
+  /** The signed-in member's name and email (Settings › Account). */
+  account: { name: string; email: string };
+  saveName: (name: string) => Promise<void>;
+  changePassword: (password: string) => Promise<void>;
+  /** Deletes the account and everything in it, then signs out. Sample mode resets the sample data. */
+  deleteAccount: () => Promise<void>;
   /** Live mode: catalog and member are loaded. */
   ready: boolean;
 
@@ -190,6 +196,7 @@ const fresh = {
   log: null as LogEntry[] | null,
   clearanceRecords: null as ClearanceRecord[] | null,
   paths: null as PathProgress[] | null,
+  account: { name: 'Alex Kim', email: 'alex@kim.co' },
   social: 'working' as SocialStage,
   socialExpired: false,
   behaviorNote: false,
@@ -198,7 +205,7 @@ const fresh = {
 // Live mode starts empty and fills from Supabase on sign-in.
 if (isLive) {
   Object.assign(fresh, {
-    dogs: [], credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], remoteNotifications: [], log: [], clearanceRecords: [], paths: [],
+    dogs: [], credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], remoteNotifications: [], log: [], clearanceRecords: [], paths: [], account: { name: '', email: '' },
   });
 }
 
@@ -256,6 +263,18 @@ export const useApp = create<AppState>()(
 
         setAppearance: (appearance) => set({ appearance }),
         updateDraft: (patch) => set((s) => ({ draft: { ...s.draft, ...patch } })),
+        saveName: async (name) => {
+          if (isLive) await live.saveName(name);
+          set((s) => ({ account: { ...s.account, name: name.trim() } }));
+        },
+        changePassword: async (password) => {
+          if (password.length < 8) throw new Error('weak_password');
+          if (isLive) await live.changePassword(password);
+        },
+        deleteAccount: async () => {
+          if (isLive) await live.deleteAccount();
+          set({ ...fresh, signedIn: false, onboarded: false, pushToken: null, ready: true });
+        },
         startPath: async (dogId, pathId) => {
           if (isLive) await thenRefresh(() => live.startPath(dogId, pathId));
         },
@@ -447,6 +466,7 @@ export const useApp = create<AppState>()(
             readNotifications: m.readNotifications,
             log: log ?? get().log,
             clearanceRecords: m.clearances,
+            account: { name: m.name, email: m.email },
             paths: paths ?? get().paths,
             pendingPlan: m.holds,
             waitlist: m.waitlist,
@@ -549,7 +569,7 @@ export const useApp = create<AppState>()(
             },
       onRehydrateStorage: () => () => syncDistances(),
       migrate: (persisted, version) => {
-        const p = { ...(persisted as Record<string, any>) }; // eslint-disable-line @typescript-eslint/no-explicit-any
+        const p = { ...(persisted as Record<string, any>) };
         // v1 stored month swaps by title; start them fresh.
         if (version < 3) p.planSwaps = [];
         // v4: the draft's photo went from a yes/no to the photo itself.
