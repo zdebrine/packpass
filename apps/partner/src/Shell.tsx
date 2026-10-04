@@ -5,12 +5,13 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { loadAssessments, loadNotes, signOut } from '@/lib/api';
 import { usePartner } from '@/lib/partner';
 import { Avatar } from '@/ui/kit';
+import { AdminNav } from '@/admin/AdminNav';
 
 const PARTNER_SUB: Record<string, string> = { trainer: 'Independent trainer', facility: 'Facility', sport_club: 'Sport club', behavior_specialist: 'Behavior specialist', outdoor_space: 'Outdoor space' };
 
 /** Sidebar and page frame from the prototype (248 px rail, pill nav, badges for work waiting). */
 export function Shell() {
-  const { partner, staff, trainers, gym } = usePartner();
+  const { partner, staff, trainers, gym, admin } = usePartner();
   const loc = useLocation();
   const [due, setDue] = useState({ notes: 0, assess: 0 });
 
@@ -31,7 +32,7 @@ export function Shell() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
-      <aside style={{ width: 248, flex: 'none', boxSizing: 'border-box', padding: '28px 16px 20px', display: 'flex', flexDirection: 'column', gap: 28, position: 'sticky', top: 0, height: '100vh', background: 'var(--surface-raised)' }}>
+      <aside style={{ width: 248, flex: 'none', boxSizing: 'border-box', padding: '28px 16px 20px', display: 'flex', flexDirection: 'column', gap: 28, position: 'sticky', top: 0, height: '100vh', overflowY: 'auto', background: 'var(--surface-raised)' }}>
         <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span className="pk-wide" style={{ fontSize: 15, fontWeight: 700 }}>PackPass</span>
           <span className="pk-caption pk-muted">Partner</span>
@@ -55,6 +56,7 @@ export function Shell() {
             </NavLink>
           ))}
         </nav>
+        {admin ? <AdminNav /> : null}
         <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 12, padding: '0 10px' }}>
           <Avatar name={staff.name} size={36} />
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -70,7 +72,7 @@ export function Shell() {
   );
 }
 
-const navStyle = (on: boolean): CSSProperties => ({
+export const navStyle = (on: boolean): CSSProperties => ({
   display: 'flex', alignItems: 'center', gap: 12, height: 44, padding: '0 14px', borderRadius: 9999, textDecoration: 'none', fontSize: 14,
   fontWeight: on ? 600 : 500, background: on ? 'var(--inverse)' : 'transparent', color: on ? 'var(--on-inverse)' : 'var(--ink)', transition: 'background 140ms cubic-bezier(.2,.8,.2,1)',
 });

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import { loadClasses, loadStaff, loadTrainers, type ClassType, type Partner, type Staff, type Trainer } from './api';
+import { isAdmin, loadClasses, loadStaff, loadTrainers, type ClassType, type Partner, type Staff, type Trainer } from './api';
 import { db } from './supabase';
 
 interface PartnerState {
@@ -12,6 +12,8 @@ interface PartnerState {
   trainerName: (id?: string | null) => string;
   /** More than one trainer: show trainer names (the prototype's "gym" view). */
   gym: boolean;
+  /** A PackPass admin too: the sidebar adds the PackPass section. */
+  admin: boolean;
   reloadCatalog: () => Promise<void>;
 }
 
@@ -22,7 +24,11 @@ export const usePartner = () => {
   return v;
 };
 
-type Status = { kind: 'loading' } | { kind: 'signed_out' } | { kind: 'not_staff' } | { kind: 'ready'; staff: Staff; partner: Partner; classes: ClassType[]; trainers: Trainer[] };
+type Status =
+  | { kind: 'loading' } | { kind: 'signed_out' } | { kind: 'not_staff' }
+  /** A PackPass admin who isn't staff at a partner: only the admin pages. */
+  | { kind: 'admin_only' }
+  | { kind: 'ready'; staff: Staff; partner: Partner; classes: ClassType[]; trainers: Trainer[]; admin: boolean };
 
 /** Loads the signed-in staff member's partner, and re-loads when the session changes. */
 export function useStaffSession() {
@@ -31,9 +37,10 @@ export function useStaffSession() {
     const r = await loadStaff().catch(() => null);
     const { data } = await db.auth.getSession();
     if (!data.session) return setStatus({ kind: 'signed_out' });
-    if (!r) return setStatus({ kind: 'not_staff' });
+    const admin = await isAdmin().catch(() => false);
+    if (!r) return setStatus({ kind: admin ? 'admin_only' : 'not_staff' });
     const [classes, trainers] = await Promise.all([loadClasses(r.partner.id), loadTrainers(r.partner.id)]);
-    setStatus({ kind: 'ready', ...r, classes, trainers });
+    setStatus({ kind: 'ready', ...r, classes, trainers, admin });
   }, []);
   useEffect(() => {
     load();
@@ -53,6 +60,7 @@ export function PartnerProvider({ value, reload, children }: { value: Extract<St
     classById: (id) => value.classes.find((c) => c.id === id),
     trainerName: (id) => value.trainers.find((t) => t.id === id)?.name ?? '',
     gym: value.trainers.length > 1,
+    admin: value.admin,
     reloadCatalog: reload,
   };
   return <Ctx.Provider value={state}>{children}</Ctx.Provider>;

@@ -63,6 +63,9 @@ Schema, security rules and booking logic for the member app. It's deployed to th
 - `migrations/…_path_specialties.sql` — each training path lists the trainer specialties that suit it; the app's
   "Trainers for this" shows trainers with those specialties (set on the partner dashboard) or who teach the path's
   classes. Gives the launch trainers starting specialties where none are set.
+- `migrations/…_admin.sql` — PackPass admins (`packpass_admins`) and the admin functions behind the dashboard's
+  PackPass pages: the class review queue and `admin_set_class` (credit cost, premium, live or paused), partners,
+  trainers, and linking staff accounts by email.
 - `catalog.sql` — generated: partners, trainers, classes, training paths and the timetable. Loaded into the
   hosted project. Partners now edit their own classes and schedule from the dashboard; new partners and
   trainers are still added here (or in the SQL editor).
@@ -86,7 +89,7 @@ Expo with `--clear` (Metro caches env values).
 
 - `supabase/tests/run-local.sh` — applies everything to a scratch database on plain Postgres (with a small
   shim for `auth` and `storage`) and runs `booking.test.sql` (100 checks: each rule, credits, holds, reminders,
-  the waitlist, RLS and storage policies) and `partner.test.sql` (70 checks: staff access, one partner never
+  the waitlist, RLS and storage policies) and `partner.test.sql` (85 checks: staff access, one partner never
   reaching another's data, and each dashboard function). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
   PostgREST, with a stand-in for Supabase Auth and Storage: 68 checks, from sign-up with a dog photo and vet record to a password reset and sign-in again.
@@ -99,7 +102,7 @@ Set up on Oct 2 2026 through the Supabase MCP tools:
   applied, and the waitlist migration as two parts (`waitlist`, `waitlist_fill`). Before using the CLI there
   (`supabase link --project-ref qovbpxvpnslsjzunxutk`), run `supabase migration repair` so the history matches
   the files. New migrations: apply them the same way, or with `supabase db push` once repaired.
-- `member_log`, `path_progress` and `path_specialties` are applied too.
+- `member_log`, `path_progress`, `path_specialties` and `admin` are applied too; zdebrine@gmail.com is an admin.
 - The partner dashboard migration went on as two parts (`partner_dashboard`, then `partner_set_repeat`). A
   staff journey (sessions, classes, earnings, a new class in review that can't be scheduled yet) was run inside
   the database and rolled back.
@@ -120,9 +123,8 @@ Every key and setting the build needs is listed in `docs/SETUP.md`. For email: v
 Resend, then `supabase/scripts/setup-auth.mjs` sets Resend SMTP, the code-based templates in `templates/`
 (sign-up, reset, invite, sign-in code, email change), code length and rate limits in one go.
 
-1. **Partner accounts:** have the partner sign up in the member app (or Auth › Users › Add user), then in the
-   SQL editor: `select public.link_partner_staff('owner@their-email', 'ridgeline', 'owner', 'maren');`
-   (role `owner` or `trainer`; the last argument is their trainer profile, or null).
+1. **Partner accounts:** have the partner sign up in the member app, then link them on the dashboard's
+   PackPass › Staff page.
 2. **Auth › Attack Protection:** turn on leaked password protection (the advisors flag it).
 3. **Push:** in `apps/member`, run `eas init` (adds the project id push tokens need) and
    `eas build --profile development`. Expo Go and the web app don't receive remote pushes; reminders still

@@ -124,6 +124,35 @@ export async function signedUrls(bucket: 'dog-photos' | 'vaccine-docs', paths: s
   return Object.fromEntries(rows.filter((r) => r.path && r.signedUrl).map((r) => [r.path!, r.signedUrl]));
 }
 
+// ---- PackPass admin (supabase/migrations/…_admin.sql) ----
+export interface ReviewClass {
+  id: string; partner_id: string; partner_name: string; trainer_name: string | null; title: string; discipline: string; session_type: SessionType;
+  duration_min: number; intensity: number; group_size: number; credits: number | null; premium: boolean; status: ClassType['status'];
+  credit_review: boolean; description: string | null; image: string | null; energy: string[]; sociability: string[];
+  requires: 'social' | 'herding' | null; grants: 'social' | 'herding' | null;
+}
+export interface AdminPartner {
+  id: string; name: string; short_name: string; type: string; street: string; address: string; lat: number | null; lng: number | null;
+  parking: string | null; meet_at: string | null; payout_rate_cents: number; payout_status: string; staff: number; trainers: number; live_classes: number; in_review: number;
+}
+export interface AdminTrainer { id: string; partner_id: string; name: string; credential: string | null; specialties: string[]; classes: number }
+export interface AdminStaff { user_id: string; email: string; name: string | null; partner_id: string; partner_name: string; role: 'owner' | 'trainer'; trainer_id: string | null; trainer_name: string | null }
+
+export const isAdmin = async () => (check(await db.rpc('is_packpass_admin')) as boolean) === true;
+export const loadReviewQueue = async () => check(await db.rpc('admin_review_queue')) as ReviewClass[];
+export const setClassReview = async (id: string, credits: number | null, premium: boolean, status: 'live' | 'paused' | 'in_review') => {
+  check(await db.rpc('admin_set_class', { p_class: id, p_credits: credits, p_premium: premium, p_status: status }));
+};
+export const loadAdminPartners = async () => check(await db.rpc('admin_partners')) as AdminPartner[];
+export const saveAdminPartner = async (id: string | null, fields: Record<string, unknown>) => check(await db.rpc('admin_save_partner', { p_id: id, p: fields })) as string;
+export const loadAdminTrainers = async () => check(await db.rpc('admin_trainers')) as AdminTrainer[];
+export const saveAdminTrainer = async (id: string | null, partnerId: string, name: string, credential: string) =>
+  check(await db.rpc('admin_save_trainer', { p_id: id, p_partner: partnerId, p_name: name, p_credential: credential })) as string;
+export const loadAdminStaff = async () => check(await db.rpc('admin_staff')) as AdminStaff[];
+export const linkStaff = async (email: string, partnerId: string, role: 'owner' | 'trainer', trainerId: string | null) => {
+  check(await db.rpc('admin_link_staff', { p_email: email, p_partner: partnerId, p_role: role, p_trainer: trainerId }));
+};
+
 /** Copy for the reason codes the partner functions raise. */
 const COPY: Record<string, string> = {
   not_partner: 'This account isn\'t linked to a partner yet.',
@@ -138,6 +167,14 @@ const COPY: Record<string, string> = {
   vaccines: 'This dog doesn\'t have all three vaccines on file.',
   bad_title: 'Give the class a name.',
   not_found: 'That isn\'t available any more. Refresh and try again.',
+  not_admin: 'Only PackPass admins can do this.',
+  bad_credits: 'Set a credit cost between 1 and 20 to put the class live.',
+  bad_status: 'Pick live, paused or back to review.',
+  no_account: 'No PackPass account uses that email yet. Ask them to sign up in the app first (or invite them from Supabase), then link them.',
+  bad_trainer: 'That trainer profile belongs to another partner.',
+  bad_role: 'Pick owner or trainer.',
+  bad_name: 'Add a name.',
+  bad_address: 'Add the street address.',
 };
 export const errorCopy = (e: unknown) => {
   const m = e instanceof Error ? e.message : String(e);

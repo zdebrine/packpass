@@ -303,4 +303,35 @@ select p.ok((select credits >= 4 and amount_cents = credits * 950 from public.pa
 select p.ok(exists (select 1 from public.partner_earnings_by_class() where class_id = 'herding-fundamentals'), 'broken down by class');
 reset role;
 
+-- ---- PackPass admin ----------------------------------------------------------------------------------------
+reset role;
+insert into auth.users (id, email, raw_user_meta_data) values ('00000000-0000-0000-0000-0000000000a6', 'ops@packpass.co', '{"name":"Ops"}');
+insert into packpass_admins (user_id) values ('00000000-0000-0000-0000-0000000000a6');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.expect_error($$select * from public.admin_review_queue()$$, 'not_admin');
+select p.expect_error($$select public.admin_set_class('agility-drop-in', 1, false, 'live')$$, 'not_admin');
+select p.ok(not public.is_packpass_admin(), 'partner staff aren''t admins');
+select p.as_user('00000000-0000-0000-0000-0000000000a6');
+select p.ok(public.is_packpass_admin(), 'admins are listed by account');
+select p.ok(exists (select 1 from public.admin_review_queue() where id = (select id from p.newc) and status = 'in_review'), 'new classes wait in the review queue');
+select p.expect_error($$select public.admin_set_class((select id from p.newc), 0, false, 'live')$$, 'bad_credits');
+select public.admin_set_class((select id from p.newc), 3, false, 'live');
+reset role;
+select p.ok((select status = 'live' and credits = 3 and not credit_review from class_types where id = (select id from p.newc)), 'an admin sets the credits and puts the class live');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a6');
+select p.ok(not exists (select 1 from public.admin_review_queue() where id = (select id from p.newc)), 'and it leaves the queue');
+create table p.np as select public.admin_save_partner(null, '{"name":"North Loop Dogs","address":"5000 Burnet Rd","street":"Burnet Rd","type":"trainer","lat":30.32,"lng":-97.74}') id;
+select p.ok((select id from p.np) = 'north-loop-dogs', 'admins add partners');
+select p.ok(public.admin_save_trainer(null, 'north-loop-dogs', 'Priya Shah', 'CPDT-KA') = 'priya', 'and trainers');
+select public.admin_link_staff('member@dog.co', 'north-loop-dogs', 'trainer', 'priya');
+select p.expect_error($$select public.admin_link_staff('nobody@nowhere.co', 'north-loop-dogs', 'owner')$$, 'no_account');
+select p.expect_error($$select public.admin_link_staff('member@dog.co', 'north-loop-dogs', 'trainer', 'maren')$$, 'bad_trainer');
+select p.ok(exists (select 1 from public.admin_staff() where email = 'member@dog.co' and partner_id = 'north-loop-dogs' and trainer_name = 'Priya Shah'), 'and link staff accounts');
+select p.ok((select staff = 1 and trainers = 1 from public.admin_partners() where id = 'north-loop-dogs'), 'the partner list counts staff and trainers');
+select p.as_user('00000000-0000-0000-0000-0000000000a3');
+select p.ok(public.my_partner() = 'north-loop-dogs', 'the linked account opens that partner''s dashboard');
+reset role;
+
 drop schema p cascade;

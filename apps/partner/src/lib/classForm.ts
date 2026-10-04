@@ -62,4 +62,6 @@ export function payloadOf(f: ClassForm) {
 export const pricingChanged = (a: ClassForm, b: ClassForm) => a.duration !== b.duration || a.intensity !== b.intensity || a.group !== b.group || a.type !== b.type;
 
 /** PackPass's rough credit estimate shown while drafting (the real cost is set in review). */
-export const estimate = (f: ClassForm) => Math.max(1, Math.round((f.duration / 30) * 0.5 + f.intensity * 0.3 + ((f.type === 'class' ? f.group : 1) <= 1 ? 1.5 : f.group <= 6 ? 0.5 : 0)));
+export const estimateFor = (duration: number, intensity: number, type: SessionType, group: number) =>
+  Math.max(1, Math.round((duration / 30) * 0.5 + intensity * 0.3 + ((type === 'class' ? group : 1) <= 1 ? 1.5 : group <= 6 ? 0.5 : 0)));
+export const estimate = (f: ClassForm) => estimateFor(f.duration, f.intensity, f.type, f.group);

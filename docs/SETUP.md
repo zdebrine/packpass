@@ -22,7 +22,7 @@ Edge Function secrets, EAS or Vercel.
 | Apple and Google sign-in | The "Continue with Apple/Google" buttons (show "coming soon" now) | Supabase Auth › Providers, plus Apple/Google consoles | Later |
 | Stripe keys | Plans, credit packs, partner payouts (Connect) | Publishable key in the apps; secret and webhook secret as Edge Function secrets | Later |
 | Maps key | A real map instead of the drawn one | Google Maps or Mapbox key in the app config | Later |
-| Vercel project | Hosting the partner dashboard | Vercel env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY` | Later |
+| Vercel project | Hosting the partner dashboard | `packpass-partner` → packpass-partner.vercel.app (Supabase values come from `apps/partner/.env`) | Done |
 
 ## 1. Email through Resend (do this first)
 
@@ -75,6 +75,7 @@ Supabase's test sender: links instead of codes, a couple of emails an hour, and 
 - **Stripe:** the publishable key goes in the apps' env files; the secret key and webhook signing secret go
   in Edge Function secrets (never in the repo). Partner payouts use Stripe Connect.
 - **Maps:** a Google Maps (or Mapbox) key for real maps on the class and booking screens.
-- **Vercel:** create the project from `apps/partner`, set the two `VITE_` variables, add a rewrite of every
-  path to `index.html`, then put the URL in Supabase as the Site URL (`SITE_URL` in the setup script).
+- **Dashboard address:** when you have a domain, add it to the `packpass-partner` Vercel project and use it as
+  the Site URL (`SITE_URL=https://… node supabase/scripts/setup-auth.mjs`). Until then
+  `SITE_URL=https://packpass-partner.vercel.app` keeps any email link from landing on localhost.
 - **Leaked password protection:** Supabase › Authentication › Attack Protection, where your plan offers it.

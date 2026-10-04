@@ -1,8 +1,12 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import './styles.css';
+import { AdminShell } from '@/admin/AdminNav';
+import { Partners as AdminPartners } from '@/admin/Partners';
+import { Review } from '@/admin/Review';
+import { Staff as AdminStaff } from '@/admin/Staff';
 import { PartnerProvider, useStaffSession } from '@/lib/partner';
 import { Assessments } from '@/pages/Assessments';
 import { Classes } from '@/pages/Classes';
@@ -17,11 +21,29 @@ import { Trainers } from '@/pages/Trainers';
 import { Shell } from '@/Shell';
 import { NotStaff, SignIn } from '@/SignIn';
 
+const adminRoutes = (
+  <>
+    <Route path="admin" element={<Review />} />
+    <Route path="admin/partners" element={<AdminPartners />} />
+    <Route path="admin/staff" element={<AdminStaff />} />
+  </>
+);
+
 function App() {
   const { status, reload } = useStaffSession();
   if (status.kind === 'loading') return null;
   if (status.kind === 'signed_out') return <SignIn />;
   if (status.kind === 'not_staff') return <NotStaff />;
+  if (status.kind === 'admin_only') {
+    return (
+      <Routes>
+        <Route element={<AdminShell />}>
+          {adminRoutes}
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Route>
+      </Routes>
+    );
+  }
   return (
     <PartnerProvider value={status} reload={reload}>
       <Routes>
@@ -36,6 +58,7 @@ function App() {
           <Route path="locations" element={<Locations />} />
           <Route path="earnings" element={<Earnings />} />
           <Route path="trainers" element={<Trainers />} />
+          {status.admin ? adminRoutes : null}
         </Route>
       </Routes>
     </PartnerProvider>

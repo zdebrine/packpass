@@ -15,15 +15,21 @@ npm run build      # type-checks, then builds to dist/
 
 ## Accounts
 
-Staff sign in with an ordinary Supabase account that PackPass has linked to a partner. Anyone else who signs
-in sees "This account isn't linked to a partner yet." To link one, in the Supabase SQL editor:
+Live at **https://packpass-partner.vercel.app** (Vercel project `packpass-partner`, root `apps/partner`; every push
+to the branch redeploys).
+
+Staff sign in with an ordinary Supabase account linked to a partner; an invited account sets its password
+with Set or reset password and the code from the invite email. Anyone else who signs in sees "This account
+isn't linked to a partner yet."
+
+PackPass admins link accounts on **PackPass › Staff** (the person signs up in the member app first). Admins
+also get **Review** (set credit costs and put new classes live) and **Partners** (add and edit partners and
+trainers). An admin who isn't staff at a partner sees only those pages. To make someone an admin, in the
+Supabase SQL editor:
 
 ```sql
-select public.link_partner_staff('maren@example.com', 'ridgeline', 'owner', 'maren');
--- email, partner id, 'owner' or 'trainer', and their trainer profile (or null)
+insert into public.packpass_admins (user_id) select id from auth.users where email = 'them@example.com';
 ```
-
-The account has to exist first (sign up in the member app, or Auth › Users › Add user).
 
 ## Pages
 
@@ -38,6 +44,7 @@ The account has to exist first (sign up in the member app, or Auth › Users ›
 | Locations | Arrival notes (parking, where to meet) and today's check-in codes. |
 | Earnings | Credits redeemed by month and by class at the partner's rate, and a CSV statement. |
 | Trainers | Each trainer's bio, specialties and whether they take private sessions. |
+| PackPass › Review, Partners, Staff | Admins only: credit costs for new and repriced classes, partners and trainers, staff accounts. |
 
 ## Waiting on keys
 

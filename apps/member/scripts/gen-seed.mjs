@@ -127,7 +127,7 @@ begin
      'Juno did well one-on-one and settled after ten minutes. She still fixates on new dogs at the gate. Two sessions should get her there.');
 
   select s.id into hf from public.sessions s
-  where s.class_id = 'herding-fundamentals' and s.starts_at > now() order by s.starts_at limit 1;
+  where s.class_id = 'herding-fundamentals' and s.starts_at > now() and s.spots_left > 0 order by s.starts_at limit 1;
   insert into public.bookings (session_id, dog_id, member_id, credits_charged) values (hf, juno, p_user, 2);
   update public.sessions set spots_left = spots_left - 1 where id = hf;
   update public.profiles set credits_balance = 7 where id = p_user;
