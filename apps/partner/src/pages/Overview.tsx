@@ -10,20 +10,21 @@ import { Button, Tag, photoUrl } from '@/ui/kit';
 
 /** 01 Overview: today's sessions, the week in numbers, and what needs attention. */
 export function Overview() {
-  const { classById, trainerName, gym, partner, trainers } = usePartner();
+  const { classById, trainerName, gym, partner, trainers, staff } = usePartner();
+  const owner = staff.role === 'owner';
   const nav = useNavigate();
   const now = new Date();
   const today = ymd(now);
   const mon = mondayOf(now);
   const { data } = useData(async () => {
     const [week, notes, assess, earnings] = await Promise.all([
-      loadSessions(austin(mon, 0), austin(addDays(mon, 7), 0)), loadNotes(2), loadAssessments(), loadEarnings(2),
+      loadSessions(austin(mon, 0), austin(addDays(mon, 7), 0)), loadNotes(2), loadAssessments(), owner ? loadEarnings(2) : Promise.resolve([]),
     ]);
     const todays = withClasses(week, classById).filter((s) => ymd(s.start) === today && !s.cancelled_at);
     // Vaccine problems among dogs booked today.
     const rosters = await Promise.all(todays.filter((s) => s.booked > 0 && s.end > now).map(async (s) => ({ s, dogs: await loadRoster(s.id) })));
     return { week: withClasses(week, classById), todays, notes, assess, earnings, rosters };
-  }, [mon]);
+  }, [mon, owner]);
 
   if (!data) return <Loading />;
   const { week, todays, notes, assess, earnings, rosters } = data;
@@ -50,7 +51,9 @@ export function Overview() {
   const stats = [
     { label: 'Dogs booked this week', value: String(live.reduce((a, s) => a + s.booked, 0)), sub: `${live.length} sessions` },
     { label: 'PackPass spots filled', value: opened ? `${Math.round((filled / opened) * 100)}%` : '–', sub: `${filled} of ${opened} opened this week` },
-    { label: `Earned in ${monthName(now)}`, value: money(thisMonth?.amount_cents ?? 0), sub: `${thisMonth?.credits ?? 0} credits so far` },
+    owner
+      ? { label: `Earned in ${monthName(now)}`, value: money(thisMonth?.amount_cents ?? 0), sub: `${thisMonth?.credits ?? 0} credits so far` }
+      : { label: 'Checked in this week', value: String(live.reduce((a, s) => a + s.checked_in, 0)), sub: `of ${live.reduce((a, s) => a + s.booked, 0)} dogs booked` },
     { label: gym ? 'Average rating' : 'Your rating', value: ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : '–', sub: gym ? `${trainers.length} trainers` : partner.name },
   ];
 

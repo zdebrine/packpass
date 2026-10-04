@@ -97,7 +97,7 @@ http.createServer(async (req, res) => {
     // no email; an unconfirmed one gets the code again.
     if (users.has(email)) return json(res, 200, { ...userObj(users.get(email).id, email), identities: users.get(email).confirmed ? [] : [{ provider: 'email' }] });
     const id = crypto.randomUUID();
-    psql(`insert into auth.users (id, email, raw_user_meta_data) values ('${id}', '${email}', '${JSON.stringify(data || {}).replace(/'/g, "''")}')`);
+    psql(`insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at) values ('${id}', '${email}', '${JSON.stringify(data || {}).replace(/'/g, "''")}', null)`);
     users.set(email, { id, password, confirmed: false });
     return json(res, 200, { ...userObj(id, email), identities: [{ provider: 'email' }] });
   }
@@ -105,6 +105,7 @@ http.createServer(async (req, res) => {
     const { email, token } = await readBody(req);
     const u = users.get(email);
     if (!u || token !== '123456') return json(res, 403, { msg: 'Token has expired or is invalid', error_code: 'otp_expired' });
+    if (!u.confirmed) psql(`update auth.users set email_confirmed_at = now() where id = '${u.id}'`);
     u.confirmed = true;
     return json(res, 200, session(u.id, email));
   }

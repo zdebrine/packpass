@@ -11,7 +11,8 @@ create schema auth;
 create table auth.users (
   id uuid primary key default gen_random_uuid(),
   email text,
-  raw_user_meta_data jsonb not null default '{}'
+  raw_user_meta_data jsonb not null default '{}',
+  email_confirmed_at timestamptz default now() -- tests' accounts are confirmed unless they say otherwise
 );
 -- Supabase reads the caller's id from the JWT; tests set it with `set local request.jwt.claim.sub`.
 create function auth.uid() returns uuid language sql stable as $$

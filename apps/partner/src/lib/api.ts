@@ -55,6 +55,25 @@ export async function setPasswordWithCode(email: string, code: string, password:
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Creates an account for someone invited to a team (or a partner applying). Supabase emails a 6-digit
+ * code (supabase/templates/confirmation.html); confirming it links any invite waiting for the email.
+ */
+export async function createAccount(name: string, email: string, password: string) {
+  const { data, error } = await db.auth.signUp({ email, password, options: { data: { name: name.trim() } } });
+  if (error) throw new Error(error.message);
+  // An email that already has a confirmed account gets a stand-in user with no identities and no email.
+  if (data.user && !data.user.identities?.length) throw new Error('already_registered');
+}
+export async function confirmAccount(email: string, code: string) {
+  const { error } = await db.auth.verifyOtp({ email, token: code, type: 'signup' });
+  if (error) throw new Error(error.message);
+}
+export async function resendAccountCode(email: string) {
+  const { error } = await db.auth.resend({ email, type: 'signup' });
+  if (error) throw new Error(error.message);
+}
+
 /** The signed-in account's staff row and partner, or null if it isn't linked to one. */
 export async function loadStaff(): Promise<{ staff: Staff; partner: Partner } | null> {
   const { data: auth } = await db.auth.getUser();
@@ -115,6 +134,18 @@ export const checkVaccines = async (dogId: string) => { check(await db.rpc('part
 export const loadEarnings = async (months = 6) => check(await db.rpc('partner_earnings', { p_months: months })) as EarningsMonth[];
 export const loadEarningsByClass = async () => check(await db.rpc('partner_earnings_by_class')) as EarningsClass[];
 
+// ---- Team (supabase/migrations/…_partner_team.sql; owners only) ----
+export interface TeamRow {
+  kind: 'staff' | 'invite'; id: string; email: string; name: string | null; role: 'owner' | 'trainer';
+  trainer_id: string | null; trainer_name: string | null; is_me: boolean; since: string;
+}
+export const loadTeam = async () => check(await db.rpc('partner_team')) as TeamRow[];
+/** 'linked' when an account already uses the email, else 'invited' (linked once they sign up). */
+export const inviteToTeam = async (email: string, role: 'owner' | 'trainer', trainerId: string | null, newTrainer: string | null) =>
+  check(await db.rpc('partner_invite', { p_email: email, p_role: role, p_trainer: trainerId, p_new_trainer: newTrainer })) as 'linked' | 'invited';
+export const cancelInvite = async (id: string) => { check(await db.rpc('partner_cancel_invite', { p_id: id })); };
+export const removeFromTeam = async (userId: string) => { check(await db.rpc('partner_remove_staff', { p_user: userId })); };
+
 // ---- Files ----
 /** Signed URLs for dog photos or vet records (staff can read those of dogs booked with them). */
 export async function signedUrls(bucket: 'dog-photos' | 'vaccine-docs', paths: string[]): Promise<Record<string, string>> {
@@ -170,11 +201,19 @@ const COPY: Record<string, string> = {
   not_admin: 'Only PackPass admins can do this.',
   bad_credits: 'Set a credit cost between 1 and 20 to put the class live.',
   bad_status: 'Pick live, paused or back to review.',
-  no_account: 'No PackPass account uses that email yet. Ask them to sign up in the app first (or invite them from Supabase), then link them.',
+  no_account: 'No PackPass account uses that email yet. Ask them to choose Create an account on the dashboard sign-in page (or sign up in the app), then link them.',
   bad_trainer: 'That trainer profile belongs to another partner.',
   bad_role: 'Pick owner or trainer.',
   bad_name: 'Add a name.',
   bad_address: 'Add the street address.',
+  not_owner: 'Only owners can do this.',
+  bad_email: 'Check the email address.',
+  needs_trainer: 'Pick their trainer profile, or add a new one.',
+  already_staff: 'They\'re already on your team.',
+  staff_elsewhere: 'That account is already on another partner\'s team. Ask PackPass to move it.',
+  trainer_taken: 'Someone on your team already signs in as that trainer.',
+  is_me: 'You can\'t remove yourself. Ask another owner.',
+  already_registered: 'There\'s already an account with this email. Sign in instead (or use Set or reset password).',
 };
 export const errorCopy = (e: unknown) => {
   const m = e instanceof Error ? e.message : String(e);

@@ -14,7 +14,7 @@ export function Trainers() {
   if (!t) return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <h1 className="pk-display-xl" style={{ margin: 0 }}>Trainers</h1>
-      <span className="pk-body pk-muted">No trainers are listed for your location yet. PackPass adds them when your account is set up.</span>
+      <span className="pk-body pk-muted">No trainers are listed for your location yet. Owners add them on Team.</span>
     </div>
   );
   const teaches = (id: string) => Array.from(new Set(classes.filter((c) => c.trainer_id === id && c.status !== 'paused').map((c) => c.discipline)));

@@ -18,11 +18,16 @@ npm run build      # type-checks, then builds to dist/
 Live at **https://packpass-partner.vercel.app** (Vercel project `packpass-partner`, root `apps/partner`; every push
 to the branch redeploys).
 
-Staff sign in with an ordinary Supabase account linked to a partner; an invited account sets its password
-with Set or reset password and the code from the invite email. Anyone else who signs in sees "This account
-isn't linked to a partner yet."
+Staff sign in with an ordinary Supabase account linked to a partner. Owners add their own trainers and
+co-owners on **Team**: an email that already has a PackPass account joins straight away; anyone else chooses
+**Create an account** on the sign-in page with that email, confirms the 6-digit code, and lands on the
+dashboard. There's no invite email yet, so Team gives the owner a message to send. An account PackPass invited
+from Supabase sets its password with Set or reset password and the code from the invite email. Anyone else
+who signs in sees "This account isn't linked to a partner yet."
 
-PackPass admins link accounts on **PackPass › Staff** (the person signs up in the member app first). Admins
+Owners see everything. Trainers don't see Earnings or Team (the Overview shows check-ins instead of earnings).
+
+PackPass admins link a partner's first owner on **PackPass › Staff** (the person creates an account first). Admins
 also get **Review** (set credit costs and put new classes live) and **Partners** (add and edit partners and
 trainers). An admin who isn't staff at a partner sees only those pages. To make someone an admin, in the
 Supabase SQL editor:
@@ -44,6 +49,7 @@ insert into public.packpass_admins (user_id) select id from auth.users where ema
 | Locations | Arrival notes (parking, where to meet) and today's check-in codes. |
 | Earnings | Credits redeemed by month and by class at the partner's rate, and a CSV statement. |
 | Trainers | Each trainer's bio, specialties and whether they take private sessions. |
+| Team | Owners only: who can open the dashboard, invites waiting to be accepted, and adding or removing people. |
 | PackPass › Review, Partners, Staff | Admins only: credit costs for new and repriced classes, partners and trainers, staff accounts. |
 
 ## Waiting on keys

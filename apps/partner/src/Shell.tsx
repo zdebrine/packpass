@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardCheck, Layers, LayoutDashboard, MapPin, NotebookPen, ShieldCheck, UserRound, Wallet, type LucideIcon } from 'lucide-react';
+import { CalendarDays, ClipboardCheck, Layers, LayoutDashboard, MapPin, NotebookPen, ShieldCheck, UserRound, Users, Wallet, type LucideIcon } from 'lucide-react';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
@@ -13,6 +13,7 @@ const PARTNER_SUB: Record<string, string> = { trainer: 'Independent trainer', fa
 export function Shell() {
   const { partner, staff, trainers, gym, admin } = usePartner();
   const loc = useLocation();
+  const owner = staff.role === 'owner';
   const [due, setDue] = useState({ notes: 0, assess: 0 });
 
   useEffect(() => {
@@ -23,11 +24,13 @@ export function Shell() {
     return () => { live = false; };
   }, [loc.pathname]);
 
-  const nav: [string, string, LucideIcon, number?][] = [
+  const all: [string, string, LucideIcon, number?][] = [
     ['/', 'Overview', LayoutDashboard], ['/schedule', 'Schedule', CalendarDays], ['/classes', 'Classes', Layers],
     ['/roster', 'Roster', ClipboardCheck], ['/notes', 'Session notes', NotebookPen, due.notes], ['/assessments', 'Assessments', ShieldCheck, due.assess],
-    ['/locations', 'Locations', MapPin], ['/earnings', 'Earnings', Wallet], ['/trainers', gym ? 'Trainers' : 'Profile', UserRound],
+    ['/locations', 'Locations', MapPin], ['/earnings', 'Earnings', Wallet], ['/trainers', gym ? 'Trainers' : 'Profile', UserRound], ['/team', 'Team', Users],
   ];
+  // Earnings and Team are for owners.
+  const nav = all.filter(([to]) => owner || (to !== '/earnings' && to !== '/team'));
   const sub = `${PARTNER_SUB[partner.type] ?? 'Partner'}${gym ? ` · ${trainers.length} trainers` : ''}`;
 
   return (

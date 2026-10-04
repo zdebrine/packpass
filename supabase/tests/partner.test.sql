@@ -301,6 +301,60 @@ select p.as_user('00000000-0000-0000-0000-0000000000a1');
 select p.ok((select count(*) from public.partner_earnings(6)) = 6, 'earnings cover the last six months');
 select p.ok((select credits >= 4 and amount_cents = credits * 950 from public.partner_earnings(1)), 'this month counts the sessions that ran, at $9.50 a credit');
 select p.ok(exists (select 1 from public.partner_earnings_by_class() where class_id = 'herding-fundamentals'), 'broken down by class');
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+select p.expect_error($$select * from public.partner_earnings(6)$$, 'not_owner');
+select p.expect_error($$select * from public.partner_earnings_by_class()$$, 'not_owner');
+reset role;
+
+-- ---- Team -------------------------------------------------------------------------------------------------
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+select p.expect_error($$select * from public.partner_team()$$, 'not_owner');
+select p.expect_error($$select public.partner_invite('x@y.co', 'trainer', null, 'X Y')$$, 'not_owner');
+select p.as_user('00000000-0000-0000-0000-0000000000a3');
+select p.expect_error($$select * from public.partner_team()$$, 'not_partner');
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.ok((select count(*) = 1 and bool_and(is_me and role = 'owner' and trainer_name = 'Maren Holt') from public.partner_team()), 'an owner sees their team');
+select p.expect_error($$select public.partner_invite('not an email', 'trainer', 'dev')$$, 'bad_email');
+select p.expect_error($$select public.partner_invite('jo@ridgeline.co', 'trainer')$$, 'needs_trainer');
+select p.expect_error($$select public.partner_invite('jo@ridgeline.co', 'trainer', 'sam')$$, 'bad_trainer');
+select p.expect_error($$select public.partner_invite('jo@ridgeline.co', 'trainer', 'maren')$$, 'trainer_taken');
+select p.expect_error($$select public.partner_invite('SAM@eastside.co', 'trainer', 'dev')$$, 'staff_elsewhere');
+select p.expect_error($$select public.partner_invite('owner@ridgeline.co', 'owner')$$, 'already_staff');
+select p.ok(public.partner_invite(' Jo@Ridgeline.co ', 'trainer', null, 'Jo Park') = 'invited', 'an email without an account is invited');
+select p.ok((select count(*) = 1 and bool_and(email = 'jo@ridgeline.co' and trainer_name = 'Jo Park') from public.partner_team() where kind = 'invite'),
+            'with a new trainer profile for them');
+select p.expect_error($$select public.partner_invite('other@ridgeline.co', 'trainer', (select trainer_id from public.partner_team() where email = 'jo@ridgeline.co'))$$, 'trainer_taken');
+reset role;
+select p.ok((select partner_id = 'ridgeline' and credential is null from trainers where name = 'Jo Park'), 'the profile belongs to the partner, without a credential');
+-- Jo signs up: nothing happens until the email is confirmed.
+insert into auth.users (id, email, email_confirmed_at) values ('00000000-0000-0000-0000-0000000000b1', 'jo@ridgeline.co', null);
+select p.ok(not exists (select 1 from partner_staff where user_id = '00000000-0000-0000-0000-0000000000b1'), 'an unconfirmed account isn''t added');
+update auth.users set email_confirmed_at = now() where id = '00000000-0000-0000-0000-0000000000b1';
+select p.ok((select partner_id = 'ridgeline' and role = 'trainer' and trainer_id = (select id from trainers where name = 'Jo Park') from partner_staff where user_id = '00000000-0000-0000-0000-0000000000b1'),
+            'confirming the email joins the team, signed in as their trainer profile');
+select p.ok(not exists (select 1 from partner_invites where email = 'jo@ridgeline.co'), 'and uses up the invite');
+-- An existing account is added straight away.
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000b2', 'dev@ridgeline.co');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.ok(public.partner_invite('dev@ridgeline.co', 'trainer', 'dev') = 'linked', 'an existing account is added straight away');
+select p.ok((select count(*) from public.partner_team() where kind = 'staff') = 3, 'and shows on the team');
+select p.ok(public.partner_invite('later@ridgeline.co', 'owner') = 'invited', 'owners can be invited without a trainer profile');
+select public.partner_cancel_invite((select id::uuid from public.partner_team() where email = 'later@ridgeline.co'));
+select p.ok(not exists (select 1 from public.partner_team() where email = 'later@ridgeline.co'), 'an invite can be cancelled');
+select p.expect_error($$select public.partner_remove_staff('00000000-0000-0000-0000-0000000000a1')$$, 'is_me');
+select p.expect_error($$select public.partner_remove_staff('00000000-0000-0000-0000-0000000000a2')$$, 'not_found');
+select public.partner_remove_staff('00000000-0000-0000-0000-0000000000b2');
+select p.as_user('00000000-0000-0000-0000-0000000000b2');
+select p.ok(public.my_partner() is null, 'someone removed from the team loses the dashboard');
+select p.as_user('00000000-0000-0000-0000-0000000000b1');
+select p.expect_error($$select * from public.partner_team()$$, 'not_owner');
+reset role;
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.partner_invite('again@ridgeline.co', 'owner');
+select p.ok(not exists (select 1 from public.partner_invites), 'invites aren''t readable directly, only through the team functions');
 reset role;
 
 -- ---- PackPass admin ----------------------------------------------------------------------------------------

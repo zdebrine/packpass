@@ -147,7 +147,7 @@ Business rules in `src/lib`, unit tested:
    notifications, hold reminders, push registration, the waitlist, password reset and dog photos. The app uses the hosted project by default; see `supabase/README.md` for how it
    was set up and the dashboard steps left (code email templates, SMTP).
 3. **v3:** the partner dashboard (done: schedules, rosters and check-in, vet records, notes, assessment
-   results, classes, earnings; payouts wait on Stripe Connect). Still to come: Apple and Google sign-in, Stripe
+   results, classes, earnings, owners managing their own team; payouts wait on Stripe Connect). Still to come: Apple and Google sign-in, Stripe
    plans, credit packs and partner payouts, push delivery switched on (EAS project, dev build), a real map,
    and PostHog. The member app's Log now shows real sessions, partner notes and assessment results.
 

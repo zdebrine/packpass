@@ -17,6 +17,7 @@ import { Notes } from '@/pages/Notes';
 import { Overview } from '@/pages/Overview';
 import { Roster } from '@/pages/Roster';
 import { Schedule } from '@/pages/Schedule';
+import { Team } from '@/pages/Team';
 import { Trainers } from '@/pages/Trainers';
 import { Shell } from '@/Shell';
 import { NotStaff, SignIn } from '@/SignIn';
@@ -56,8 +57,10 @@ function App() {
           <Route path="notes" element={<Notes />} />
           <Route path="assessments" element={<Assessments />} />
           <Route path="locations" element={<Locations />} />
-          <Route path="earnings" element={<Earnings />} />
+          {status.staff.role === 'owner' ? <Route path="earnings" element={<Earnings />} /> : null}
           <Route path="trainers" element={<Trainers />} />
+          {status.staff.role === 'owner' ? <Route path="team" element={<Team />} /> : null}
+          <Route path="*" element={<Navigate to="/" replace />} />
           {status.admin ? adminRoutes : null}
         </Route>
       </Routes>
