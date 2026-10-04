@@ -1,0 +1,15 @@
+body{margin:0;font-family:var(--font-sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+a{color:var(--link);text-underline-offset:3px}a:hover{color:var(--ink-muted)}
+.pk-display-2xl,.pk-display-xl,.pk-display-lg,.pk-display-md{font-family:var(--font-display);font-variation-settings:"wdth" 112;font-stretch:112%;font-weight:800;letter-spacing:-0.025em;text-wrap:balance}
+.pk-display-2xl{font-size:64px;line-height:58px}
+.pk-display-xl{font-size:44px;line-height:42px}
+.pk-display-lg{font-size:32px;line-height:32px}
+.pk-display-md{font-size:22px;line-height:24px;letter-spacing:-0.015em}
+.pk-wide{font-family:var(--font-display);font-variation-settings:"wdth" 125;font-stretch:125%;font-weight:600;font-size:11px;line-height:14px;letter-spacing:0.08em;text-transform:uppercase}
+.pk-title{font-size:20px;line-height:26px;font-weight:600;letter-spacing:-0.01em}
+.pk-heading{font-size:17px;line-height:22px;font-weight:600;letter-spacing:-0.005em}
+.pk-body{font-size:16px;line-height:23px;font-weight:400}
+.pk-label{font-size:14px;line-height:20px;font-weight:500}
+.pk-caption{font-size:12px;line-height:16px;font-weight:500}
+.pk-muted{color:var(--ink-muted)}
+.pk-num{font-variant-numeric:tabular-nums}

@@ -235,6 +235,9 @@ export const linkStaff = async (email: string, partnerId: string, role: 'owner' 
 export const unlinkStaff = async (userId: string) => { check(await db.rpc('admin_unlink_staff', { p_user: userId })); };
 export interface AdminApplication extends Omit<Application, 'docs'> { email: string; partner_id: string | null; decided_at: string | null; docs: AppDoc[] }
 export const loadApplications = async () => check(await db.rpc('admin_applications')) as AdminApplication[];
+export interface PartnerLead { id: string; business_type: string; name: string; business_name: string; email: string; zip: string; created_at: string; applied: boolean }
+/** The website's earnings-calculator form, last 90 days. */
+export const loadPartnerLeads = async () => check(await db.rpc('admin_partner_leads')) as PartnerLead[];
 /** Approve returns the new partner's id. */
 export const decideApplication = async (id: string, approve: boolean, reason?: string) =>
   check(await db.rpc('admin_decide_application', { p_id: id, p_approve: approve, p_reason: reason ?? null })) as string | null;

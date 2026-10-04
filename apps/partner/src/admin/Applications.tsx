@@ -2,7 +2,7 @@ import { FileText } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { decideApplication, errorCopy, loadApplications, type AdminApplication, type DocKind } from '@/lib/api';
+import { decideApplication, errorCopy, loadApplications, loadPartnerLeads, type AdminApplication, type DocKind } from '@/lib/api';
 import { useData } from '@/lib/partner';
 import { monthDay } from '@/lib/time';
 import { useSigned } from '@/lib/useSigned';
@@ -29,6 +29,7 @@ export function Applications() {
         <span className="pk-label pk-muted">Check the documents, then approve or ask for changes. Approving creates the partner and opens their dashboard.</span>
       </header>
       {waiting.length ? waiting.map((a) => <ApplicationCard key={a.id} a={a} onDone={reload} />) : <Empty>No applications waiting. New ones from the dashboard’s Apply to partner show up here.</Empty>}
+      <Leads />
       {decided.length ? (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <h2 className="pk-title" style={{ margin: 0 }}>Decided in the last 30 days</h2>
@@ -108,6 +109,29 @@ function ApplicationCard({ a, onDone }: { a: AdminApplication; onDone: () => voi
         </Row>
       )}
       <ErrorLine>{error}</ErrorLine>
+    </section>
+  );
+}
+
+/** Who filled in the website's earnings form: people to follow up with, and whether they've since applied. */
+function Leads() {
+  const { data } = useData(loadPartnerLeads, []);
+  if (!data?.length) return null;
+  return (
+    <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <h2 className="pk-title" style={{ margin: 0 }}>{`From the website · ${data.length}`}</h2>
+      <span className="pk-label pk-muted">People who opened the earnings calculator on the partner page in the last 90 days.</span>
+      {data.map((l) => (
+        <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderRadius: 20, background: 'var(--surface-raised)', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span className="pk-label" style={{ fontWeight: 600 }}>{l.business_name}</span>
+            <span className="pk-caption pk-muted">{`${l.name} · ${l.business_type} · ${l.zip}`}</span>
+          </div>
+          <a href={`mailto:${l.email}`} className="pk-label">{l.email}</a>
+          <span className="pk-caption pk-muted">{monthDay(new Date(l.created_at))}</span>
+          {l.applied ? <Tag tone="signal">Applied</Tag> : null}
+        </div>
+      ))}
     </section>
   );
 }

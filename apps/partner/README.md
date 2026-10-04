@@ -29,7 +29,7 @@ New partners apply from the sign-in page (**Apply to partner with PackPass**, fr
 `project/Pack Partner Onboarding.dc.html`): create an account, then business, services, credentials (uploads)
 and payouts (rate card and legal name; bank and tax details wait for Stripe Connect). Any signed-in account
 that isn't on a team sees the same welcome, its draft, or where its application is up to. PackPass admins
-review on **PackPass › Applications**: approving creates the partner and opens its dashboard for the
+review on **PackPass › Applications** (which also lists leads from the website's earnings form): approving creates the partner and opens its dashboard for the
 applicant (add the map location on Partners); Ask for changes sends it back with a note.
 
 Owners see everything. Trainers don't see Earnings or Team (the Overview shows check-ins instead of earnings).

@@ -23,6 +23,8 @@ Edge Function secrets, EAS or Vercel.
 | Stripe keys | Plans, credit packs, partner payouts (Connect) | Publishable key in the apps; secret and webhook secret as Edge Function secrets | Later |
 | Maps key | A real map instead of the drawn one | Google Maps or Mapbox key in the app config | Later |
 | Vercel project | Hosting the partner dashboard | `packpass-partner` → packpass-partner.vercel.app (Supabase values come from `apps/partner/.env`) | Done |
+| Vercel project for the website | Hosting the public site (`apps/web`) | New project, root `apps/web`, no env vars needed (`apps/web/.env` is public) | **To do** |
+| App store links | The website's download buttons | `VITE_IOS_URL`, `VITE_ANDROID_URL` in `apps/web/.env` | Later, once listed |
 
 ## 1. Email through Resend (do this first)
 

@@ -6,7 +6,8 @@ import { ApplyWelcome, markApplying } from '@/apply/Apply';
 
 /** Staff sign in with the email and password of their PackPass account, or set one with an emailed code. */
 export function SignIn() {
-  const [mode, setMode] = useState<'sign_in' | 'code' | 'create' | 'apply' | 'apply_account'>('sign_in');
+  // The website's Apply to partner links here with ?apply=1.
+  const [mode, setMode] = useState<'sign_in' | 'code' | 'create' | 'apply' | 'apply_account'>(() => (new URLSearchParams(window.location.search).has('apply') ? 'apply' : 'sign_in'));
   const [email, setEmail] = useState('');
   if (mode === 'code') return <SetPassword email={email} setEmail={setEmail} onBack={() => setMode('sign_in')} />;
   if (mode === 'create') return <CreateAccount email={email} setEmail={setEmail} onBack={() => setMode('sign_in')} />;

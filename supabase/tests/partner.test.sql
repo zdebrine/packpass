@@ -487,4 +487,25 @@ select p.ok(public.my_partner() = 'northside-barn' and (select status = 'approve
 select p.expect_error($$select public.save_application('{}')$$, 'already_partner');
 reset role;
 
+-- ---- Website leads -----------------------------------------------------------------------------------------
+grant usage on schema p to anon;
+grant execute on all functions in schema p to anon;
+set role anon;
+select public.submit_partner_lead('Trainer', 'Ana Ruiz', 'Ruiz Dog Training', 'Ana@RuizDogs.com', '78702');
+select public.submit_partner_lead('Sport club', 'Ana Ruiz', 'Ruiz Dog Sport', 'ana@ruizdogs.com', '78702');
+select p.expect_error($$select public.submit_partner_lead('Trainer', 'A', 'X', 'a@b.co', '78702')$$, 'bad_name');
+select p.expect_error($$select public.submit_partner_lead('Trainer', 'Ana', 'Ruiz', 'not-an-email', '78702')$$, 'bad_email');
+select p.expect_error($$select public.submit_partner_lead('Trainer', 'Ana', 'Ruiz', 'a@b.co', '787')$$, 'bad_zip');
+select p.expect_error($$select public.submit_partner_lead('Groomer', 'Ana', 'Ruiz', 'a@b.co', '78702')$$, 'bad_type');
+select p.ok(not exists (select 1 from public.partner_leads), 'the website can''t read leads back');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.ok(not exists (select 1 from public.partner_leads), 'nobody reads leads directly');
+select p.expect_error($$select * from public.admin_partner_leads()$$, 'not_admin');
+select p.as_user('00000000-0000-0000-0000-0000000000a6');
+select p.ok((select count(*) = 1 and bool_and(business_name = 'Ruiz Dog Sport' and email = 'ana@ruizdogs.com' and not applied) from public.admin_partner_leads()),
+            'the website saves partner leads, one a day per email, for admins');
+select p.ok((select applied from public.admin_partner_leads() where email = 'maya@northsidebarn.co') is null, 'leads only list who submitted');
+reset role;
+
 drop schema p cascade;

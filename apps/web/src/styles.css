@@ -1,0 +1,28 @@
+@import '@fontsource-variable/geist/index.css';
+@import '@fontsource-variable/archivo/wdth.css';
+@import './ds/colors.css';
+@import './ds/typography.css';
+@import './ds/spacing.css';
+@import './ds/base.css';
+@import './ds/pack-components.css';
+
+/* From the website design's page styles. */
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); }
+a { color: var(--ink); text-underline-offset: 3px; }
+a:hover { color: var(--ink-muted); }
+input, button { font: inherit; }
+input:focus { outline: none; box-shadow: var(--focus-ring); }
+section[id], div[id] { scroll-margin-top: 80px; }
+@keyframes ppWordIn { from { opacity: 0; transform: translateY(.35em); } to { opacity: 1; transform: none; } }
+input[type=range] { width: 100%; accent-color: var(--ink); height: 28px; margin: 0; cursor: pointer; }
+.pp-field { height: 52px; border: 0; border-radius: 9999px; background: var(--surface-raised); color: var(--ink); padding: 0 20px; font-size: 16px; box-sizing: border-box; width: 100%; }
+.pp-section { max-width: 1280px; margin: 0 auto; padding: clamp(72px, 9vw, 120px) clamp(20px, 4vw, 40px) 0; box-sizing: border-box; }
+.pp-h2 { margin: 0; font-size: clamp(36px, 4.6vw, 60px); line-height: 1; }
+.pp-glass { background: var(--glass); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); }
+a.pk-btn { box-sizing: border-box; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+/* Section links in the top bar hide when space runs short, rather than wrapping the bar. */
+@media (max-width: 1100px) { [data-pp-navlinks] { display: none !important; } }
+@media (max-width: 640px) { [data-pp-hide-sm] { display: none !important; } }
+.pp-sm { display: none; }
+@media (max-width: 480px) { .pp-lg { display: none; } .pp-sm { display: inline; } }

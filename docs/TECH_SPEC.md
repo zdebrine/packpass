@@ -83,7 +83,7 @@ docs/TECH_SPEC.md
 project/                      Claude Design export (reference only, not shipped)
 ```
 
-`apps/partner` is the partner dashboard (desktop web): a Vite + React app on the same Supabase project, using the design system's CSS directly rather than the React Native port. See `apps/partner/README.md`. Shared `packages/` (types, API client) can come later if the two apps start duplicating more than the colour and type tokens.
+`apps/web` is the public website (owners and partner pages, see `apps/web/README.md`). `apps/partner` is the partner dashboard (desktop web): a Vite + React app on the same Supabase project, using the design system's CSS directly rather than the React Native port. See `apps/partner/README.md`. Shared `packages/` (types, API client) can come later if the two apps start duplicating more than the colour and type tokens.
 
 ## 4. Design system port
 
