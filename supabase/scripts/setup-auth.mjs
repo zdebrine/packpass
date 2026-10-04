@@ -8,6 +8,8 @@
 //
 // Usage (Node 18+, from the repo root):
 //   SUPABASE_ACCESS_TOKEN=sbp_…   # supabase.com/dashboard/account/tokens
+// No domain yet? Leave out RESEND_API_KEY and MAIL_FROM: the code templates and limits still go on, and
+// Supabase's test sender keeps delivering (only to the project's team, a few an hour).
 //   RESEND_API_KEY=re_…           # resend.com/api-keys (Sending access is enough for SMTP; Full access lets
 //                                 # this script check and add the domain)
 //   MAIL_FROM=hello@yourdomain.com
@@ -31,7 +33,8 @@ const need = (k) => {
   return env[k];
 };
 const token = dry ? env.SUPABASE_ACCESS_TOKEN : need('SUPABASE_ACCESS_TOKEN');
-const from = need('MAIL_FROM');
+// The sender only matters with Resend; without it, Supabase's own test sender stays (templates still apply).
+const from = env.RESEND_API_KEY ? need('MAIL_FROM') : env.MAIL_FROM ?? '';
 const domain = from.split('@')[1];
 
 // ---- Resend: is the sending domain verified? ------------------------------------------------------

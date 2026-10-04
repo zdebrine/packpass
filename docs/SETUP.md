@@ -32,8 +32,9 @@ Supabase's test sender: links instead of codes, a couple of emails an hour, and 
 1. **Domain.** In Resend › Domains › Add domain, add the domain you'll send from (for example `packpass.app`).
    Resend lists three or four DNS records (MX, SPF and DKIM TXT). Add them where the domain is registered,
    then press Verify. Verification usually takes minutes, sometimes a few hours.
-   No domain yet? Resend's `onboarding@resend.dev` sender works for testing, but only delivers to the email
-   on your Resend account.
+   No domain yet? Skip to step 3 and run the script with just `SUPABASE_ACCESS_TOKEN`: the code templates go on
+   and Supabase's test sender keeps working for you (it only delivers to the project's team, a few an hour).
+   Real members need the domain. A subdomain of a domain you already own (like `mail.yourdomain.com`) works too.
 2. **Resend API key.** Resend › API Keys › Create. "Full access" lets the setup script check and add the
    domain for you; "Sending access" is enough for the emails themselves.
 3. **Supabase access token.** supabase.com/dashboard/account/tokens › Generate new token.
