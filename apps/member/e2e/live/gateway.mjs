@@ -7,6 +7,7 @@ const SECRET = 'packpass-local-test-secret-0123456789abcdef';
 const DB = process.env.DB || 'packpass_api';
 const PG = ['-h', process.env.PGHOST || '/tmp', '-p', process.env.PGPORT || '5432', '-U', process.env.PGUSER || 'postgres', '-d', DB];
 const users = new Map(); // email -> { id, password, confirmed }
+const pendingEmail = new Map(); // new email -> { from: current email, confirmed: addresses whose code is in }
 
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const sign = (claims) => {
@@ -102,7 +103,17 @@ http.createServer(async (req, res) => {
     return json(res, 200, { ...userObj(id, email), identities: [{ provider: 'email' }] });
   }
   if (p === '/auth/v1/verify') {
-    const { email, token } = await readBody(req);
+    const { email, token, type } = await readBody(req);
+    if (type === 'email_change') {
+      const [to, change] = [...pendingEmail].find(([n, ch]) => n === email || ch.from === email) ?? [];
+      if (!change || token !== '123456') return json(res, 403, { msg: 'Token has expired or is invalid', error_code: 'otp_expired' });
+      change.confirmed.add(email);
+      if (change.confirmed.size < 2) return json(res, 200, { msg: 'Confirmation link accepted. Please proceed to confirm link sent to the other email' });
+      const moved = users.get(change.from);
+      users.delete(change.from); users.set(to, moved); pendingEmail.delete(to);
+      psql(`update auth.users set email = ${q(to)} where id = '${moved.id}'`);
+      return json(res, 200, session(moved.id, to));
+    }
     const u = users.get(email);
     if (!u || token !== '123456') return json(res, 403, { msg: 'Token has expired or is invalid', error_code: 'otp_expired' });
     if (!u.confirmed) psql(`update auth.users set email_confirmed_at = now() where id = '${u.id}'`);
@@ -123,7 +134,14 @@ http.createServer(async (req, res) => {
   if (p === '/auth/v1/user' && req.method === 'PUT') {
     const tok = (req.headers.authorization || '').split(' ')[1] || '';
     const claims = JSON.parse(Buffer.from(tok.split('.')[1], 'base64url').toString());
-    const { password } = await readBody(req);
+    const { password, email } = await readBody(req);
+    // Changing email, like GoTrue's secure email change (the default): codes go to the new and the current
+    // address, and the email changes once both are entered.
+    if (email) {
+      if (users.has(email)) return json(res, 422, { msg: 'A user with this email address has already been registered', error_code: 'email_exists' });
+      pendingEmail.set(email, { from: claims.email, confirmed: new Set() });
+      return json(res, 200, userObj(claims.sub, claims.email));
+    }
     if (!password || password.length < 8) return json(res, 422, { msg: 'Password should be at least 8 characters.', error_code: 'weak_password' });
     users.get(claims.email).password = password;
     return json(res, 200, userObj(claims.sub, claims.email));

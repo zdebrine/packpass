@@ -21,7 +21,7 @@ function ok(cond: unknown, what: string) {
 const S = () => useApp.getState();
 
 (async () => {
-  const email = `e2e+${Date.now()}@packpass.test`;
+  let email = `e2e+${Date.now()}@packpass.test`;
   S().updateDraft({ email, ownerName: 'Test Owner', area: 'Mueller' });
 
   // 01b / 01d
@@ -229,6 +229,25 @@ const S = () => useApp.getState();
   threw = '';
   try { await S().changePassword('short'); } catch (e) { threw = (e as Error).message; }
   ok(threw === 'weak_password', 'a short new password is refused');
+  threw = '';
+  try { await S().requestEmailChange(email.toUpperCase()); } catch (e) { threw = (e as Error).message; }
+  ok(threw === 'same_email', 'changing to the same email is refused');
+  threw = '';
+  await fetch('http://127.0.0.1:54399/auth/v1/signup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'taken@example.com', password: 'password123' }) });
+  try { await S().requestEmailChange('taken@example.com'); } catch (e) { threw = (e as Error).message; }
+  ok(threw === 'email_exists', 'an email another account uses is refused');
+  const newEmail = 'sam.rivera@example.com';
+  await S().requestEmailChange(newEmail);
+  ok(psql(`select email from auth.users where id = '${userId}'`) === email, 'nothing changes until the code is entered');
+  threw = '';
+  try { await S().confirmEmailChange(newEmail, '000000'); } catch (e) { threw = (e as Error).message; }
+  ok(threw === 'otp_expired', 'a wrong code is refused');
+  ok((await S().confirmEmailChange(newEmail, '123456')) === false && S().account.email === email, 'the new address\'s code alone isn\'t enough');
+  ok((await S().confirmEmailChange(newEmail, '123456', email)) === true, 'with the current address\'s code too, the email changes');
+  ok(S().account.email === newEmail && psql(`select email from profiles where id = '${userId}'`) === newEmail, 'profile included');
+  await S().refresh();
+  ok(S().account.email === newEmail, 'and it sticks after a refresh');
+  email = newEmail;
   await S().changePassword('border-collie-2');
   await S().signOut();
   await S().signIn(email, 'border-collie-2');

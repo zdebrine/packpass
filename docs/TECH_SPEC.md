@@ -208,7 +208,8 @@ release 24 hours before the session, and members are reminded a day before that;
   Account (not in the designs): edit the name, see the email, change the password (8+ characters), and Delete
   account, a screen listing what goes (Passport, Log, upcoming bookings, credits) with a two-step confirmation.
   It deletes the dogs' photos and vet records from Storage, then calls `delete_my_account()`, signs out and
-  returns to Welcome. Changing the email isn't offered yet.
+  returns to Welcome. Changing the email sends a 6-digit code to the new address and, with Supabase's secure
+  email change (the default), one to the current address; the app asks for each in turn.
 - **Today's hero** shows the member's dog (a field photo until they add one).
 - **Live-mode gaps:** the plan is always Regular; Apple and Google sign-in and buying credits show a message.
 - **Cancelling** lives on the class detail screen (05) when the session is booked: "Cancel booking" under

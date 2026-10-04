@@ -35,6 +35,8 @@ const COPY: Record<string, string> = {
   email_address_invalid: 'That email address doesn\'t look right.',
   same_password: 'Pick a password you haven\'t used here before.',
   signup_disabled: 'New accounts are paused right now. Try again later.',
+  email_exists: 'Another PackPass account already uses that email.',
+  same_email: 'That\'s already your email.',
 };
 
 /** Short, human sentence for an error code or a raw error. */

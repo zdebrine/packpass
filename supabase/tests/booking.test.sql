@@ -357,6 +357,12 @@ select public.grant_monthly_credits();
 select t.ok((select credits_balance from profiles where email = 'alex@kim.co') = 20, 'rollover is capped at one month: min(14, 10) + 10');
 select t.ok((select credits_reset_on from profiles where email = 'alex@kim.co') > current_date, 'the next reset moves to the 1st of next month');
 
+-- ---- Changing email ------------------------------------------------------------------------------
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000e2', 'old@dog.co');
+update auth.users set email = 'new@dog.co' where id = '00000000-0000-0000-0000-0000000000e2';
+select t.ok((select email from profiles where id = '00000000-0000-0000-0000-0000000000e2') = 'new@dog.co', 'a changed email carries over to the profile');
+
 -- ---- Deleting an account ---------------------------------------------------------------------
 reset role;
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000e1', 'leaving@dog.co');

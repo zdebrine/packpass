@@ -123,11 +123,11 @@ export function Toggle({ on, onPress, label }: { on: boolean; onPress: () => voi
   );
 }
 
-/** Pill text input on a raised fill. */
-export function Field({ label, right, left, style, ...input }: TextInputProps & { label?: string; right?: ReactNode; left?: ReactNode }) {
+/** Pill text input on a raised fill (or `fill`, e.g. the page colour when it sits on a raised panel). */
+export function Field({ label, right, left, fill, style, ...input }: TextInputProps & { label?: string; right?: ReactNode; left?: ReactNode; fill?: string }) {
   const { c } = useTheme();
   const box = (
-    <View style={{ height: 52, borderRadius: 9999, backgroundColor: c.surfaceRaised, flexDirection: 'row', alignItems: 'center', paddingLeft: left ? 18 : 20, paddingRight: right ? 8 : 20, gap: 10 }}>
+    <View style={{ height: 52, borderRadius: 9999, backgroundColor: fill ?? c.surfaceRaised, flexDirection: 'row', alignItems: 'center', paddingLeft: left ? 18 : 20, paddingRight: right ? 8 : 20, gap: 10 }}>
       {left}
       <TextInput
         placeholderTextColor={c.inkFaint}

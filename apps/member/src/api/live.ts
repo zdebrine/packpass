@@ -21,7 +21,7 @@ function check(r: { data: any; error: { message: string; code?: string } | null 
 /** Auth error codes the app has copy for (src/api/errors.ts). */
 const AUTH_CODES = new Set([
   'over_email_send_rate_limit', 'over_request_rate_limit', 'otp_expired', 'invalid_credentials', 'email_not_confirmed',
-  'email_address_invalid', 'user_already_exists', 'weak_password', 'same_password', 'signup_disabled',
+  'email_address_invalid', 'user_already_exists', 'weak_password', 'same_password', 'signup_disabled', 'email_exists',
 ]);
 
 // ---- Auth ----------------------------------------------------------------------------------
@@ -235,6 +235,17 @@ export async function saveName(name: string) {
   check(await db().from('profiles').update({ name: name.trim() }).eq('id', auth.user!.id));
 }
 
+/**
+ * Emails a 6-digit code to the new address (supabase/templates/email_change.html). With Supabase's secure
+ * email change (the default) the current address gets one too, and the email changes once both are entered.
+ */
+export async function requestEmailChange(email: string) { check(await db().auth.updateUser({ email })); }
+/** Enters the code sent to `codeFrom` (the new address or the current one). True once the email has changed. */
+export async function confirmEmailChange(email: string, code: string, codeFrom: string) {
+  check(await db().auth.verifyOtp({ email: codeFrom, token: code, type: 'email_change' }));
+  const { data } = await db().auth.getUser();
+  return data.user?.email?.toLowerCase() === email;
+}
 export async function changePassword(password: string) {
   check(await db().auth.updateUser({ password }));
 }

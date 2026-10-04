@@ -118,6 +118,10 @@ interface AppState extends Demo {
   account: { name: string; email: string };
   saveName: (name: string) => Promise<void>;
   changePassword: (password: string) => Promise<void>;
+  /** Sends a code to the new address (and, with secure email change, the current one). */
+  requestEmailChange: (email: string) => Promise<void>;
+  /** Enters a code sent to `codeFrom` (default: the new address). Resolves true once the email has changed. */
+  confirmEmailChange: (email: string, code: string, codeFrom?: string) => Promise<boolean>;
   /** Deletes the account and everything in it, then signs out. Sample mode resets the sample data. */
   deleteAccount: () => Promise<void>;
   /** Live mode: catalog and member are loaded. */
@@ -266,6 +270,17 @@ export const useApp = create<AppState>()(
         saveName: async (name) => {
           if (isLive) await live.saveName(name);
           set((s) => ({ account: { ...s.account, name: name.trim() } }));
+        },
+        requestEmailChange: async (email) => {
+          const next = email.trim().toLowerCase();
+          if (next === get().account.email.toLowerCase()) throw new Error('same_email');
+          if (isLive) await live.requestEmailChange(next);
+        },
+        confirmEmailChange: async (email, code, codeFrom) => {
+          const next = email.trim().toLowerCase();
+          const done = isLive ? await live.confirmEmailChange(next, code.trim(), codeFrom ?? next) : true;
+          if (done) set((s) => ({ account: { ...s.account, email: next } }));
+          return done;
         },
         changePassword: async (password) => {
           if (password.length < 8) throw new Error('weak_password');
