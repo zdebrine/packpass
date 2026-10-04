@@ -148,12 +148,61 @@ export const removeFromTeam = async (userId: string) => { check(await db.rpc('pa
 
 // ---- Files ----
 /** Signed URLs for dog photos or vet records (staff can read those of dogs booked with them). */
-export async function signedUrls(bucket: 'dog-photos' | 'vaccine-docs', paths: string[]): Promise<Record<string, string>> {
+export async function signedUrls(bucket: 'dog-photos' | 'vaccine-docs' | 'partner-docs', paths: string[]): Promise<Record<string, string>> {
   const unique = Array.from(new Set(paths.filter(Boolean)));
   if (!unique.length) return {};
   const rows = check(await db.storage.from(bucket).createSignedUrls(unique, 3600)) as { path: string | null; signedUrl: string }[];
   return Object.fromEntries(rows.filter((r) => r.path && r.signedUrl).map((r) => [r.path!, r.signedUrl]));
 }
+
+// ---- Partner applications (supabase/migrations/…_partner_applications.sql) ----
+export type PartnerType = 'trainer' | 'facility' | 'sport_club' | 'behavior_specialist' | 'outdoor_space';
+export type DocKind = 'license' | 'insurance' | 'certs' | 'firstaid' | 'photos';
+export interface AppDoc { id: string; kind: DocKind; path: string; file_name: string; size_bytes: number | null }
+export interface Application {
+  id: string; status: 'draft' | 'submitted' | 'approved' | 'declined'; contact_name: string | null; phone: string | null;
+  partner_type: PartnerType | null; business_name: string | null; address: string | null; website: string | null;
+  wheres: string[]; services: string[]; formats: string[]; group_size: string | null; legal_name: string | null;
+  decline_reason: string | null; submitted_at: string | null; docs: AppDoc[];
+}
+/** The name the account signed up with, to start an application with. */
+export async function accountName() {
+  const { data } = await db.auth.getUser();
+  if (!data.user) return '';
+  const p = check(await db.from('profiles').select('name').eq('id', data.user.id).maybeSingle()) as { name: string } | null;
+  return p?.name ?? '';
+}
+/** The signed-in account's application, or null if it hasn't started one. */
+export async function loadMyApplication(): Promise<Application | null> {
+  const a = check(await db.from('partner_applications').select('*').maybeSingle()) as Omit<Application, 'docs'> | null;
+  if (!a) return null;
+  const docs = check(await db.from('partner_application_docs').select('id, kind, path, file_name, size_bytes').eq('application_id', a.id).order('created_at')) as AppDoc[];
+  return { ...a, docs };
+}
+export const saveApplication = async (fields: Partial<Omit<Application, 'id' | 'status' | 'docs' | 'decline_reason' | 'submitted_at'>>) => {
+  check(await db.rpc('save_application', { p: fields }));
+};
+export const DOC_MAX_BYTES = 10 * 1024 * 1024;
+/** Uploads to partner-docs/<user id>/… and records it on the application. */
+export async function uploadApplicationDoc(kind: DocKind, file: File) {
+  if (file.size > DOC_MAX_BYTES) throw new Error('too_big');
+  if (!/^(application\/pdf|image\/(jpeg|png))$/.test(file.type)) throw new Error('bad_file');
+  const { data: auth } = await db.auth.getUser();
+  const safe = file.name.replace(/[^\w.-]+/g, '-').slice(-80);
+  const path = `${auth.user!.id}/${kind}-${Date.now()}-${safe}`;
+  check(await db.storage.from('partner-docs').upload(path, file, { contentType: file.type }));
+  try {
+    check(await db.rpc('add_application_doc', { p_kind: kind, p_path: path, p_name: file.name, p_size: file.size }));
+  } catch (e) {
+    await db.storage.from('partner-docs').remove([path]);
+    throw e;
+  }
+}
+export async function removeApplicationDoc(id: string) {
+  const path = check(await db.rpc('remove_application_doc', { p_id: id })) as string;
+  await db.storage.from('partner-docs').remove([path]);
+}
+export const submitApplication = async () => { check(await db.rpc('submit_application')); };
 
 // ---- PackPass admin (supabase/migrations/…_admin.sql) ----
 export interface ReviewClass {
@@ -184,6 +233,11 @@ export const linkStaff = async (email: string, partnerId: string, role: 'owner' 
   check(await db.rpc('admin_link_staff', { p_email: email, p_partner: partnerId, p_role: role, p_trainer: trainerId }));
 };
 export const unlinkStaff = async (userId: string) => { check(await db.rpc('admin_unlink_staff', { p_user: userId })); };
+export interface AdminApplication extends Omit<Application, 'docs'> { email: string; partner_id: string | null; decided_at: string | null; docs: AppDoc[] }
+export const loadApplications = async () => check(await db.rpc('admin_applications')) as AdminApplication[];
+/** Approve returns the new partner's id. */
+export const decideApplication = async (id: string, approve: boolean, reason?: string) =>
+  check(await db.rpc('admin_decide_application', { p_id: id, p_approve: approve, p_reason: reason ?? null })) as string | null;
 
 /** Copy for the reason codes the partner functions raise. */
 const COPY: Record<string, string> = {
@@ -215,6 +269,13 @@ const COPY: Record<string, string> = {
   trainer_taken: 'Someone on your team already signs in as that trainer.',
   is_me: 'You can\'t remove yourself. Ask another owner.',
   already_registered: 'There\'s already an account with this email. Sign in instead (or use Set or reset password).',
+  incomplete: 'A required detail is missing. Check each step.',
+  missing_docs: 'Upload every required document first.',
+  submitted: 'Your application is with PackPass. You can edit it again if we ask for changes.',
+  already_partner: 'This account is already on a partner\'s team.',
+  needs_reason: 'Say why, so they can fix it.',
+  too_big: 'That file is over 10 MB.',
+  bad_file: 'Upload a PDF, JPG or PNG.',
 };
 export const errorCopy = (e: unknown) => {
   const m = e instanceof Error ? e.message : String(e);

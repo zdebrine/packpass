@@ -1,18 +1,21 @@
 import { useState } from 'react';
 
-import { confirmAccount, createAccount, errorCopy, resendAccountCode, sendPasswordCode, setPasswordWithCode, signIn, signOut } from '@/lib/api';
+import { confirmAccount, createAccount, errorCopy, resendAccountCode, sendPasswordCode, setPasswordWithCode, signIn } from '@/lib/api';
 import { Button, ErrorLine } from '@/ui/kit';
+import { ApplyWelcome, markApplying } from '@/apply/Apply';
 
 /** Staff sign in with the email and password of their PackPass account, or set one with an emailed code. */
 export function SignIn() {
-  const [mode, setMode] = useState<'sign_in' | 'code' | 'create'>('sign_in');
+  const [mode, setMode] = useState<'sign_in' | 'code' | 'create' | 'apply' | 'apply_account'>('sign_in');
   const [email, setEmail] = useState('');
   if (mode === 'code') return <SetPassword email={email} setEmail={setEmail} onBack={() => setMode('sign_in')} />;
   if (mode === 'create') return <CreateAccount email={email} setEmail={setEmail} onBack={() => setMode('sign_in')} />;
-  return <PasswordSignIn email={email} setEmail={setEmail} onSetPassword={() => setMode('code')} onCreate={() => setMode('create')} />;
+  if (mode === 'apply') return <ApplyWelcome signedIn={false} onSignIn={() => setMode('sign_in')} onStart={() => { markApplying(); setMode('apply_account'); }} />;
+  if (mode === 'apply_account') return <CreateAccount apply email={email} setEmail={setEmail} onBack={() => setMode('sign_in')} />;
+  return <PasswordSignIn email={email} setEmail={setEmail} onSetPassword={() => setMode('code')} onCreate={() => setMode('create')} onApply={() => setMode('apply')} />;
 }
 
-function PasswordSignIn({ email, setEmail, onSetPassword, onCreate }: { email: string; setEmail: (v: string) => void; onSetPassword: () => void; onCreate: () => void }) {
+function PasswordSignIn({ email, setEmail, onSetPassword, onCreate, onApply }: { email: string; setEmail: (v: string) => void; onSetPassword: () => void; onCreate: () => void; onApply: () => void }) {
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +37,10 @@ function PasswordSignIn({ email, setEmail, onSetPassword, onCreate }: { email: s
         <button type="button" className="link" onClick={onSetPassword}>Set or reset password</button>
         <button type="button" className="link" onClick={onCreate}>Create an account</button>
         <span className="pk-caption pk-muted">Added to a team? Create an account with the email they added. Invited by PackPass by email? Choose Set or reset password and use the code from the invite.</span>
+        <div style={{ marginTop: 8, paddingTop: 16, borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span className="pk-label" style={{ fontWeight: 600 }}>Run classes for dogs?</span>
+          <button type="button" className="link" style={{ alignSelf: 'flex-start' }} onClick={onApply}>Apply to partner with PackPass</button>
+        </div>
       </form>
     </Centered>
   );
@@ -73,8 +80,8 @@ function SetPassword({ email, setEmail, onBack }: { email: string; setEmail: (v:
   );
 }
 
-/** For someone an owner added to their team: name, email and password, then the 6-digit code we email. */
-function CreateAccount({ email, setEmail, onBack }: { email: string; setEmail: (v: string) => void; onBack: () => void }) {
+/** For someone an owner added to their team, or a partner applying: name, email and password, then the 6-digit code we email. */
+function CreateAccount({ email, setEmail, onBack, apply }: { email: string; setEmail: (v: string) => void; onBack: () => void; apply?: boolean }) {
   const [name, setName] = useState('');
   const [pw, setPw] = useState('');
   const [code, setCode] = useState('');
@@ -115,8 +122,10 @@ function CreateAccount({ email, setEmail, onBack }: { email: string; setEmail: (
     <Centered>
       <form onSubmit={create} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <span className="pk-wide pk-muted">PackPass · Partner</span>
-        <h1 className="pk-display-xl" style={{ margin: '0 0 8px' }}>Create an account.</h1>
-        <span className="pk-body pk-muted">Use the email your team added. The same account works in the PackPass app.</span>
+        <h1 className="pk-display-xl" style={{ margin: '0 0 8px' }}>{apply ? 'Create your partner account.' : 'Create an account.'}</h1>
+        <span className="pk-body pk-muted">{apply
+          ? 'Step 1 of 5. Use the email your business uses. You can add trainers and staff once you’re approved.'
+          : 'Use the email your team added. The same account works in the PackPass app.'}</span>
         <label className="pk-label" style={{ fontWeight: 600 }}>Your name<input className="field" style={{ marginTop: 8 }} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required /></label>
         <label className="pk-label" style={{ fontWeight: 600 }}>Email<input className="field" style={{ marginTop: 8 }} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
         <label className="pk-label" style={{ fontWeight: 600 }}>Password<input className="field" style={{ marginTop: 8 }} type="password" autoComplete="new-password" minLength={8} value={pw} onChange={(e) => setPw(e.target.value)} required /></label>
@@ -124,17 +133,6 @@ function CreateAccount({ email, setEmail, onBack }: { email: string; setEmail: (
         <Button type="submit" block disabled={busy || name.trim().length < 2 || pw.length < 8}>{busy ? 'Creating…' : 'Create account'}</Button>
         <button type="button" className="link" onClick={onBack}>I have an account</button>
       </form>
-    </Centered>
-  );
-}
-
-export function NotStaff() {
-  return (
-    <Centered>
-      <span className="pk-wide pk-muted">PackPass · Partner</span>
-      <h1 className="pk-display-lg" style={{ margin: '12px 0' }}>This account isn't linked to a partner yet.</h1>
-      <p className="pk-body pk-muted" style={{ margin: '0 0 20px' }}>Once PackPass approves your partner application, we link your account and the dashboard opens here. Added to a team? Ask the owner to check they used this account’s email.</p>
-      <Button variant="quiet" onClick={() => signOut()}>Use another account</Button>
     </Centered>
   );
 }

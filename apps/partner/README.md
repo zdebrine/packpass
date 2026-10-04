@@ -25,6 +25,13 @@ dashboard. There's no invite email yet, so Team gives the owner a message to sen
 from Supabase sets its password with Set or reset password and the code from the invite email. Anyone else
 who signs in sees "This account isn't linked to a partner yet."
 
+New partners apply from the sign-in page (**Apply to partner with PackPass**, from
+`project/Pack Partner Onboarding.dc.html`): create an account, then business, services, credentials (uploads)
+and payouts (rate card and legal name; bank and tax details wait for Stripe Connect). Any signed-in account
+that isn't on a team sees the same welcome, its draft, or where its application is up to. PackPass admins
+review on **PackPass › Applications**: approving creates the partner and opens its dashboard for the
+applicant (add the map location on Partners); Ask for changes sends it back with a note.
+
 Owners see everything. Trainers don't see Earnings or Team (the Overview shows check-ins instead of earnings).
 
 PackPass admins link a partner's first owner on **PackPass › Staff** (the person creates an account first), and can remove any staff account there. Admins
@@ -50,7 +57,7 @@ insert into public.packpass_admins (user_id) select id from auth.users where ema
 | Earnings | Credits redeemed by month and by class at the partner's rate, and a CSV statement. |
 | Trainers | Each trainer's bio, specialties and whether they take private sessions. |
 | Team | Owners only: who can open the dashboard, invites waiting to be accepted, and adding or removing people. |
-| PackPass › Review, Partners, Staff | Admins only: credit costs for new and repriced classes, partners and trainers, staff accounts. |
+| PackPass › Review, Applications, Partners, Staff | Admins only: credit costs for new and repriced classes, partner applications, partners and trainers, staff accounts. |
 
 ## Waiting on keys
 

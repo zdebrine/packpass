@@ -1,21 +1,23 @@
-import { Building2, ClipboardList, KeyRound } from 'lucide-react';
+import { Building2, ClipboardList, Inbox, KeyRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
-import { loadReviewQueue, signOut } from '@/lib/api';
+import { loadApplications, loadReviewQueue, signOut } from '@/lib/api';
 import { navStyle } from '@/Shell';
 
-/** The PackPass section of the sidebar: admin pages, with a badge for classes waiting on review. */
+/** The PackPass section of the sidebar: admin pages, with badges for classes and applications waiting. */
 export function AdminNav() {
   const loc = useLocation();
-  const [waiting, setWaiting] = useState(0);
+  const [waiting, setWaiting] = useState({ classes: 0, applications: 0 });
   useEffect(() => {
     let live = true;
-    loadReviewQueue().then((q) => live && setWaiting(q.length)).catch(() => {});
+    Promise.all([loadReviewQueue(), loadApplications()])
+      .then(([q, a]) => live && setWaiting({ classes: q.length, applications: a.filter((x) => x.status === 'submitted').length })).catch(() => {});
     return () => { live = false; };
   }, [loc.pathname]);
   const links: [string, string, typeof ClipboardList, number?][] = [
-    ['/admin', 'Review', ClipboardList, waiting], ['/admin/partners', 'Partners', Building2], ['/admin/staff', 'Staff', KeyRound],
+    ['/admin', 'Review', ClipboardList, waiting.classes], ['/admin/applications', 'Applications', Inbox, waiting.applications],
+    ['/admin/partners', 'Partners', Building2], ['/admin/staff', 'Staff', KeyRound],
   ];
   return (
     <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

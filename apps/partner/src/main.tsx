@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import './styles.css';
 import { AdminShell } from '@/admin/AdminNav';
+import { Applications } from '@/admin/Applications';
 import { Partners as AdminPartners } from '@/admin/Partners';
 import { Review } from '@/admin/Review';
 import { Staff as AdminStaff } from '@/admin/Staff';
@@ -20,11 +21,13 @@ import { Schedule } from '@/pages/Schedule';
 import { Team } from '@/pages/Team';
 import { Trainers } from '@/pages/Trainers';
 import { Shell } from '@/Shell';
-import { NotStaff, SignIn } from '@/SignIn';
+import { Apply } from '@/apply/Apply';
+import { SignIn } from '@/SignIn';
 
 const adminRoutes = (
   <>
     <Route path="admin" element={<Review />} />
+    <Route path="admin/applications" element={<Applications />} />
     <Route path="admin/partners" element={<AdminPartners />} />
     <Route path="admin/staff" element={<AdminStaff />} />
   </>
@@ -34,7 +37,8 @@ function App() {
   const { status, reload } = useStaffSession();
   if (status.kind === 'loading') return null;
   if (status.kind === 'signed_out') return <SignIn />;
-  if (status.kind === 'not_staff') return <NotStaff />;
+  // Not on a team: apply to partner, or see where the application is up to.
+  if (status.kind === 'not_staff') return <Apply />;
   if (status.kind === 'admin_only') {
     return (
       <Routes>
