@@ -241,6 +241,26 @@ reset role;
 select p.ok((select status from bookings where id = (select two from p.steps)) = 'checked_in'
             and (select next_step from dog_paths where dog_id = (select juno from p.ids) and path_id = 'calm-around-dogs') = 3,
             'a session note checks the dog in, which moves the path on');
+-- Undoing a check-in takes the step back.
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+select public.partner_check_in((select two from p.steps), true);
+reset role;
+select p.ok((select next_step from dog_paths where dog_id = (select juno from p.ids) and path_id = 'calm-around-dogs') = 2
+            and not exists (select 1 from dog_path_steps where booking_id = (select two from p.steps)),
+            'undoing a check-in takes back the step it completed');
+select p.ok(not exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-0000000000a3' and title = 'Step 2 of 4 done')
+            and exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-0000000000a3' and title = 'Step 1 of 4 done'),
+            'and its notification');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+select public.partner_check_in((select two from p.steps));
+select public.partner_check_in((select one from p.steps), true);
+reset role;
+select p.ok((select next_step from dog_paths where dog_id = (select juno from p.ids) and path_id = 'calm-around-dogs') = 3
+            and (select count(*) from dog_path_steps where dog_id = (select juno from p.ids)) = 2
+            and (select count(*) from notifications where member_id = '00000000-0000-0000-0000-0000000000a3' and title = 'Step 2 of 4 done') = 1,
+            'checking in again redoes it; undoing an earlier step keeps later progress');
 set role authenticated;
 select p.as_user('00000000-0000-0000-0000-0000000000a3');
 select p.ok((select count(*) from public.my_paths((select juno from p.ids))) = 2, 'my_paths lists every path');
@@ -252,6 +272,23 @@ select p.as_user('00000000-0000-0000-0000-0000000000a5');
 select p.ok(not exists (select 1 from public.my_paths((select juno from p.ids))) and not exists (select 1 from dog_path_steps where dog_id = (select juno from p.ids)),
             'other members can''t see another dog''s paths');
 reset role;
+-- A path's last step: checking in completes the path, and undoing that reopens it.
+insert into dog_paths (dog_id, path_id, next_step) values ((select juno from p.ids), 'loose-leash-walking', 3);
+insert into sessions (class_id, starts_at, capacity, packpass_spots, spots_left) values ('focus-recall', now() - interval '3 hours', 1, 1, 0);
+create table p.last (id uuid);
+with nb as (
+  insert into bookings (session_id, dog_id, member_id, credits_charged)
+  select id, (select juno from p.ids), '00000000-0000-0000-0000-0000000000a3', 2 from sessions where class_id = 'focus-recall' and starts_at < now() order by starts_at desc limit 1
+  returning id) insert into p.last select id from nb;
+update bookings set status = 'checked_in' where id = (select id from p.last);
+select p.ok((select completed_at is not null from dog_paths where dog_id = (select juno from p.ids) and path_id = 'loose-leash-walking')
+            and exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-0000000000a3' and title = 'Loose leash walking is complete'),
+            'checking in to a path''s last step completes it');
+update bookings set status = 'booked' where id = (select id from p.last);
+select p.ok((select completed_at is null and next_step = 3 from dog_paths where dog_id = (select juno from p.ids) and path_id = 'loose-leash-walking')
+            and not exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-0000000000a3' and title = 'Loose leash walking is complete'),
+            'undoing that check-in reopens the path');
+delete from dog_paths where dog_id = (select juno from p.ids) and path_id = 'loose-leash-walking';
 
 -- ---- Vet records ------------------------------------------------------------------------------------
 reset role;

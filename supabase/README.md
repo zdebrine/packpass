@@ -74,6 +74,9 @@ Schema, security rules and booking logic for the member app. It's deployed to th
   (`partner_invite`, with an existing trainer profile or a new one), cancel invites and remove people. An email
   that already has a confirmed account joins straight away; otherwise `partner_invites` holds it and a trigger
   on `auth.users` adds the account when it confirms that email. Earnings become owner-only.
+- `migrations/…_path_undo.sql` — undoing a check-in takes back the training-path step it completed (and its
+  "Step done" notification), reopening a completed path. Only the dog's latest step is taken back; later
+  progress stands.
 - `catalog.sql` — generated: partners, trainers, classes, training paths and the timetable. Loaded into the
   hosted project. Partners now edit their own classes and schedule from the dashboard; new partners and
   trainers are still added here (or in the SQL editor).
@@ -97,7 +100,7 @@ Expo with `--clear` (Metro caches env values).
 
 - `supabase/tests/run-local.sh` — applies everything to a scratch database on plain Postgres (with a small
   shim for `auth` and `storage`) and runs `booking.test.sql` (103 checks: each rule, credits, holds, reminders,
-  the waitlist, RLS and storage policies) and `partner.test.sql` (113 checks: staff access, teams and invites, one partner never
+  the waitlist, RLS and storage policies) and `partner.test.sql` (118 checks: staff access, teams and invites, one partner never
   reaching another's data, and each dashboard function). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
   PostgREST, with a stand-in for Supabase Auth and Storage: 78 checks, from sign-up with a dog photo and vet record to a password reset, account settings and deleting the account.
@@ -112,8 +115,9 @@ Set up on Oct 2 2026 through the Supabase MCP tools:
   the files. New migrations: apply them the same way, or with `supabase db push` once repaired.
 - `member_log`, `path_progress`, `path_specialties` and `admin` are applied too; zdebrine@gmail.com is an admin.
 - `delete_account` is applied (run in the SQL editor).
-- **Not applied yet:** `partner_team`. Paste `migrations/20261002001600_partner_team.sql` into the SQL editor and
-  run it (the MCP tool times out on migrations that touch `auth.users`).
+- `partner_team` is applied (run in the SQL editor).
+- **Not applied yet:** `path_undo`. Paste `migrations/20261002001700_path_undo.sql` into the SQL editor and run it
+  (the MCP tools time out on any change to the hosted database for now; reads still work).
 - The partner dashboard migration went on as two parts (`partner_dashboard`, then `partner_set_repeat`). A
   staff journey (sessions, classes, earnings, a new class in review that can't be scheduled yet) was run inside
   the database and rolled back.
