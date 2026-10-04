@@ -15,7 +15,7 @@ Edge Function secrets, EAS or Vercel.
 | Resend API key | Supabase sends sign-in emails through Resend | Supabase Auth › SMTP password (set by the script) | **To do** |
 | Code-based email templates | Sign-up, reset and invite emails carry a 6-digit code | Supabase Auth › Email Templates (set by the script) | **To do** |
 | Supabase personal access token | Lets `setup-auth.mjs` change Auth settings | Your shell only, or the Claude environment | **To do** (setup only) |
-| Site URL and redirect URLs | Where any email link lands (codes don't need it) | Supabase Auth › URL Configuration (script: `SITE_URL`) | Once the dashboard has a URL |
+| Site URL and redirect URLs | Where any email link lands (codes don't need it) | Supabase Auth › URL Configuration (script: `SITE_URL`) | Can do now: `https://packpass-partner.vercel.app` |
 | EAS project | Push tokens, phone builds | `eas init` writes the id into `apps/member/app.json` | To do |
 | Apple push key (.p8) / Android FCM key | Push on real phones | EAS credentials (`eas credentials`) | To do, with store accounts |
 | Apple Developer and Google Play accounts | TestFlight and store builds | Apple / Google | To do |
