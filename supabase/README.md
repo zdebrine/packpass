@@ -80,6 +80,7 @@ Schema, security rules and booking logic for the member app. It's deployed to th
 - `migrations/…_email_change.sql` — keeps `profiles.email` in step when a member changes their email (Settings ›
   Account). Supabase Auth makes the change once the codes are entered: with secure email change (the default)
   one to the new address and one to the current address, both from the `email_change` template.
+- `migrations/…_admin_unlink_staff.sql` — `admin_unlink_staff` for the Remove button on PackPass › Staff.
 - `catalog.sql` — generated: partners, trainers, classes, training paths and the timetable. Loaded into the
   hosted project. Partners now edit their own classes and schedule from the dashboard; new partners and
   trainers are still added here (or in the SQL editor).
@@ -103,7 +104,7 @@ Expo with `--clear` (Metro caches env values).
 
 - `supabase/tests/run-local.sh` — applies everything to a scratch database on plain Postgres (with a small
   shim for `auth` and `storage`) and runs `booking.test.sql` (104 checks: each rule, credits, holds, reminders,
-  the waitlist, RLS and storage policies) and `partner.test.sql` (118 checks: staff access, teams and invites, one partner never
+  the waitlist, RLS and storage policies) and `partner.test.sql` (121 checks: staff access, teams and invites, one partner never
   reaching another's data, and each dashboard function). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
   PostgREST, with a stand-in for Supabase Auth and Storage: 86 checks, from sign-up with a dog photo and vet record to a password reset, account settings and deleting the account.
@@ -119,6 +120,8 @@ Set up on Oct 2 2026 through the Supabase MCP tools:
 - `member_log`, `path_progress`, `path_specialties` and `admin` are applied too; zdebrine@gmail.com is an admin.
 - `delete_account` is applied (run in the SQL editor).
 - `partner_team` and `path_undo` are applied (run in the SQL editor); `email_change` through the MCP tools.
+- **Not applied yet:** `admin_unlink_staff`. Paste `migrations/20261002001900_admin_unlink_staff.sql` into the SQL
+  editor and run it (the MCP tools' writes time out on and off).
 - The partner dashboard migration went on as two parts (`partner_dashboard`, then `partner_set_repeat`). A
   staff journey (sessions, classes, earnings, a new class in review that can't be scheduled yet) was run inside
   the database and rolled back.

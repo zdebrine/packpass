@@ -183,6 +183,7 @@ export const loadAdminStaff = async () => check(await db.rpc('admin_staff')) as 
 export const linkStaff = async (email: string, partnerId: string, role: 'owner' | 'trainer', trainerId: string | null) => {
   check(await db.rpc('admin_link_staff', { p_email: email, p_partner: partnerId, p_role: role, p_trainer: trainerId }));
 };
+export const unlinkStaff = async (userId: string) => { check(await db.rpc('admin_unlink_staff', { p_user: userId })); };
 
 /** Copy for the reason codes the partner functions raise. */
 const COPY: Record<string, string> = {

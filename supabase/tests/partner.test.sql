@@ -423,6 +423,13 @@ select p.ok(exists (select 1 from public.admin_staff() where email = 'member@dog
 select p.ok((select staff = 1 and trainers = 1 from public.admin_partners() where id = 'north-loop-dogs'), 'the partner list counts staff and trainers');
 select p.as_user('00000000-0000-0000-0000-0000000000a3');
 select p.ok(public.my_partner() = 'north-loop-dogs', 'the linked account opens that partner''s dashboard');
+select p.expect_error($$select public.admin_unlink_staff('00000000-0000-0000-0000-0000000000a3')$$, 'not_admin');
+select p.as_user('00000000-0000-0000-0000-0000000000a6');
+select public.admin_unlink_staff('00000000-0000-0000-0000-0000000000a3');
+select p.expect_error($$select public.admin_unlink_staff('00000000-0000-0000-0000-0000000000a3')$$, 'not_found');
+select p.as_user('00000000-0000-0000-0000-0000000000a3');
+select p.ok(public.my_partner() is null and exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-0000000000a3'),
+            'an admin can unlink an account, which keeps it as a member account');
 reset role;
 
 drop schema p cascade;

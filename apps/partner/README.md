@@ -27,7 +27,7 @@ who signs in sees "This account isn't linked to a partner yet."
 
 Owners see everything. Trainers don't see Earnings or Team (the Overview shows check-ins instead of earnings).
 
-PackPass admins link a partner's first owner on **PackPass › Staff** (the person creates an account first). Admins
+PackPass admins link a partner's first owner on **PackPass › Staff** (the person creates an account first), and can remove any staff account there. Admins
 also get **Review** (set credit costs and put new classes live) and **Partners** (add and edit partners and
 trainers). An admin who isn't staff at a partner sees only those pages. To make someone an admin, in the
 Supabase SQL editor:
