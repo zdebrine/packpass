@@ -508,4 +508,37 @@ select p.ok((select count(*) = 1 and bool_and(business_name = 'Ruiz Dog Sport' a
 select p.ok((select applied from public.admin_partner_leads() where email = 'maya@northsidebarn.co') is null, 'leads only list who submitted');
 reset role;
 
+-- ---- Trait catalog and drop-off classes (copy refresh, phase 1) ---------------------------------------
+set role anon;
+select p.ok((select count(*) from public.traits) = 16, 'anyone can read the trait catalog');
+select p.ok((select label = 'Loses it at dogs on walks' and partner_label like 'Leash reactive%' and path_id = 'calm-around-dogs' from public.traits where id = 'leash_reactive'),
+            'each trait has an owner label, a partner label and the path it starts');
+select p.expect_error($$select public.trait_ids('{x}')$$, 'permission denied');
+reset role;
+select p.ok(public.trait_ids('{"Pulls on the leash","Barks at bikes","Nervous with new dogs","pulls"}') = '{pulls,"Barks at bikes",nervous_dogs,pulls}',
+            'old labels map to ids in order, and anything else is kept as is');
+select p.ok(public.trait_ids('{}') = '{}', 'no traits stay no traits');
+select p.ok((select traits = '{pulls,nervous_dogs}' from dogs where owner_id = '00000000-0000-0000-0000-0000000000a3' and name = 'Juno'), 'the demo dog is seeded with ids');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+create table p.drop as select
+  public.partner_save_class(null, '{"title":"Agility drop-off","discipline":"Agility","category":"sport","session_type":"class","duration_min":60,"intensity":3,"group_size":6,"balance":"physical","drop_off":true}') a,
+  public.partner_save_class(null, '{"title":"Recall 1:1","discipline":"Skills","category":"skills","session_type":"private","duration_min":45,"intensity":2,"balance":"mental","drop_off":true}') b,
+  public.partner_save_class(null, '{"title":"Plain group class","discipline":"Agility","category":"sport","session_type":"class","duration_min":60,"intensity":3,"group_size":6,"balance":"physical"}') c;
+reset role;
+select p.ok((select drop_off from class_types where id = (select a from p.drop)), 'a partner can make a group class drop-off');
+select p.ok((select not drop_off from class_types where id = (select b from p.drop)), 'privates are never drop-off');
+select p.ok((select not drop_off from class_types where id = (select c from p.drop)), 'classes default to owners staying');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.partner_save_class((select a from p.drop), '{"title":"Agility drop-off","discipline":"Agility","category":"sport","session_type":"class","duration_min":60,"intensity":3,"group_size":6,"balance":"physical"}');
+reset role;
+select p.ok((select drop_off from class_types where id = (select a from p.drop)), 'saving without the flag keeps it');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.partner_save_class((select a from p.drop), '{"title":"Agility drop-off","discipline":"Agility","category":"sport","session_type":"private","duration_min":60,"intensity":3,"balance":"physical","drop_off":true}');
+reset role;
+select p.ok((select not drop_off from class_types where id = (select a from p.drop)), 'turning a class into a private clears drop-off');
+select p.expect_error($$update class_types set drop_off = true where id = 'herding-assessment'$$, 'class_types_drop_off_classes_only');
+
 drop schema p cascade;

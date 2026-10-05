@@ -111,7 +111,7 @@ declare
 begin
   insert into public.dogs (owner_id, name, sex, breed, birth_month, birth_year, weight_lb, fixed, energy, sociability, interests, traits, area, member_since)
   values (p_user, 'Juno', 'female', 'Border Collie', 3, 2023, 38, true, 'working', 'loves_dogs', '{Herding,Sprint,Scent}',
-          '{"Pulls on the leash","Nervous with new dogs"}', 'Austin · South', 2026)
+          '{"pulls","nervous_dogs"}', 'Austin · South', 2026)
   returning id into juno;
   insert into public.dogs (owner_id, name, sex, breed, birth_year, energy, sociability, member_since)
   values (p_user, 'Otis', 'male', 'Labrador', 2020, 'medium', 'loves_dogs', 2026) returning id into otis;
