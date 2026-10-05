@@ -24,7 +24,7 @@ export function Locations() {
   const today = week.filter((s) => ymd(s.start) === ymd(now) && s.end > now);
   const live = classes.filter((c) => c.status === 'live');
   const disciplines = Array.from(new Set(live.map((c) => c.discipline)));
-  const cover = live.find((c) => c.image)?.image ?? 'grass';
+  const cover = live.find((c) => c.image)?.image ?? 'dog_and_owner_chilling';
   const rows: [string, string][] = [
     ['Address', partner.address],
     ['Parking', partner.parking || 'Not set'],

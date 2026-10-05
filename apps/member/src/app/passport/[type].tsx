@@ -33,7 +33,7 @@ export default function ClearanceDetail() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <Photo name="juno" style={{ position: 'absolute', left: 0, top: 0, right: 0, height: 460 }} />
+      <Photo name="dog_providing_good_eye_contact" style={{ position: 'absolute', left: 0, top: 0, right: 0, height: 460 }} />
       <Animated.View entering={FadeIn.duration(motion.base)} style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
         <Pressable style={{ flex: 1 }} onPress={close} accessibilityLabel="Close" />
       </Animated.View>

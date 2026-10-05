@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { AREAS, PARTNER_TYPE, creditsLabel, miles, useCatalog, when, type Catalog } from '@/lib/catalog';
 import { payoff } from '@/lib/payoffs';
+import { photoSrc } from '@/lib/photos';
 import { traitLabel, useTraits } from '@/lib/traits';
 import { Button, Chip, Faq, Heading, PhotoPanel, StoreButtons, Tag } from '@/ui';
 
@@ -13,11 +14,11 @@ const HERO_VARIANT: 'static' | 'rotating' = 'static';
 
 /** Rotating line, photo, alt text. The static hero cross-fades the same photos without the words. */
 const HERO: [string, string, string][] = [
-  ['easy on a patio.', 'wall', 'Dog trotting down an A-frame beside its handler'],
-  ['chill around other dogs.', 'tunnel', 'Dog bursting out of an agility tunnel'],
-  ['back when you call.', 'hurdle', 'Dog clearing a jump with its handler running alongside'],
-  ['tired by dinner.', 'grass', 'Shaggy dog sailing over a jump bar'],
-  ['welcome anywhere.', 'leap', 'Dog bounding through tall grass'],
+  ['easy on a patio.', 'dog_chilling_with_owner_on_porch', 'Dog lounging beside its owner on a porch'],
+  ['chill around other dogs.', 'dogs_meeting_on_leash', 'Two dogs meeting calmly on leash'],
+  ['back when you call.', 'dog_being_patient', 'Dog sitting and looking up at its owner'],
+  ['tired by dinner.', 'dog_and_owner_chilling', 'Golden retriever resting in the grass with its owner'],
+  ['welcome anywhere.', 'dog_chilling_in_car', 'Dog riding in the back of a red truck'],
 ];
 
 export const OWNER_FAQ: [string, string][] = [
@@ -72,7 +73,7 @@ export function Owners() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12, marginTop: 40 }}>
           {CLASS_TILES.map(([label, p, sub]) => (
-            <div key={label} className="pk-tile" style={{ cursor: 'default' }}><img src={`/photos/${p}.jpg`} alt="" /><span className="pk-tile-label">{label}<span className="pk-tile-sub">{sub}</span></span></div>
+            <div key={label} className="pk-tile" style={{ cursor: 'default' }}><img src={photoSrc(p)} alt="" /><span className="pk-tile-label">{label}<span className="pk-tile-sub">{sub}</span></span></div>
           ))}
         </div>
       </section>
@@ -109,7 +110,7 @@ export function Owners() {
       </section>
       <Faq id="faq" eyebrow="FAQ" rows={OWNER_FAQ} />
       <section id="get" style={{ padding: 'clamp(72px,9vw,120px) 16px 0' }}>
-        <PhotoPanel photo="tunnel" minHeight={520} shade="linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.72) 100%)" style={{ alignItems: 'flex-start', gap: 20 }}>
+        <PhotoPanel photo="dogs_meeting_on_leash" minHeight={520} shade="linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.72) 100%)" style={{ alignItems: 'flex-start', gap: 20 }}>
           <h2 className="pk-display-2xl" style={{ position: 'relative', margin: 0, maxWidth: 760, fontSize: 'clamp(44px,6vw,88px)', lineHeight: 0.94 }}>Book your dog’s first class this week.</h2>
           <p className="pk-body" style={{ position: 'relative', margin: 0, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)' }}>No 6-week commitment. Pause or cancel anytime.</p>
           <div style={{ position: 'relative', display: 'flex', gap: 10, flexWrap: 'wrap' }}><StoreButtons /></div>
@@ -132,7 +133,7 @@ function Hero() {
       {/* The photos cross-fade inside the panel, so the shade comes after them. */}
       <PhotoPanel minHeight="min(820px, calc(100vh - 88px))" shade="transparent">
         {HERO.map(([, p, alt], k) => (
-          <img key={p} src={`/photos/${p}.jpg`} alt={k === i ? alt : ''} aria-hidden={k !== i}
+          <img key={p} src={photoSrc(p)} alt={k === i ? alt : ''} aria-hidden={k !== i}
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, opacity: k === i ? 1 : 0, transform: k === i ? 'scale(1)' : 'scale(1.03)', transition: 'opacity 1100ms cubic-bezier(.2,.8,.2,1), transform 3400ms ease-out' }} />
         ))}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,0) 26%,rgba(0,0,0,.08) 50%,rgba(0,0,0,.74) 100%)' }} />
@@ -162,10 +163,10 @@ function Hero() {
 
 /** The class tiles: label, photo, the payoff line under the label. */
 const CLASS_TILES: [string, string, string][] = [
-  ['Agility', 'weave', 'Builds focus and confidence'], ['Scent work', 'grass', 'Tires the brain fast'],
-  ['Sprint and lure', 'sprint', 'For dogs who need to really run'], ['Herding', 'collie', 'A job for dogs bred to have one'],
-  ['Open field', 'leap', 'Room to run off leash'], ['Sniff spaces', 'wall', 'A quiet, private space to decompress'],
-  ['Recall and focus', 'hurdle', 'Come when called. The first time.'], ['Reactive dog drop-ins', 'rail', 'Small groups, lots of space, no judgment'],
+  ['Agility', 'athletic_dog_catching_ball', 'Builds focus and confidence'], ['Scent work', 'dog_and_owner_chilling', 'Tires the brain fast'],
+  ['Sprint and lure', 'dog_running_on_beach', 'For dogs who need to really run'], ['Herding', 'dog_chilling', 'A job for dogs bred to have one'],
+  ['Open field', 'dog_getting_pets_at_park', 'Room to run off leash'], ['Sniff spaces', 'dog_wrapped_in_blanket', 'A quiet, private space to decompress'],
+  ['Recall and focus', 'dog_being_patient', 'Come when called. The first time.'], ['Reactive dog drop-ins', 'pulling_on_leash', 'Small groups, lots of space, no judgment'],
 ];
 
 /** Energy chips by dogs.energy_level value. */
@@ -282,7 +283,7 @@ function Partners({ cat }: { cat: Catalog }) {
         {picks.map(({ p, c, at }) => (
           <article key={p.id} style={{ background: 'var(--surface-raised)', borderRadius: 28, padding: '10px 10px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div style={{ position: 'relative', height: 260, borderRadius: 20, overflow: 'hidden' }}>
-              <img src={`/photos/${c?.image || 'grass'}.jpg`} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={photoSrc(c?.image)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'var(--scrim-top)' }} />
               <div style={{ position: 'absolute', top: 14, left: 14 }}><Tag tone="glass">Verified</Tag></div>
             </div>
@@ -341,7 +342,7 @@ function Passport() {
         </div>
         <div style={{ flex: '0 0 auto', margin: '0 auto' }}>
           <div className="pk-athlete" role="img" aria-label="Juno's Athlete Card: 38 classes, 6 disciplines, Agility level 3">
-            <img className="pk-athlete-img" src="/photos/juno.jpg" alt="" />
+            <img className="pk-athlete-img" src={photoSrc('dog_providing_good_eye_contact')} alt="" />
             <div className="pk-athlete-top"><Tag tone="glass">Since Mar 2026</Tag><Tag tone="glass"><Flame size={12} /> 12 wk streak</Tag></div>
             <div className="pk-athlete-body">
               <h3 className="pk-athlete-name">Juno</h3>

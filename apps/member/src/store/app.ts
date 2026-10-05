@@ -53,7 +53,7 @@ const DRAFT: OnboardingDraft = {
   ownerName: 'Alex Kim',
   email: 'alex@kim.co',
   dogName: 'Juno',
-  photo: isLive ? null : 'juno',
+  photo: isLive ? null : 'dog_providing_good_eye_contact',
   sex: 'Female',
   breed: 'Border Collie',
   mixed: false,
@@ -600,7 +600,7 @@ export const useApp = create<AppState>()(
         // v1 stored month swaps by title; start them fresh.
         if (version < 3) p.planSwaps = [];
         // v4: the draft's photo went from a yes/no to the photo itself.
-        if (p.draft && typeof p.draft.photo === 'boolean') p.draft = { ...p.draft, photo: p.draft.photo ? 'juno' : null };
+        if (p.draft && typeof p.draft.photo === 'boolean') p.draft = { ...p.draft, photo: p.draft.photo ? 'dog_providing_good_eye_contact' : null };
         // v5: the draft stores the energy key and trait ids instead of their old labels.
         if (version < 5 && p.draft) {
           p.draft = { ...p.draft, energy: LEGACY_ENERGY[p.draft.energy] ?? p.draft.energy, traits: (p.draft.traits ?? []).map(legacyTraitId) };

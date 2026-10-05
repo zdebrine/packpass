@@ -111,7 +111,7 @@ export function PhotoGrid({ value, onPick, onUpload }: { value: string | null; o
         </button>
       ) : null}
       {PHOTOS.map((p) => (
-        <button key={p} type="button" aria-label={`Use the ${p} photo`} aria-pressed={value === p} onClick={() => onPick(p)}
+        <button key={p} type="button" aria-label={`Use the ${p.replace(/_/g, ' ')} photo`} aria-pressed={value === p} onClick={() => onPick(p)}
           style={{ aspectRatio: '1', padding: 0, border: 0, borderRadius: 20, overflow: 'hidden', cursor: 'pointer', boxShadow: value === p ? '0 0 0 3px var(--bg),0 0 0 5px var(--ink)' : 'none' }}>
           <img src={photoUrl(p)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         </button>

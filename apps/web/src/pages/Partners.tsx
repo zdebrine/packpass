@@ -34,7 +34,7 @@ export function Partners() {
   return (
     <>
       <section style={{ padding: '0 16px' }}>
-        <PhotoPanel photo="leap" alt="Dog leaping over a jump" minHeight="min(820px, calc(100vh - 88px))" shade="linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 24%,rgba(0,0,0,.1) 48%,rgba(0,0,0,.8) 100%)">
+        <PhotoPanel photo="dog_getting_pets_at_park" alt="Dog leaping over a jump" minHeight="min(820px, calc(100vh - 88px))" shade="linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 24%,rgba(0,0,0,.1) 48%,rgba(0,0,0,.8) 100%)">
           <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: 40, alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <div style={{ flex: '1 1 520px', maxWidth: 780, display: 'flex', flexDirection: 'column', gap: 20 }}>
               <span className="pk-wide" style={{ opacity: 0.92 }}>Trainers · Sport clubs · Behavior specialists · Outdoor spaces</span>
@@ -114,7 +114,7 @@ export function Partners() {
       <Faq id="partner-faq" eyebrow="Partner FAQ" rows={PARTNER_FAQ} />
 
       <section style={{ padding: 'clamp(72px,9vw,120px) 16px 0' }}>
-        <PhotoPanel photo="hurdle" minHeight={520} shade="linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.76) 100%)" style={{ alignItems: 'flex-start', gap: 20 }}>
+        <PhotoPanel photo="dog_being_patient" minHeight={520} shade="linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.76) 100%)" style={{ alignItems: 'flex-start', gap: 20 }}>
           <h2 className="pk-display-2xl" style={{ position: 'relative', margin: 0, maxWidth: 820, fontSize: 'clamp(44px,6vw,88px)', lineHeight: 0.94 }}>Your next regulars are already nearby.</h2>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <Button href={APPLY_URL} style={{ minWidth: 200 }}>Apply to partner</Button>
