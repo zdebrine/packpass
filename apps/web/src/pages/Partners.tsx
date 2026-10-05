@@ -22,18 +22,18 @@ export function Partners() {
   return (
     <>
       <section style={{ padding: '0 16px' }}>
-        <PhotoPanel photo={hero.photo} minHeight="min(820px, calc(100vh - 88px))" shade="linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 24%,rgba(0,0,0,.1) 48%,rgba(0,0,0,.8) 100%)">
+        <PhotoPanel className="pp-hero" photo={hero.photo} minHeight="min(820px, calc(100vh - 88px))" shade="linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 24%,rgba(0,0,0,.1) 48%,rgba(0,0,0,.8) 100%)">
           <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: 40, alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            <div style={{ flex: '1 1 520px', maxWidth: 780, display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <span className="pk-wide" style={{ opacity: 0.92 }}>{hero.eyebrow}</span>
-              <h1 className="pk-display-2xl" style={{ margin: 0, fontSize: 'clamp(52px,7.4vw,112px)', lineHeight: 0.92 }}>{hero.headline}</h1>
-              <p className="pk-body" style={{ margin: 0, maxWidth: 540, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>{hero.body}</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 6 }}>
+            <div className="pp-hero-copy" style={{ flex: '1 1 520px', maxWidth: 780, display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <span className="pk-wide pp-hero-eyebrow" style={{ opacity: 0.92 }}>{hero.eyebrow}</span>
+              <h1 className="pk-display-2xl pp-hero-title" style={{ margin: 0, fontSize: 'clamp(52px,7.4vw,112px)', lineHeight: 0.92 }}>{hero.headline}</h1>
+              <p className="pk-body pp-hero-body" style={{ margin: 0, maxWidth: 540, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>{hero.body}</p>
+              <div className="pp-hero-ctas" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 6 }}>
                 <Button href={APPLY_URL} style={{ minWidth: 200 }}>{hero.cta}</Button>
-                <span className="pk-label" style={{ color: 'rgba(255,255,255,.85)' }}>{hero.ctaNote}</span>
+                <span className="pk-label pp-hero-note" style={{ color: 'rgba(255,255,255,.85)' }}>{hero.ctaNote}</span>
               </div>
             </div>
-            <div style={{ flex: '0 1 380px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="pp-hero-values" style={{ flex: '0 1 380px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {withIcons(hero.values).map(([Icon, title, body]) => (
                 <div key={title} className="pp-glass" style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '18px 20px', borderRadius: 28 }}>
                   <span style={{ width: 40, height: 40, flex: 'none', borderRadius: 9999, background: 'rgba(255,255,255,.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={18} /></span>
@@ -43,6 +43,15 @@ export function Partners() {
             </div>
           </div>
         </PhotoPanel>
+        {/* On phones the value cards sit under the photo instead of on it. */}
+        <div className="pp-sm-only" style={{ flexDirection: 'column', gap: 20, padding: '28px 4px 0' }}>
+          {withIcons(hero.values).map(([Icon, title, body]) => (
+            <div key={title} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <span style={{ width: 40, height: 40, flex: 'none', borderRadius: 9999, background: 'var(--surface-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={18} /></span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span className="pk-heading">{title}</span><span className="pk-label pk-muted" style={{ textWrap: 'pretty' }}>{body}</span></div>
+            </div>
+          ))}
+        </div>
       </section>
 
       <Earnings />
