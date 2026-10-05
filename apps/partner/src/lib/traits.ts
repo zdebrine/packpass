@@ -59,6 +59,12 @@ export function traitLabel(id: string, audience: 'owner' | 'partner' = 'owner'):
   return t ? (audience === 'partner' ? t.partner_label : t.label) : id;
 }
 
+/** Ids that say the owner listed nothing; trainers don't need to see them. */
+const NOT_A_TRAIT = new Set(['none', 'not_sure']);
+
+/** A dog's traits in the trainers' wording, without "None of these" and "Not sure yet". */
+export const partnerTraits = (ids: string[]): string[] => ids.filter((id) => !NOT_A_TRAIT.has(id)).map((id) => traitLabel(id, 'partner'));
+
 async function fetchTraits(): Promise<Trait[] | null> {
   const { data, error } = await db.from('traits').select('id, label, partner_label, grp, sort, path_id');
   if (error) throw error;

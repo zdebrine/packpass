@@ -1,4 +1,4 @@
-import { Banknote, CalendarCheck, CalendarPlus, Check, ChevronLeft, FileText, FileUp, Loader, Rocket, Upload, Users, X, type LucideIcon } from 'lucide-react';
+import { Banknote, CalendarPlus, Check, ChevronLeft, FileText, FileUp, Loader, Rocket, ShieldCheck, Upload, Users, X, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import {
@@ -50,9 +50,10 @@ const kb = (n: number | null) => (n == null ? '' : n > 1024 * 1024 ? `${(n / 102
 /** The full-photo welcome: shown signed out (from the sign-in page) and to a signed-in account with no application. */
 export function ApplyWelcome({ onStart, onSignIn, signedIn }: { onStart: () => void; onSignIn: () => void; signedIn: boolean }) {
   const values: [LucideIcon, string, string][] = [
-    [Users, 'Fill open spots', 'You choose how many spots open to PackPass per session.'],
-    [CalendarCheck, 'Bookings run themselves', 'Rosters, waitlists, reminders and dog profiles in one dashboard.'],
-    [Banknote, '$9.50 per credit', 'For every credit redeemed, paid out on the 1st of each month.'],
+    // Cards 1 and 2 match the website's partner hero (apps/web/src/pages/Partners.tsx).
+    [Users, 'Fill the spots you’d leave empty', 'You choose how many spots open to PackPass per session.'],
+    [ShieldCheck, 'Vetted dogs only', 'Every dog needs current vaccines, and group classes need a Social clearance. Each one arrives with a profile and any trainer notes.'],
+    [Banknote, '$9.50 per credit', 'No-shows included, paid on the 1st. On top of what your direct clients pay you.'],
   ];
   return (
     <div data-theme="dark" style={{ minHeight: '100vh', padding: 16, boxSizing: 'border-box', display: 'flex', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
@@ -65,9 +66,9 @@ export function ApplyWelcome({ onStart, onSignIn, signedIn }: { onStart: () => v
         </header>
         <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: 40, alignItems: 'flex-end', justifyContent: 'space-between' }}>
           <div style={{ flex: '1 1 520px', maxWidth: 680, display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <span className="pk-wide" style={{ opacity: 0.9 }}>Trainers · Sport clubs · Scent instructors · Outdoor spaces</span>
-            <h1 className="pk-display-2xl" style={{ margin: 0, fontSize: 'clamp(48px, 7vw, 84px)', lineHeight: 0.94, textWrap: 'balance' }}>Bring more dogs through your door.</h1>
-            <p className="pk-body" style={{ margin: 0, maxWidth: 520, color: 'rgba(255,255,255,.88)', textWrap: 'pretty' }}>PackPass members fill the open spots in your classes. List the sessions you want filled and get paid for every dog that shows up.</p>
+            <span className="pk-wide" style={{ opacity: 0.9 }}>Trainers · Sport clubs · Behavior specialists · Outdoor spaces</span>
+            <h1 className="pk-display-2xl" style={{ margin: 0, fontSize: 'clamp(48px, 7vw, 84px)', lineHeight: 0.94, textWrap: 'balance' }}>Fill the empty spots in your classes.</h1>
+            <p className="pk-body" style={{ margin: 0, maxWidth: 520, color: 'rgba(255,255,255,.88)', textWrap: 'pretty' }}>Vetted local dogs, matched to your classes, for the spots you’d otherwise leave empty. You set the rules. We handle booking and pay you every month.</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 8 }}>
               <Button onClick={onStart} style={{ minWidth: 220 }}>Apply to partner</Button>
               <span className="pk-label" style={{ color: 'rgba(255,255,255,.82)' }}>About 10 minutes. Have your license and insurance ready.</span>
@@ -245,7 +246,7 @@ function Flow({ app, name, step, setStep, reload }: { app: Application | null; n
               <div style={{ background: 'var(--pitch)', color: 'var(--on-pitch)', borderRadius: 28, padding: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <span className="pk-wide" style={{ color: 'var(--on-pitch-muted)' }}>Partner rate</span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}><span className="pk-display-xl">$9.50</span><span className="pk-label" style={{ color: 'var(--on-pitch-muted)' }}>per credit redeemed</span></div>
-                <span className="pk-label" style={{ color: 'var(--on-pitch-muted)', textWrap: 'pretty' }}>Members spend 1 to 4 credits per session depending on length and format. Payouts go out on the 1st of each month. Rates are set by PackPass.</span>
+                <span className="pk-label" style={{ color: 'var(--on-pitch-muted)', textWrap: 'pretty' }}>Members spend 1 to 4 credits per session, so a typical 2-credit class pays $19 a dog. Payouts go out on the 1st of each month. Rates are set by PackPass.</span>
               </div>
               <Input label="Legal business name" value={f.legal_name} onChange={(v) => set('legal_name', v)} placeholder={f.business_name ? `${f.business_name} LLC` : ''} />
               <div style={{ padding: '18px 20px', borderRadius: 20, background: 'var(--surface-raised)', display: 'flex', gap: 14, alignItems: 'flex-start' }}>

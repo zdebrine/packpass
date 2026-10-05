@@ -14,11 +14,13 @@ export const TYPES: { key: SessionType; label: string; note: string }[] = [
 export interface ClassForm {
   title: string; discipline: string | null; type: SessionType; image: string | null; duration: number; intensity: number; group: number;
   energy: string[]; social: string[]; clearance: 'social' | 'herding' | null; reqs: string[]; description: string; trainerId: string | null;
+  /** Owners leave the dog with the trainer. Group classes only; privates and assessments never are. */
+  dropOff: boolean;
 }
 
 export const emptyForm = (trainerId: string | null): ClassForm => ({
   title: '', discipline: null, type: 'class', image: null, duration: 60, intensity: 3, group: 8, energy: [], social: [], clearance: null,
-  reqs: ['Rabies', 'DHPP', 'Bordetella'], description: '', trainerId,
+  reqs: ['Rabies', 'DHPP', 'Bordetella'], description: '', trainerId, dropOff: false,
 });
 
 /** Reads a saved class back into the form (older classes keep their fit in suits / suits_note). */
@@ -33,6 +35,7 @@ export function formOf(c: ClassType): ClassForm {
   return {
     title: c.title, discipline: c.discipline, type: c.session_type, image: c.image, duration: c.duration_min, intensity: c.intensity, group: c.group_size,
     energy, social, clearance: c.session_type === 'assessment' ? c.grants : c.requires, reqs, description: c.description ?? '', trainerId: c.trainer_id,
+    dropOff: c.drop_off,
   };
 }
 
@@ -55,6 +58,7 @@ export function payloadOf(f: ClassForm) {
     suits: f.energy.length === ENERGY.length || !f.energy.length ? 'Any energy' : f.energy.length === 1 ? (f.energy[0] === 'Working dog' ? 'Working dog' : `${f.energy[0]} energy`) : `${f.energy.join(' or ')}`,
     suits_note: group === 1 ? (f.type === 'private' ? 'Private session' : 'One dog at a time') : f.social.length === SOCIAL.length || !f.social.length ? 'All dogs welcome' : f.social.join(', '),
     description: f.description.trim(), image: f.image, trainer_id: f.trainerId, clearance: f.clearance ?? '', requirements, energy: f.energy, sociability: f.social,
+    drop_off: f.type === 'class' && f.dropOff,
   };
 }
 

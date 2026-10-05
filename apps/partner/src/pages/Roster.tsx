@@ -6,6 +6,7 @@ import { checkIn, checkVaccines, errorCopy, loadRoster, loadSessions, loadWaitli
 import { useData, usePartner } from '@/lib/partner';
 import { credits, withClasses, type SessionView } from '@/lib/sessions';
 import { db } from '@/lib/supabase';
+import { partnerTraits, useTraits } from '@/lib/traits';
 import { addDays, ageOf, austin, monthDay, time, weekday, ymd } from '@/lib/time';
 import { useSigned } from '@/lib/useSigned';
 import { Avatar, Button, Chip, ErrorLine, Modal, Tag } from '@/ui/kit';
@@ -71,6 +72,7 @@ function SessionRoster({ s, meta, onQr }: { s: SessionView; meta: string; onQr: 
     setBusy(id); setError(null);
     try { await fn(); reload(); } catch (e) { setError(errorCopy(e)); } finally { setBusy(null); }
   };
+  useTraits(); // re-renders the rows once the trait catalog loads
   const dogs = data?.dogs ?? [];
   const nIn = dogs.filter((d) => d.status === 'checked_in').length;
 
@@ -117,6 +119,7 @@ function SessionRoster({ s, meta, onQr }: { s: SessionView; meta: string; onQr: 
 
 function DogRow({ d, photo, record, busy, onToggle, onVerify }: { d: RosterDog; photo?: string; record?: string; busy: boolean; onToggle: () => void; onVerify: () => void }) {
   const on = d.status === 'checked_in';
+  const traits = partnerTraits(d.traits);
   const warn = /expire|missing/i.test(d.vaccine_line);
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 20px', alignItems: 'center', padding: '14px 20px 14px 14px', borderRadius: 20, background: 'var(--surface-raised)' }}>
@@ -134,7 +137,7 @@ function DogRow({ d, photo, record, busy, onToggle, onVerify }: { d: RosterDog; 
           ))}
         </div>
         {d.last_note ? <span className="pk-caption pk-muted" style={{ textWrap: 'pretty' }}>{`Last note · ${d.last_note}`}</span> : null}
-        {d.traits.length ? <span className="pk-caption pk-muted" style={{ textWrap: 'pretty' }}>{`From owner · ${d.traits.join(' · ')}`}</span> : null}
+        {traits.length ? <span className="pk-caption pk-muted" style={{ textWrap: 'pretty' }}>{`From owner · ${traits.join(' · ')}`}</span> : null}
       </div>
       <div style={{ flex: '1 1 140px', display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span className="pk-caption" style={{ color: warn ? 'var(--kennel-red)' : 'var(--ink-muted)', fontWeight: warn ? 600 : 400 }}>{d.vaccine_line}</span>

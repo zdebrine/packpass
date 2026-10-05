@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { errorCopy, loadAssessments, recordResult, type AssessmentRow } from '@/lib/api';
 import { useData, usePartner } from '@/lib/partner';
+import { partnerTraits, useTraits } from '@/lib/traits';
 import { monthDay, time, weekday, ymd } from '@/lib/time';
 import { useSigned } from '@/lib/useSigned';
 import { Avatar, Button, Chip, ErrorLine } from '@/ui/kit';
@@ -78,6 +79,8 @@ function Result({ a, photo, onSent }: { a: AssessmentRow; photo?: string; onSent
     } catch (e) { setError(errorCopy(e)); setBusy(false); }
   };
   const herding = a.grants === 'herding';
+  useTraits(); // re-renders once the trait catalog loads
+  const traits = partnerTraits(a.traits);
 
   return (
     <div style={{ flex: '999 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -97,7 +100,7 @@ function Result({ a, photo, onSent }: { a: AssessmentRow; photo?: string; onSent
             return <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px 0 10px', borderRadius: 9999, fontSize: 13, fontWeight: 600, background: exp ? 'var(--kennel-red-soft)' : 'var(--pitch)', color: exp ? 'var(--kennel-red)' : 'var(--on-pitch)' }}>{exp ? <ShieldAlert size={14} /> : <ShieldCheck size={14} />}{k}</span>;
           }) : <span className="pk-caption pk-muted">No clearances yet.</span>}
         </div>
-        <span className="pk-caption pk-muted" style={{ textWrap: 'pretty' }}>{`From owner · ${a.traits.length ? a.traits.join(' · ') : 'None added'}`}</span>
+        <span className="pk-caption pk-muted" style={{ textWrap: 'pretty' }}>{`From owner · ${traits.length ? traits.join(' · ') : 'None added'}`}</span>
       </div>
       <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><h3 className="pk-title" style={{ margin: 0 }}>Rubric</h3><span className="pk-caption pk-muted">{`${scored} of ${items.length} scored`}</span></div>
