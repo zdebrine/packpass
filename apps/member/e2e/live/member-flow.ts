@@ -1,7 +1,10 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 import { errorCopy } from '@/api/errors';
 import { catalog } from '@/data/catalog';
+import { payoff } from '@/data/payoffs';
+import { FALLBACK_TRAITS, loadTraits, traitLabel } from '@/data/traits';
 import { nextSession } from '@/lib/booking';
 import { setLiveClock } from '@/lib/clock';
 import { liveHerding, liveSocial } from '@/lib/clearances';
@@ -93,6 +96,16 @@ const S = () => useApp.getState();
   ok(S().remoteNotifications!.some((n) => n.title === 'Step 1 of 4 done' && n.href === '/goal/calm-around-dogs'), 'and the member is told');
   psql(`update bookings set status = 'cancelled' where id = '${stepBooking}'`); // keep the booking counts below as they were
   ok(Object.keys(catalog.classes).length >= 16 && catalog.sessions.length > 300, 'the catalog loads from Supabase');
+  // Trait catalog and payoff lines (copy refresh, phase 2).
+  const traits = await loadTraits();
+  ok(JSON.stringify(traits) === JSON.stringify(FALLBACK_TRAITS), 'the trait catalog loads, and matches the built-in fallback');
+  const block = (f: string) => readFileSync(f, 'utf8').split('export const FALLBACK_TRAITS')[1].split('];')[0];
+  ok(block('src/data/traits.ts') === block('../web/src/lib/traits.ts') && block('src/data/traits.ts') === block('../partner/src/lib/traits.ts'),
+     'and the website and dashboard carry the same fallback');
+  ok(traitLabel('leash_reactive') === 'Loses it at dogs on walks' && traitLabel('leash_reactive', 'partner') === 'Leash reactive (lunges or barks at dogs)'
+     && traitLabel('Barks at bikes') === 'Barks at bikes', 'traits show in the owner\'s or trainer\'s words, and unknown ones as stored');
+  ok(Object.values(catalog.classes).every((c) => payoff(c.discipline) !== null) && payoff('Behavior') === null,
+     'every class in the catalog has a payoff line; unknown disciplines have none');
 
   // Distances: from the area picked in onboarding, or anywhere the member chooses.
   ok(S().area === 'Mueller' && catalog.partners.ridgeline.distanceMi < 2, 'the onboarding area is saved, and distances are measured from it');
