@@ -106,7 +106,7 @@ export function liveLog(all: LogEntry[], dogId: string | undefined, dogName: str
 export function sampleLog(dogName: string, social: SocialStage): LogView {
   const sessions: LogSession[] = [
     ...(social === 'cleared'
-      ? [{ key: 'recheck', title: 'Social re-check', date: 'Today', trainer: 'Sam Reyes · Eastside Dog Club', note: RECHECK_QUOTE, img: 'tunnel' as PhotoKey, assessment: 'Cleared · Social', cleared: true, href: '/assessment/social' }]
+      ? [{ key: 'recheck', title: 'Social re-check', date: 'Today', trainer: 'Sam Reyes · Eastside Dog Club', note: RECHECK_QUOTE, img: 'dogs_meeting_on_leash' as PhotoKey, assessment: 'Cleared · Social', cleared: true, href: '/assessment/social' }]
       : []),
     ...pastSessions.map((s) => ({ ...s, key: s.title + s.date, assessment: null, cleared: false, href: null })),
   ];

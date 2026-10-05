@@ -5,7 +5,7 @@ import {
   accountName, errorCopy, loadMyApplication, removeApplicationDoc, saveApplication, signOut, submitApplication, uploadApplicationDoc,
   type Application, type DocKind, type PartnerType,
 } from '@/lib/api';
-import { Button, Chip, ErrorLine, Tag } from '@/ui/kit';
+import { Button, Chip, ErrorLine, Tag, photoUrl } from '@/ui/kit';
 
 /**
  * Partner application (project/Pack Partner Onboarding.dc.html). Step 1, the account, happens on the sign-in
@@ -20,7 +20,7 @@ export const markApplying = () => { try { sessionStorage.setItem(INTENT, '1'); }
 const applying = () => { try { return sessionStorage.getItem(INTENT) === '1'; } catch { return false; } };
 
 const STEPS = ['Account', 'Business', 'Services', 'Credentials', 'Payouts'];
-const PHOTOS = ['leap', 'weave', 'rail', 'grass', 'hurdle', 'lab', 'sprint'];
+const PHOTOS = ['dog_getting_pets_at_park', 'athletic_dog_catching_ball', 'pulling_on_leash', 'dog_and_owner_chilling', 'dog_being_patient', 'dog_sleeping_while_owner_reads', 'dog_running_on_beach'];
 const SIDE = ['', 'PackPass members book with monthly credits. You get paid for every one they spend with you.',
   'Members search by neighborhood. Your address puts you on their map.',
   'Dogs come to PackPass for sport, scent, play and skills. Show up for all of it.',
@@ -58,7 +58,7 @@ export function ApplyWelcome({ onStart, onSignIn, signedIn }: { onStart: () => v
   return (
     <div data-theme="dark" style={{ minHeight: '100vh', padding: 16, boxSizing: 'border-box', display: 'flex', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
       <div style={{ position: 'relative', flex: 1, minHeight: 640, borderRadius: 32, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 32, padding: '32px 40px 40px', boxSizing: 'border-box', color: '#fff' }}>
-        <img src="/photos/leap.jpg" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+        <img src={photoUrl('dog_getting_pets_at_park')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,.1) 45%,rgba(0,0,0,.8) 100%)' }} />
         <header style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <Brand />
@@ -160,7 +160,7 @@ function Flow({ app, name, step, setStep, reload }: { app: Application | null; n
   return (
     <div data-theme="dark" style={{ minHeight: '100vh', padding: 16, boxSizing: 'border-box', display: 'flex', gap: 16, background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
       <aside style={{ flex: '0 0 40%', maxWidth: 600, position: 'sticky', top: 16, height: 'calc(100vh - 32px)', minHeight: 640, borderRadius: 32, overflow: 'hidden', color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '28px 32px 32px', boxSizing: 'border-box' }}>
-        <div style={{ position: 'absolute', inset: 0, background: `#222322 center/cover no-repeat url("/photos/${PHOTOS[step]}.jpg")` }} />
+        <div style={{ position: 'absolute', inset: 0, background: `#222322 center/cover no-repeat url("${photoUrl(PHOTOS[step])}")` }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.42) 0%,rgba(0,0,0,0) 24%,rgba(0,0,0,0) 40%,rgba(0,0,0,.72) 100%)' }} />
         <div style={{ position: 'relative' }}><Brand /></div>
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 18 }}>

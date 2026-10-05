@@ -1,10 +1,16 @@
 import type { ClassType, SessionType } from './api';
+import { photoKey } from './photos';
 
 export const DISCIPLINES = ['Herding', 'Agility', 'Sprint', 'Fitness', 'Scent', 'Sniff', 'Open play', 'Play', 'Skills', 'Behavior'];
 export const ENERGY = ['Couch', 'Medium', 'High', 'Working dog'];
 export const SOCIAL = ['Loves dogs', 'Selective', 'Prefers solo'];
 export const REQS = ['Rabies', 'DHPP', 'Bordetella', '6 months+', '1 year+', 'Leash until release'];
-export const PHOTOS = ['collie', 'grass', 'sprint', 'tunnel', 'weave', 'hurdle', 'leap', 'wall', 'lab', 'rail', 'juno'];
+/** The cover photo library (public/photos). */
+export const PHOTOS = [
+  'athletic_dog_catching_ball', 'dog_running_on_beach', 'dog_getting_pets_at_park', 'dogs_meeting_on_leash', 'pulling_on_leash',
+  'dog_being_patient', 'dog_providing_good_eye_contact', 'dog_chilling', 'dog_and_owner_chilling', 'dog_chilling_with_owner_on_porch',
+  'dog_sleeping_while_owner_reads', 'dog_wrapped_in_blanket', 'dog_chilling_in_car',
+];
 export const TYPES: { key: SessionType; label: string; note: string }[] = [
   { key: 'class', label: 'Class', note: 'A group session. Shows on Book under Sport, Scent, Play or Skills.' },
   { key: 'private', label: 'Private', note: 'One dog with a trainer. Private sessions cost more credits and show on training paths.' },
@@ -33,7 +39,7 @@ export function formOf(c: ClassType): ClassForm {
   const energy = c.energy.length ? c.energy : /any energy/i.test(c.suits ?? '') ? ENERGY : ENERGY.filter((e) => (c.suits ?? '').toLowerCase().includes(e.toLowerCase().replace(' dog', '')));
   const social = c.sociability.length ? c.sociability : SOCIAL.filter((s) => (c.suits_note ?? '').toLowerCase().includes(s.toLowerCase().split(' ')[0]));
   return {
-    title: c.title, discipline: c.discipline, type: c.session_type, image: c.image, duration: c.duration_min, intensity: c.intensity, group: c.group_size,
+    title: c.title, discipline: c.discipline, type: c.session_type, image: photoKey(c.image), duration: c.duration_min, intensity: c.intensity, group: c.group_size,
     energy, social, clearance: c.session_type === 'assessment' ? c.grants : c.requires, reqs, description: c.description ?? '', trainerId: c.trainer_id,
     dropOff: c.drop_off,
   };

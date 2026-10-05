@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
-import { APPLY_URL, DASHBOARD_URL } from '@/lib/supabase';
+import { APP_LIVE, APPLY_URL, DASHBOARD_URL } from '@/lib/supabase';
 import { Button, Chip } from '@/ui';
 
 /** The top bar and footer around both pages. Owners is light, Partner with us is dark, as in the design. */
@@ -33,7 +33,7 @@ export function Site() {
         </div>
         <div data-pp-hide-sm="" style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 'auto' }}>
           {partners ? <Button variant="quiet" size="sm" href={DASHBOARD_URL}>Sign in</Button> : null}
-          {partners ? <Button size="sm" href={APPLY_URL}>Apply to partner</Button> : <Button size="sm" href="#get">Get the app</Button>}
+          {partners ? <Button size="sm" href={APPLY_URL}>Apply to partner</Button> : <Button size="sm" href="#get">{APP_LIVE ? 'Get the app' : 'Join the founding pack'}</Button>}
         </div>
       </nav>
 

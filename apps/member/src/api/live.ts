@@ -2,6 +2,7 @@
 // store (src/store/app.ts), so the screens don't care which mode they run in.
 
 import { setCatalog } from '@/data/catalog';
+import { photoKey } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
 import type { Booking, ClassType, ClearanceRecord, Dog, LogEntry, PathProgress, Partner, PhotoKey, PickedDoc, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
@@ -9,8 +10,7 @@ import type { OnboardingDraft, SocialStage } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { db } from './client';
 
-const PHOTOS: PhotoKey[] = ['collie', 'grass', 'hurdle', 'juno', 'lab', 'leap', 'rail', 'sprint', 'tunnel', 'wall', 'weave'];
-const photo = (k: string | null | undefined, fallback: PhotoKey): PhotoKey => (PHOTOS.includes(k as PhotoKey) ? (k as PhotoKey) : fallback);
+const photo = (k: string | null | undefined, fallback: PhotoKey): PhotoKey => photoKey(k) ?? fallback;
 
 const cap = <T extends string>(s: string) => (s.charAt(0).toUpperCase() + s.slice(1)) as T;
 
@@ -92,14 +92,14 @@ export async function loadCatalog() {
       distanceMi: 0, lat: p.lat ?? undefined, lng: p.lng ?? undefined, rating: Number(p.rating ?? 0), parking: p.parking ?? '',
     }])),
     trainers: Object.fromEntries((trainers as any[]).map((t): [string, Trainer] => [t.id, {
-      id: t.id, name: t.name, credential: t.credential ?? '', photo: photo(t.photo_url, 'lab'), rating: Number(t.rating ?? 0),
+      id: t.id, name: t.name, credential: t.credential ?? '', photo: photo(t.photo_url, 'dog_sleeping_while_owner_reads'), rating: Number(t.rating ?? 0),
       partnerId: t.partner_id, specialties: t.specialties ?? [], privateSessions: t.private_sessions ?? true,
     }])),
     classes: Object.fromEntries((classes as any[]).map((k): [string, ClassType] => [k.id, {
       id: k.id, title: k.title, discipline: k.discipline, category: cap(k.category), sessionType: cap(k.session_type),
       credits: k.credits, durationMin: k.duration_min, intensity: k.intensity, groupSize: k.group_size,
       suits: k.suits ?? '', suitsNote: k.suits_note ?? '', balance: cap(k.balance), description: k.description ?? '',
-      partnerId: k.partner_id, trainerId: k.trainer_id, image: photo(k.image, 'weave'), premium: k.premium,
+      partnerId: k.partner_id, trainerId: k.trainer_id, image: photo(k.image, 'athletic_dog_catching_ball'), premium: k.premium,
       requires: k.requires ?? undefined, grants: k.grants ?? undefined, openWindow: k.open_window ?? undefined,
       dropOff: k.drop_off ?? false, requirements: k.requirements ?? [],
     }])),
@@ -275,7 +275,7 @@ export async function loadLog(): Promise<LogEntry[]> {
   const rows = check(await db().rpc('my_log', { p_months: 120 })) as any[];
   return rows.map((r) => ({
     bookingId: r.booking_id, dogId: r.dog_id, startsAt: new Date(r.starts_at), durationMin: r.duration_min, classId: r.class_id,
-    title: r.title, image: (r.image ?? 'grass') as PhotoKey, balance: r.balance, partner: r.partner_name, trainer: r.trainer_name,
+    title: r.title, image: photo(r.image, 'dog_and_owner_chilling'), balance: r.balance, partner: r.partner_name, trainer: r.trainer_name,
     note: r.note, skills: r.skills ?? [], noteBy: r.note_by,
     assessment: r.outcome
       ? { type: r.assessed, outcome: r.outcome, quote: r.quote, strengths: r.strengths ?? [], workingOn: r.working_on ?? [], assessor: r.assessor }

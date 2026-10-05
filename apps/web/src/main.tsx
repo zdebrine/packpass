@@ -1,27 +1,16 @@
 import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { createRoot, hydrateRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 
 import './styles.css';
-import { Owners } from '@/pages/Owners';
-import { Partners } from '@/pages/Partners';
-import { Site, useHashScroll } from '@/Site';
+import { App } from '@/App';
 
-function App() {
-  useHashScroll();
-  return (
-    <Routes>
-      <Route element={<Site />}>
-        <Route index element={<Owners />} />
-        <Route path="partners" element={<Partners />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
-  );
-}
-
-createRoot(document.getElementById('root')!).render(
+const root = document.getElementById('root')!;
+const app = (
   <StrictMode>
     <BrowserRouter><App /></BrowserRouter>
-  </StrictMode>,
+  </StrictMode>
 );
+// Built pages arrive prerendered (scripts/prerender.mjs); the dev server sends an empty root.
+if (root.hasChildNodes()) hydrateRoot(root, app);
+else createRoot(root).render(app);

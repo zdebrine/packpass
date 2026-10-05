@@ -101,7 +101,7 @@ function Celebration() {
     <Screen theme="dark" bleed statusLight>
       <ScrollView style={{ flex: 1 }}>
         <View style={{ height: 520, overflow: 'hidden' }}>
-          <PhotoFill name="tunnel" />
+          <PhotoFill name="dogs_meeting_on_leash" />
           <Gradient stops={[['rgba(0,0,0,0.45)', 0], ['rgba(0,0,0,0.2)', 0.3], ['rgba(0,0,0,0.35)', 0.6], ['#0e0f0e', 1]]} />
           <View style={{ position: 'absolute', top: top + 8, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between' }}>
             <IconButton glass icon="x" label="Close" onPress={close} />

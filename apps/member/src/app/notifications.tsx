@@ -78,7 +78,7 @@ export default function Notifications() {
           {showCard ? (
             <View style={{ borderRadius: 28, overflow: 'hidden', backgroundColor: c.surfaceRaised }}>
               <View style={{ height: 200 }}>
-                <PhotoFill name="tunnel" />
+                <PhotoFill name="dogs_meeting_on_leash" />
                 <Gradient stops={[['rgba(0,0,0,0.25)', 0], ['rgba(0,0,0,0)', 0.35], ['rgba(0,0,0,0.66)', 1]]} />
                 <View style={{ position: 'absolute', top: 14, left: 14, right: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Tag tone="glass">New clearance</Tag>

@@ -23,9 +23,9 @@ export interface Clearance {
 }
 
 export const SOCIAL_UNLOCKS: Clearance['unlocks'] = [
-  { icon: 'zap', label: 'Group sport', ex: 'Agility and sprint drop-ins', photo: 'weave' },
-  { icon: 'trees', label: 'Play', ex: 'Open field, free roam, small-group play', photo: 'tunnel' },
-  { icon: 'users', label: 'Group skills', ex: 'Focus and Recall, Scent Work I', photo: 'hurdle' },
+  { icon: 'zap', label: 'Group sport', ex: 'Agility and sprint drop-ins', photo: 'athletic_dog_catching_ball' },
+  { icon: 'trees', label: 'Play', ex: 'Open field, free roam, small-group play', photo: 'dogs_meeting_on_leash' },
+  { icon: 'users', label: 'Group skills', ex: 'Focus and Recall, Scent Work I', photo: 'dog_being_patient' },
 ];
 
 export const RECHECK_QUOTE = "Juno read the group well and recovered fast after a startle. She's ready for group sport.";
@@ -69,8 +69,8 @@ export const HERDING: Clearance = {
   sub: 'Assessed at each partner',
   facts: [['Assessed at', 'Each herding partner'], ['Assessed', 'Not yet'], ['Expires', 'Set by the partner']],
   unlocks: [
-    { icon: 'fence', label: 'Herding on Livestock', ex: 'Ridgeline Dog Sport', photo: 'collie' },
-    { icon: 'trophy', label: 'Herding Advanced', ex: 'Northside Barn', photo: 'collie' },
+    { icon: 'fence', label: 'Herding on Livestock', ex: 'Ridgeline Dog Sport', photo: 'dog_chilling' },
+    { icon: 'trophy', label: 'Herding Advanced', ex: 'Northside Barn', photo: 'dog_chilling' },
   ],
   note: 'Herding partners assess every dog on livestock themselves. A Herding clearance is shown as Assessed at that partner and does not transfer.',
 };
@@ -164,17 +164,17 @@ export interface PathTrainer {
 
 export const PATH_TRAINERS: Record<'reactivity' | 'leash' | 'behaviorist', PathTrainer[]> = {
   reactivity: [
-    { name: 'Sam Reyes', meta: 'Eastside Dog Club · 1.8 mi · 3 credits', tags: ['Reactivity', 'Calm exposure'], photo: 'rail' as PhotoKey, classId: 'calm-private' },
-    { name: 'Ana Ruiz', meta: 'Northside Canine · 1.1 mi · 3 credits', tags: ['Separation', 'Reactivity'], photo: 'grass' as PhotoKey, classId: 'loose-leash' },
-    { name: 'Theo Grant', meta: 'In-home visits · 4 credits', tags: ['Separation', 'Puppy foundations'], photo: 'leap' as PhotoKey },
+    { name: 'Sam Reyes', meta: 'Eastside Dog Club · 1.8 mi · 3 credits', tags: ['Reactivity', 'Calm exposure'], photo: 'pulling_on_leash' as PhotoKey, classId: 'calm-private' },
+    { name: 'Ana Ruiz', meta: 'Northside Canine · 1.1 mi · 3 credits', tags: ['Separation', 'Reactivity'], photo: 'dog_and_owner_chilling' as PhotoKey, classId: 'loose-leash' },
+    { name: 'Theo Grant', meta: 'In-home visits · 4 credits', tags: ['Separation', 'Puppy foundations'], photo: 'dog_getting_pets_at_park' as PhotoKey },
   ],
   leash: [
-    { name: 'Ana Ruiz', meta: 'Northside Canine · 1.1 mi · 3 credits', tags: ['Reactivity', 'Recall'], photo: 'grass' as PhotoKey, classId: 'loose-leash' },
-    { name: 'Theo Grant', meta: 'In-home visits · 4 credits', tags: ['Leash skills', 'Puppy foundations'], photo: 'leap' as PhotoKey },
+    { name: 'Ana Ruiz', meta: 'Northside Canine · 1.1 mi · 3 credits', tags: ['Reactivity', 'Recall'], photo: 'dog_and_owner_chilling' as PhotoKey, classId: 'loose-leash' },
+    { name: 'Theo Grant', meta: 'In-home visits · 4 credits', tags: ['Leash skills', 'Puppy foundations'], photo: 'dog_getting_pets_at_park' as PhotoKey },
   ],
   behaviorist: [
-    { name: 'Dr. Nadia Ferris', meta: 'Certified behaviorist · Video or in-home · 6 credits', tags: ['Behaviorist', 'Separation'], photo: 'lab' as PhotoKey },
-    { name: 'Dr. Owen Hale', meta: 'Veterinary behaviorist · Cedar Animal Clinic · 8 credits', tags: ['Behaviorist', 'Vet'], photo: 'hurdle' as PhotoKey },
+    { name: 'Dr. Nadia Ferris', meta: 'Certified behaviorist · Video or in-home · 6 credits', tags: ['Behaviorist', 'Separation'], photo: 'dog_sleeping_while_owner_reads' as PhotoKey },
+    { name: 'Dr. Owen Hale', meta: 'Veterinary behaviorist · Cedar Animal Clinic · 8 credits', tags: ['Behaviorist', 'Vet'], photo: 'dog_being_patient' as PhotoKey },
   ],
 };
 
