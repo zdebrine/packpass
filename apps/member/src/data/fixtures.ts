@@ -21,11 +21,13 @@ export const photos: Record<PhotoKey, number> = {
   dog_sleeping_while_owner_reads: require('../../assets/photos/dog_sleeping_while_owner_reads.jpg'),
   dog_wrapped_in_blanket: require('../../assets/photos/dog_wrapped_in_blanket.jpg'),
   dogs_meeting_on_leash: require('../../assets/photos/dogs_meeting_on_leash.jpg'),
+  /** Juno, the sample Border Collie: cropped from dog_getting_pets_at_park. */
+  juno: require('../../assets/photos/juno.jpg'),
   pulling_on_leash: require('../../assets/photos/pulling_on_leash.jpg'),
 };
 /** Photo keys from before the October 2026 photo swap. Older class and trainer rows, and saved app state, still use them. */
 const LEGACY_PHOTOS: Record<string, PhotoKey> = {
-  collie: 'dog_chilling', grass: 'dog_and_owner_chilling', hurdle: 'dog_being_patient', juno: 'dog_providing_good_eye_contact',
+  collie: 'dog_chilling', grass: 'dog_and_owner_chilling', hurdle: 'dog_being_patient',
   lab: 'dog_sleeping_while_owner_reads', leap: 'dog_getting_pets_at_park', rail: 'pulling_on_leash', sprint: 'dog_running_on_beach',
   tunnel: 'dogs_meeting_on_leash', wall: 'dog_chilling_with_owner_on_porch', weave: 'athletic_dog_catching_ball',
 };
@@ -36,7 +38,7 @@ export const photoKey = (k: string | null | undefined): PhotoKey | undefined =>
 
 
 export const dogs: Record<string, Dog> = {
-  juno: { id: 'juno', name: 'Juno', photo: 'dog_providing_good_eye_contact', breed: 'Border Collie', age: '3 yrs', stage: 'Prime', since: 2026 },
+  juno: { id: 'juno', name: 'Juno', photo: 'juno', breed: 'Border Collie', age: '3 yrs', stage: 'Prime', since: 2026 },
   otis: { id: 'otis', name: 'Otis', photo: 'dog_sleeping_while_owner_reads', breed: 'Labrador', age: '6 yrs', stage: 'Prime', since: 2026 },
 };
 

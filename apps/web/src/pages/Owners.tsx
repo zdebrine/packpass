@@ -353,7 +353,7 @@ function Passport() {
         </div>
         <div style={{ flex: '0 0 auto', margin: '0 auto' }}>
           <div className="pk-athlete" role="img" aria-label="Juno's Athlete Card: 38 classes, 6 disciplines, Agility level 3">
-            <img className="pk-athlete-img" src={photoSrc('dog_providing_good_eye_contact')} alt="" />
+            <img className="pk-athlete-img" src={photoSrc('juno')} alt="" />
             <div className="pk-athlete-top"><Tag tone="glass">Since Mar 2026</Tag><Tag tone="glass"><Flame size={12} /> 12 wk streak</Tag></div>
             <div className="pk-athlete-body">
               <h3 className="pk-athlete-name">Juno</h3>

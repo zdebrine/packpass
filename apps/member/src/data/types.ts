@@ -14,6 +14,7 @@ export type PhotoKey =
   | 'dog_sleeping_while_owner_reads'
   | 'dog_wrapped_in_blanket'
   | 'dogs_meeting_on_leash'
+  | 'juno'
   | 'pulling_on_leash';
 
 export type Category = 'Sport' | 'Scent' | 'Play' | 'Skills';
