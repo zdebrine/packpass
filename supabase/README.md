@@ -135,7 +135,7 @@ Set up on Oct 2 2026 through the Supabase MCP tools:
 - `delete_account` is applied (run in the SQL editor).
 - `partner_team` and `path_undo` are applied (run in the SQL editor); `email_change` through the MCP tools.
 - `admin_unlink_staff` and `partner_applications` are applied (SQL editor); `partner_leads` through the MCP tools.
-- **Not applied yet:** `trait_catalog` (copy refresh phase 1, in review).
+- `trait_catalog` (copy refresh phase 1) is applied, with the path reference validated.
 - The partner dashboard migration went on as two parts (`partner_dashboard`, then `partner_set_repeat`). A
   staff journey (sessions, classes, earnings, a new class in review that can't be scheduled yet) was run inside
   the database and rolled back.
