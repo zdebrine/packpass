@@ -148,10 +148,10 @@ Unknown discipline returns `null` and the UI hides the line. Check `supabase/cat
 - Add `const HERO_VARIANT: 'static' | 'rotating' = 'static'` at the top of the file so both versions can be tested.
 - Eyebrow: `Sport · Scent · Play · Skills · Austin` becomes `Dog classes matched to your dog · Austin`.
 - `static`: H1 is `Make your dog a good hang.` Photos keep cross-fading behind it; the word animation is off.
-- `rotating`: H1 line 1 `A dog who's`, line 2 rotates through `easy on a patio.` / `chill around other dogs.` / `back when you call.` / `tired by dinner.` / `welcome anywhere.` Pair photos in `HERO` in that order: `wall`, `tunnel`, `hurdle`, `grass`, `leap`. Update alt text to match each photo.
+- `rotating`: H1 line 1 `A dog who's`, line 2 rotates through `easy on a patio.` / `chill around other dogs.` / `back when you call.` / `tired by dinner.` / `welcome anywhere.` Pair photos in `HERO` in that order: `dog_chilling_with_owner_on_porch`, `dogs_meeting_on_leash`, `dog_being_patient`, `dog_and_owner_chilling`, `dog_chilling_in_car` (the Phase 7 photo set). Update alt text to match each photo.
 - Subhead: `Drop-in classes across Austin, picked for your dog's energy and quirks. Burn the energy, work on the pulling, and take them everywhere.`
 - Secondary CTA: `Build my dog's month` becomes `Match my dog`.
-- Photography note (not code): the hero needs a calm-dog-on-a-patio shot. Until one exists, use the current photos.
+- Photography: the Phase 7 photo set added the calm-dog-on-a-patio shot (`dog_chilling_with_owner_on_porch`), which now leads the hero.
 
 ### Matched to your dog (`Match`)
 
