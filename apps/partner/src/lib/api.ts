@@ -11,6 +11,8 @@ export interface ClassType {
   balance: 'physical' | 'mental' | 'social'; description: string | null; image: string | null; premium: boolean; requires: 'social' | 'herding' | null;
   grants: 'social' | 'herding' | null; open_window: string | null; requirements: { icon: string; text: string }[]; status: 'live' | 'in_review' | 'paused';
   credit_review: boolean; energy: string[]; sociability: string[];
+  /** Owners leave the dog with the trainer (group classes only). */
+  drop_off: boolean;
 }
 export interface Staff { user_id: string; partner_id: string; trainer_id: string | null; role: 'owner' | 'trainer'; name: string }
 export interface Session {

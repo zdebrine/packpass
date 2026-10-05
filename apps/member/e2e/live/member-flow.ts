@@ -147,9 +147,9 @@ const S = () => useApp.getState();
   ok(social.status === 'cleared' && social.facts[0][1] === 'Eastside Dog Club' && social.assessor?.startsWith('Sam Reyes, Eastside Dog Club'),
      'the Passport shows the real clearance: issuer and assessor');
   ok(liveHerding(S().clearanceRecords!).status === 'needs', 'and Herding still needs an assessment');
-  await S().updateDraft({ traits: ['Pulls on the leash', 'Barks at bikes'] });
+  await S().updateDraft({ traits: ['pulls', 'Barks at bikes'] });
   await S().saveTraits(dog);
-  ok(psql(`select array_to_string(traits, ',') from dogs where id = '${dog}'`) === 'Pulls on the leash,Barks at bikes' && S().dogs[0].traits?.length === 2,
+  ok(psql(`select array_to_string(traits, ',') from dogs where id = '${dog}'`) === 'pulls,Barks at bikes' && S().dogs[0].traits?.length === 2,
      'editing traits saves them to the dog');
   r = await S().bookSession(agility.session.id, dog);
   ok(r.ok, 'with Social, group sport books');
