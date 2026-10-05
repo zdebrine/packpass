@@ -32,13 +32,14 @@ export function ClassRow({ v, showPartnerAsCoach }: { v: SessionView; showPartne
         spotsLeft={v.session.spotsLeft}
         onPress={() => router.push(`/class/${v.session.id}`)}
       />
-      {cleared || needs || typePill ? (
+      {cleared || needs || typePill || v.cls.dropOff ? (
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', paddingLeft: 102 }}>
           {cleared ? <Pill tone="pitch" icon="shield-check">Cleared</Pill> : null}
           {needs === 'herding' ? <Pill icon="shield">Needs assessment</Pill> : null}
           {needs === 'social' ? <Pill icon="shield">Needs Social</Pill> : null}
           {needs === 'vaccines' ? <Pill icon="syringe">Vaccines due</Pill> : null}
           {typePill ? <Pill tone="muted">{v.cls.sessionType}</Pill> : null}
+          {v.cls.dropOff ? <Pill tone="muted">Drop-off</Pill> : null}
         </View>
       ) : null}
     </View>

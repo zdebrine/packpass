@@ -60,6 +60,11 @@ export function traitLabel(id: string, audience: 'owner' | 'partner' = 'owner'):
   return t ? (audience === 'partner' ? t.partner_label : t.label) : id;
 }
 
+/** The training paths these traits start, each once (nervous_dogs and leash_reactive share calm-around-dogs). */
+export function pathsFor(ids: string[]): string[] {
+  return [...new Set(ids.map((id) => traitById(id)?.path_id).filter((p): p is string => !!p))];
+}
+
 async function fetchTraits(): Promise<Trait[] | null> {
   if (!isLive) return null;
   const { data, error } = await db().from('traits').select('id, label, partner_label, grp, sort, path_id');

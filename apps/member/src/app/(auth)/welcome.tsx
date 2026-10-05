@@ -1,9 +1,9 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
-import { HERO_WORDS } from '@/data/fixtures';
+import { HERO_PHOTOS } from '@/data/fixtures';
 import type { PhotoKey } from '@/data/types';
 import { Button, Tag } from '@/ds/controls';
 import { useBottom, useTop, Screen, themed } from '@/ds/layout';
@@ -13,12 +13,12 @@ import { Text } from '@/ds/Text';
 import { motion } from '@/theme/tokens';
 
 const ease = Easing.bezier(...motion.easeOut);
-const WORD_MS = 3400;
+const PHOTO_MS = 3400;
 
 function CrossfadePhoto({ name, active }: { name: PhotoKey; active: boolean }) {
   const style = useAnimatedStyle(() => ({
     opacity: withTiming(active ? 1 : 0, { duration: 1100, easing: ease }),
-    transform: [{ scale: withTiming(active ? 1 : 1.03, { duration: WORD_MS, easing: Easing.out(Easing.quad) }) }],
+    transform: [{ scale: withTiming(active ? 1 : 1.03, { duration: PHOTO_MS, easing: Easing.out(Easing.quad) }) }],
   }));
   return (
     <Animated.View style={[StyleSheet.absoluteFill, style]}>
@@ -27,22 +27,7 @@ function CrossfadePhoto({ name, active }: { name: PhotoKey; active: boolean }) {
   );
 }
 
-/**
- * Fades the hero word up into place. A plain animated style rather than an `entering` layout
- * animation: on the web, Reanimated 4.1's custom (withInitialValues) entering animations read a
- * position snapshot in a cleanup timer, which throws "reading 'top'" if the screen has already
- * gone (tapping Sign in or Create account during the animation).
- */
-function RiseIn({ children }: { children: React.ReactNode }) {
-  const t = useSharedValue(0);
-  useEffect(() => {
-    t.value = withTiming(1, { duration: 800, easing: ease });
-  }, [t]);
-  const style = useAnimatedStyle(() => ({ opacity: t.value, transform: [{ translateY: (1 - t.value) * 12 }] }));
-  return <Animated.View style={style}>{children}</Animated.View>;
-}
-
-/** 01a Welcome. "Every dog is" + a cycling ending, with the photo crossfading to match. */
+/** 01a Welcome. A static headline over cross-fading photos. */
 function Welcome() {
   const [i, setI] = useState(0);
   const top = useTop();
@@ -51,14 +36,14 @@ function Welcome() {
   // Cycle only while Welcome is on screen; it stays mounted (hidden) under Sign in and Sign up.
   useFocusEffect(
     useCallback(() => {
-      const t = setInterval(() => setI((n) => (n + 1) % HERO_WORDS.length), WORD_MS);
+      const t = setInterval(() => setI((n) => (n + 1) % HERO_PHOTOS.length), PHOTO_MS);
       return () => clearInterval(t);
     }, []),
   );
 
   return (
     <Screen theme="dark" bleed statusLight>
-      {HERO_WORDS.map(([, photo], k) => (
+      {HERO_PHOTOS.map((photo, k) => (
         <CrossfadePhoto key={photo} name={photo} active={k === i} />
       ))}
       <Gradient stops={[['rgba(0,0,0,0.42)', 0], ['rgba(0,0,0,0)', 0.24], ['rgba(0,0,0,0)', 0.38], ['rgba(0,0,0,0.78)', 1]]} />
@@ -68,15 +53,13 @@ function Welcome() {
       </View>
 
       <View style={{ position: 'absolute', left: 20, right: 20, bottom, gap: 12 }}>
-        <View accessible accessibilityRole="header" accessibilityLabel={`Every dog is ${HERO_WORDS[i][0]}`}>
-          <Text variant="display2xl" color="#fff" style={styles.h1} numberOfLines={1}>Every dog is</Text>
-          <RiseIn key={i}>
-            <Text variant="display2xl" color="#fff" style={styles.h1} numberOfLines={1} adjustsFontSizeToFit>{HERO_WORDS[i][0]}</Text>
-          </RiseIn>
+        <View accessible accessibilityRole="header" accessibilityLabel="Make your dog a good hang.">
+          <Text variant="display2xl" color="#fff" style={styles.h1} numberOfLines={1}>Make your dog</Text>
+          <Text variant="display2xl" color="#fff" style={styles.h1} numberOfLines={1}>a good hang.</Text>
         </View>
-        <Text color="rgba(255,255,255,0.88)">Drop-in agility, scent work, open fields and skill classes across Austin, matched to your dog.</Text>
+        <Text color="rgba(255,255,255,0.88)">{`Drop-in classes across Austin, picked for your dog's energy and quirks.`}</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4, marginBottom: 14 }}>
-          {['Sport', 'Agility', 'Scent work', 'Skills', 'Open play'].map((t) => <Tag key={t} tone="glass">{t}</Tag>)}
+          {['Agility', 'Scent work', 'Reactive-friendly', '1:1 trainers', 'Open play'].map((t) => <Tag key={t} tone="glass">{t}</Tag>)}
         </View>
         <Button variant="glass" wide block onPress={() => router.push('/sign-up')}>Create account</Button>
         <Press onPress={() => router.push('/sign-in')} scale={false} style={{ height: 52, alignItems: 'center', justifyContent: 'center' }}>

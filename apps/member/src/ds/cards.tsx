@@ -18,6 +18,8 @@ export interface ClassCardProps {
   image: PhotoKey;
   discipline?: string;
   premium?: boolean;
+  /** Owners leave the dog with the trainer (tile layout; Book's rows show it as a pill). */
+  dropOff?: boolean;
   title: string;
   partner?: string;
   place?: string;
@@ -28,7 +30,7 @@ export interface ClassCardProps {
   onPress?: () => void;
 }
 
-export function ClassCard({ layout = 'tile', image, discipline, premium, title, partner, place, time, duration, credits, spotsLeft, onPress }: ClassCardProps) {
+export function ClassCard({ layout = 'tile', image, discipline, premium, dropOff, title, partner, place, time, duration, credits, spotsLeft, onPress }: ClassCardProps) {
   const { c } = useTheme();
   const hasSpots = typeof spotsLeft === 'number';
   const low = hasSpots && spotsLeft! <= 2;
@@ -64,7 +66,10 @@ export function ClassCard({ layout = 'tile', image, discipline, premium, title, 
       <PhotoFill name={image} />
       <Scrim />
       <View style={styles.tileTop}>
-        <View>{premium ? <Tag tone="premium">Premium</Tag> : discipline ? <Tag tone="glass">{discipline}</Tag> : null}</View>
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {premium ? <Tag tone="premium">Premium</Tag> : discipline ? <Tag tone="glass">{discipline}</Tag> : null}
+          {dropOff ? <Tag tone="glass">Drop-off</Tag> : null}
+        </View>
         <Tag tone="glass">{creditLabel(credits)}</Tag>
       </View>
       <View style={styles.tileBody}>

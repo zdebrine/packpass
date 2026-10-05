@@ -3,7 +3,9 @@ import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { errorCopy, SHORT } from '@/api/errors';
-import { MONTH_PLAN, MONTH_PLAN_NEW_DOG, PLAN, PLAN_GOALS } from '@/data/fixtures';
+import { ENERGY_PHRASE, MONTH_PLAN, MONTH_PLAN_NEW_DOG, PLAN, PLAN_GOALS } from '@/data/fixtures';
+import { payoff } from '@/data/payoffs';
+import { traitById, useTraits } from '@/data/traits';
 import { Button, Pill } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
 import { Meter, MiniButton, Screen, themed, useBottom } from '@/ds/layout';
@@ -64,7 +66,12 @@ function Month() {
     pct: planned.filter((r) => r.v!.cls.balance === k).length / TARGET[k],
     color: k === 'Physical' ? c.agility : k === 'Mental' ? c.turf : c.pitch,
   }));
-  const goals = PLAN_GOALS.filter((g) => d.traits.includes(g.trait));
+  useTraits(); // the add-ons below follow the catalog's paths once it loads
+  // A goal shows when any picked trait starts its path; the caption names the first one, in the owner's words.
+  const goals = PLAN_GOALS.flatMap((g) => {
+    const trait = d.traits.map(traitById).find((t) => t?.path_id === g.path);
+    return trait ? [{ ...g, trait: trait.label }] : [];
+  });
 
   const go = async (book: boolean) => {
     setBusy(true);
@@ -140,7 +147,7 @@ function Month() {
         <Text muted style={{ marginTop: 10 }}>
           {leadWithAssessment
             ? `It starts with a Social assessment, so trainers can match ${name} to the right groups. Group sessions open once it's passed. Swap anything.`
-            : `Five sessions over the next 4 weeks, balanced for a ${d.energy === 'Working dog' ? 'working dog' : `${d.energy.toLowerCase()} energy dog`} who ${d.social === 'Loves dogs' ? 'loves other dogs' : d.social === 'Selective' ? 'is selective with other dogs' : 'prefers to work solo'}. Swap anything.`}
+            : `Five sessions over the next 4 weeks, picked for a dog who ${ENERGY_PHRASE[d.energy] ?? ENERGY_PHRASE.medium} and ${d.social === 'Loves dogs' ? 'loves other dogs' : d.social === 'Selective' ? 'is selective with other dogs' : 'prefers to work solo'}. Swap anything.`}
         </Text>
 
         <View style={{ gap: 8, marginTop: 20 }}>
@@ -151,7 +158,8 @@ function Month() {
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text variant="caption" muted>{`Week ${Math.floor(r.day / 7) + 1} · ${weekday(r.v.session.startsAt).slice(0, 3)} ${time(r.v.session.startsAt)}`}</Text>
                   <Text variant="label" weight="600">{r.v.cls.title}</Text>
-                  <Text variant="caption" muted>{`${r.v.partner.name} · ${creditsLabel(r.v.cls.credits)} · ${r.v.cls.balance}`}</Text>
+                  <Text variant="caption" muted>{`${r.v.partner.name} · ${creditsLabel(r.v.cls.credits)}`}</Text>
+                  {payoff(r.v.cls.discipline) ? <Text variant="caption" muted>{`"${payoff(r.v.cls.discipline)}"`}</Text> : null}
                   {r.block ? (
                     <View style={{ flexDirection: 'row', marginTop: 6 }}><Pill tone="muted" icon={r.block === 'vaccines' ? 'syringe' : 'shield'}>{SHORT[r.block] ? SHORT[r.block].charAt(0).toUpperCase() + SHORT[r.block].slice(1) : r.block}</Pill></View>
                   ) : r.after ? (

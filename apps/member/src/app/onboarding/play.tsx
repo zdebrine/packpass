@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { View } from 'react-native';
 
-import { ENERGY, ENERGY_NOTE, INTERESTS, SOCIAL } from '@/data/fixtures';
+import { ENERGY, INTERESTS, SOCIAL } from '@/data/fixtures';
 import { Button, Chip } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
 import { Footer, MiniButton, Screen, themed } from '@/ds/layout';
@@ -24,9 +24,9 @@ function PlayStyle() {
       <StepHeader step={3} />
       <Body gap={24}>
         <Intro eyebrow="Step 3 of 5 · Play style" title={`How does ${name} play?`} />
-        <FieldGroup label="Energy" note={ENERGY_NOTE[d.energy as keyof typeof ENERGY_NOTE]}>
+        <FieldGroup label="Energy" note={ENERGY.find((e) => e.key === d.energy)?.note}>
           <ChipRow>
-            {ENERGY.map((e) => <Chip key={e} selected={d.energy === e} onPress={() => update({ energy: e })}>{e}</Chip>)}
+            {ENERGY.map((e) => <Chip key={e.key} selected={d.energy === e.key} onPress={() => update({ energy: e.key })}>{e.label}</Chip>)}
           </ChipRow>
         </FieldGroup>
         <FieldGroup label="With other dogs">
