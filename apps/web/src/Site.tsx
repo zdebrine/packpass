@@ -11,7 +11,7 @@ export function Site() {
   const partners = loc.pathname.startsWith('/partners');
   useEffect(() => {
     if (!loc.hash) window.scrollTo({ top: 0 });
-    document.title = partners ? 'Partner with PackPass · Fill your open spots' : 'PackPass · Sport, scent, play and skills for dogs in Austin';
+    document.title = partners ? 'Partner with PackPass · Fill your open spots' : 'PackPass · Dog classes in Austin, matched to your dog';
   }, [loc.pathname, loc.hash, partners]);
   const links = partners
     ? [['Payouts', '#payouts'], ['Earnings', '#earnings'], ['Requirements', '#requirements'], ['FAQ', '#partner-faq']]
@@ -42,7 +42,7 @@ export function Site() {
       <footer style={{ maxWidth: 1280, margin: '0 auto', padding: '72px clamp(20px,4vw,40px) 40px', boxSizing: 'border-box', display: 'flex', flexWrap: 'wrap', gap: 40, justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 320 }}>
           <span className="pk-wide" style={{ fontSize: 16, fontWeight: 700 }}>PackPass</span>
-          <span className="pk-label pk-muted">Sport, scent, play and skills for dogs in Austin, with one membership.</span>
+          <span className="pk-label pk-muted">Drop-in dog classes across Austin, matched to your dog.</span>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 56 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
