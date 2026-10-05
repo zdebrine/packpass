@@ -66,9 +66,9 @@ export function Faq({ id, eyebrow, rows }: { id: string; eyebrow: string; rows: 
 }
 
 /** A full-bleed photo panel with a bottom-weighted shade, for the hero and closing sections. */
-export function PhotoPanel({ children, photo, minHeight, shade, style }: { children: ReactNode; photo?: Photo; minHeight: string | number; shade: string; style?: CSSProperties }) {
+export function PhotoPanel({ children, photo, minHeight, shade, style, className }: { children: ReactNode; photo?: Photo; minHeight: string | number; shade: string; style?: CSSProperties; className?: string }) {
   return (
-    <div data-theme="dark" style={{ position: 'relative', minHeight, borderRadius: 32, overflow: 'hidden', color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 'clamp(24px,4vw,56px)', boxSizing: 'border-box', ...style }}>
+    <div data-theme="dark" className={className} style={{ position: 'relative', minHeight, borderRadius: 32, overflow: 'hidden', color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 'clamp(24px,4vw,56px)', boxSizing: 'border-box', ...style }}>
       {photo ? <Img photo={photo} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
       <div style={{ position: 'absolute', inset: 0, background: shade }} />
       {children}

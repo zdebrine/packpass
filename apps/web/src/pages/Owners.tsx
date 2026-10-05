@@ -114,26 +114,26 @@ function Hero() {
   return (
     <section style={{ padding: '0 16px' }}>
       {/* The photos cross-fade inside the panel, so the shade comes after them. */}
-      <PhotoPanel minHeight="min(820px, calc(100vh - 88px))" shade="transparent">
+      <PhotoPanel className="pp-hero" minHeight="min(820px, calc(100vh - 88px))" shade="transparent">
         {HERO.map((p, k) => (
           <Img key={k} photo={p} alt={k === i ? p.alt : ''} aria-hidden={k !== i}
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, opacity: k === i ? 1 : 0, transform: k === i ? 'scale(1)' : 'scale(1.03)', transition: 'opacity 1100ms cubic-bezier(.2,.8,.2,1), transform 3400ms ease-out' }} />
         ))}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,.04) 24%,rgba(0,0,0,.32) 50%,rgba(0,0,0,.8) 100%)' }} />
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <span className="pk-wide" style={{ opacity: 0.92 }}>{hero.eyebrow}</span>
+        <div className="pp-hero-copy" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <span className="pk-wide pp-hero-eyebrow" style={{ opacity: 0.92 }}>{hero.eyebrow}</span>
           {HERO_VARIANT === 'static' ? (
-            <h1 className="pk-display-2xl" style={{ margin: 0, maxWidth: 1000, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94, textWrap: 'balance' }}>{hero.headline}</h1>
+            <h1 className="pk-display-2xl pp-hero-title" style={{ margin: 0, maxWidth: 1000, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94, textWrap: 'balance' }}>{hero.headline}</h1>
           ) : (
-            <h1 className="pk-display-2xl" style={{ margin: 0, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94 }}>
+            <h1 className="pk-display-2xl pp-hero-title" style={{ margin: 0, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94 }}>
               <span style={{ display: 'block', whiteSpace: 'nowrap' }}>A dog who’s</span>
               <span key={i} style={{ display: 'block', whiteSpace: 'nowrap', animation: 'ppWordIn 800ms cubic-bezier(.2,.8,.2,1) both' }}>{HERO[i]?.line}</span>
             </h1>
           )}
-          <p className="pk-body" style={{ margin: 0, maxWidth: 520, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>{hero.body}</p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
+          <p className="pk-body pp-hero-body" style={{ margin: 0, maxWidth: 520, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>{hero.body}</p>
+          <div className="pp-hero-ctas" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
             {APP_LIVE ? <StoreButtons /> : <Button href="#get" style={{ minWidth: 200 }}>{hero.cta}</Button>}
-            <a href="#match" className="pp-glass" style={{ flex: 'none', marginLeft: 'auto', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 12, height: 52, padding: '0 8px 0 20px', borderRadius: 9999, color: '#fff', textDecoration: 'none' }}>
+            <a href="#match" className="pp-glass pp-hero-match" style={{ flex: 'none', marginLeft: 'auto', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 12, height: 52, padding: '0 8px 0 20px', borderRadius: 9999, color: '#fff', textDecoration: 'none' }}>
               <span className="pk-label" style={{ fontWeight: 600 }}>{hero.matchCta}</span>
               <span style={{ width: 36, height: 36, borderRadius: 9999, background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ArrowDown size={18} /></span>
             </a>
