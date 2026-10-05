@@ -1,7 +1,7 @@
 import {
   Banknote, Calendar, CalendarCheck, CalendarPlus, CircleCheck, CirclePlus, Clock, Coins, Landmark, ShieldCheck, UserPlus, Users, type LucideIcon,
 } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 
 import { submitLead } from '@/lib/catalog';
 import { APPLY_URL } from '@/lib/supabase';
@@ -140,7 +140,9 @@ const Reqs = ({ title, icon: Icon, rows, muted }: { title: string; icon: LucideI
 
 /** Payouts (always open) and the earnings calculator, which sits behind a short form that saves a lead (P2 "Earnings gate"). */
 function Earnings() {
-  const [unlocked, setUnlocked] = useState(unlockedBefore);
+  // Read after the first render, so the prerendered page (always locked) and the browser agree when hydrating.
+  const [unlocked, setUnlocked] = useState(false);
+  useEffect(() => { if (unlockedBefore()) setUnlocked(true); }, []);
   const [sessions, setSessions] = useState(6);
   const [dogs, setDogs] = useState(3);
   const [credits, setCredits] = useState(2);

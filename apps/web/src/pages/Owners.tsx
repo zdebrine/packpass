@@ -1,9 +1,10 @@
 import { ArrowDown, Check, Flame, MessageSquareText, TrendingUp, type LucideIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
-import { AREAS, PARTNER_TYPE, creditsLabel, miles, useCatalog, when, type Catalog } from '@/lib/catalog';
+import { AREAS, PARTNER_TYPE, creditsLabel, miles, submitWaitlist, useCatalog, when, type Catalog } from '@/lib/catalog';
 import { payoff } from '@/lib/payoffs';
 import { photoSrc } from '@/lib/photos';
+import { APP_LIVE, FOUNDING_PACK_URL } from '@/lib/supabase';
 import { traitLabel, useTraits } from '@/lib/traits';
 import { Button, Chip, Faq, Heading, PhotoPanel, StoreButtons, Tag } from '@/ui';
 
@@ -36,18 +37,24 @@ export const OWNER_FAQ: [string, string][] = [
   ['Is PackPass outside Austin?', 'Not yet. Join the waitlist with your ZIP code and we’ll tell you when PackPass opens near you.'],
 ];
 
-export const PLANS: [string, string, number, string][] = [
-  ['Starter', '$79', 6, 'A regular outlet for a mostly chill dog. About 3 classes a month.'],
-  ['Regular', '$129', 10, 'A class most weeks, plus a session on the stuff that’s hard.'],
-  ['Working Dog', '$189', 16, 'For dogs who are never tired. Out about twice a week.'],
+/** Name, price, credits, who it fits, and the plan_tier it's stored as. */
+export const PLANS: [string, string, number, string, Plan][] = [
+  ['Starter', '$79', 6, 'A regular outlet for a mostly chill dog. About 3 classes a month.', 'starter'],
+  ['Regular', '$129', 10, 'A class most weeks, plus a session on the stuff that’s hard.', 'regular'],
+  ['Working Dog', '$189', 16, 'For dogs who are never tired. Out about twice a week.', 'working'],
 ];
+type Plan = 'starter' | 'regular' | 'working';
 
 export function Owners() {
   const cat = useCatalog();
+  // The matcher's answers and the picked plan, so the founding signup can carry them.
+  const [energy, setEnergy] = useState<Energy>('high');
+  const [traits, setTraits] = useState<string[]>(['nervous_dogs']);
+  const [plan, setPlan] = useState<Plan | null>(null);
   return (
     <>
       <Hero />
-      <Match cat={cat} />
+      <Match cat={cat} energy={energy} setEnergy={setEnergy} traits={traits} setTraits={setTraits} />
       <section id="how" className="pp-section">
         <Heading eyebrow="How it works" title="One membership. The right classes for your dog. No 6-week commitment." />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16, marginTop: 40 }}>
@@ -84,7 +91,7 @@ export function Owners() {
           <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>Most sessions cost 1 to 4 credits depending on length and format. A typical group class is 2.</p>
         </Heading>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16, marginTop: 40 }}>
-          {PLANS.map(([name, price, credits, fit]) => {
+          {PLANS.map(([name, price, credits, fit, key]) => {
             const popular = name === 'Regular';
             return (
               <div key={name} data-theme={popular ? 'dark' : 'light'} style={{ background: 'var(--surface-raised)', color: 'var(--ink)', borderRadius: 28, padding: 28, display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -102,7 +109,7 @@ export function Owners() {
                     <div key={k} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}><Check size={18} style={{ flex: 'none', marginTop: 1 }} /><span className="pk-label">{k}</span></div>
                   ))}
                 </div>
-                <div style={{ marginTop: 'auto' }}><Button block href="#get">{`Choose ${name}`}</Button></div>
+                <div style={{ marginTop: 'auto' }}><Button block href="#get" onClick={() => setPlan(key)}>{`Choose ${name}`}</Button></div>
               </div>
             );
           })}
@@ -110,10 +117,14 @@ export function Owners() {
       </section>
       <Faq id="faq" eyebrow="FAQ" rows={OWNER_FAQ} />
       <section id="get" style={{ padding: 'clamp(72px,9vw,120px) 16px 0' }}>
-        <PhotoPanel photo="dogs_meeting_on_leash" minHeight={520} shade="linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.72) 100%)" style={{ alignItems: 'flex-start', gap: 20 }}>
-          <h2 className="pk-display-2xl" style={{ position: 'relative', margin: 0, maxWidth: 760, fontSize: 'clamp(44px,6vw,88px)', lineHeight: 0.94 }}>Book your dog’s first class this week.</h2>
-          <p className="pk-body" style={{ position: 'relative', margin: 0, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)' }}>No 6-week commitment. Pause or cancel anytime.</p>
-          <div style={{ position: 'relative', display: 'flex', gap: 10, flexWrap: 'wrap' }}><StoreButtons /></div>
+        <PhotoPanel photo="dogs_meeting_on_leash" minHeight={520} shade={APP_LIVE ? 'linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.72) 100%)' : 'linear-gradient(90deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.55) 55%,rgba(0,0,0,.2) 100%)'} style={{ alignItems: 'flex-start', gap: 20 }}>
+          {APP_LIVE ? (
+            <>
+              <h2 className="pk-display-2xl" style={{ position: 'relative', margin: 0, maxWidth: 760, fontSize: 'clamp(44px,6vw,88px)', lineHeight: 0.94 }}>Book your dog’s first class this week.</h2>
+              <p className="pk-body" style={{ position: 'relative', margin: 0, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)' }}>No 6-week commitment. Pause or cancel anytime.</p>
+              <div style={{ position: 'relative', display: 'flex', gap: 10, flexWrap: 'wrap' }}><StoreButtons /></div>
+            </>
+          ) : <FoundingSignup energy={energy} traits={traits} plan={plan} />}
         </PhotoPanel>
       </section>
     </>
@@ -136,7 +147,7 @@ function Hero() {
           <img key={p} src={photoSrc(p)} alt={k === i ? alt : ''} aria-hidden={k !== i}
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, opacity: k === i ? 1 : 0, transform: k === i ? 'scale(1)' : 'scale(1.03)', transition: 'opacity 1100ms cubic-bezier(.2,.8,.2,1), transform 3400ms ease-out' }} />
         ))}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,0) 26%,rgba(0,0,0,.08) 50%,rgba(0,0,0,.74) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,.04) 24%,rgba(0,0,0,.32) 50%,rgba(0,0,0,.8) 100%)' }} />
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20 }}>
           <span className="pk-wide" style={{ opacity: 0.92 }}>Dog classes matched to your dog · Austin</span>
           {HERO_VARIANT === 'static' ? (
@@ -149,7 +160,7 @@ function Hero() {
           )}
           <p className="pk-body" style={{ margin: 0, maxWidth: 520, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>Drop-in classes across Austin, picked for your dog’s energy and quirks. Burn the energy, work on the pulling, and take them everywhere.</p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
-            <StoreButtons />
+            {APP_LIVE ? <StoreButtons /> : <Button href="#get" style={{ minWidth: 200 }}>Join the founding pack</Button>}
             <a href="#match" className="pp-glass" style={{ flex: 'none', marginLeft: 'auto', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 12, height: 52, padding: '0 8px 0 20px', borderRadius: 9999, color: '#fff', textDecoration: 'none' }}>
               <span className="pk-label" style={{ fontWeight: 600 }}>Match my dog</span>
               <span style={{ width: 36, height: 36, borderRadius: 9999, background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ArrowDown size={18} /></span>
@@ -180,10 +191,10 @@ const BALANCE: Record<string, string> = { sport: 'Physical', play: 'Social', sce
  * "Matched to your dog": a sample month from the live catalog. The picks follow the design's rules (energy sets
  * how much, traits add skills work, at most 16 credits); the neighborhood sets the distances shown.
  */
-function Match({ cat }: { cat: Catalog }) {
+function Match({ cat, energy, setEnergy, traits, setTraits }: {
+  cat: Catalog; energy: Energy; setEnergy: (e: Energy) => void; traits: string[]; setTraits: React.Dispatch<React.SetStateAction<string[]>>;
+}) {
   useTraits(); // re-render with the live labels once the catalog loads
-  const [energy, setEnergy] = useState<Energy>('high');
-  const [traits, setTraits] = useState<string[]>(['nervous_dogs']);
   const [hood, setHood] = useState(AREAS[0].label);
   const area = AREAS.find((a) => a.label === hood)!;
   const toggle = (t: string) => setTraits((x) => (x.includes(t) ? x.filter((y) => y !== t) : x.length >= 3 ? x : [...x, t]));
@@ -242,7 +253,7 @@ function Match({ cat }: { cat: Catalog }) {
             })}
           </div>
           <span className="pk-label pk-muted" style={{ textWrap: 'pretty' }}>{`${plan[0]} plan covers it${left ? `, with ${left} ${left === 1 ? 'credit' : 'credits'} left for anything.` : '.'}`}</span>
-          <div style={{ marginTop: 'auto' }}><Button variant="signal" block href="#get">Book this month in the app</Button></div>
+          <div style={{ marginTop: 'auto' }}><Button variant="signal" block href="#get">{APP_LIVE ? 'Book this month in the app' : 'Save this month'}</Button></div>
         </div>
       </div>
     </section>
@@ -355,5 +366,61 @@ function Passport() {
         </div>
       </div>
     </section>
+  );
+}
+
+/** Austin ZIPs (786xx, 787xx). Others still sign up; they hear when PackPass opens near them. */
+const inAustin = (zip: string) => /^78[67]\d\d$/.test(zip);
+
+/**
+ * Pre-launch signup in place of the store buttons (phase 7). Saves the matcher's answers with the email; with a
+ * Founding Pack Payment Link set, it then opens checkout with the email filled in.
+ */
+function FoundingSignup({ energy, traits, plan }: { energy: Energy; traits: string[]; plan: Plan | null }) {
+  useTraits();
+  const [email, setEmail] = useState('');
+  const [zip, setZip] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+  const paid = !!FOUNDING_PACK_URL;
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const em = email.trim(), z = zip.trim();
+    if (!/^\S+@\S+\.\S+$/.test(em)) return setError('Enter a valid email.');
+    if (!/^\d{5}$/.test(z)) return setError('Enter a 5-digit ZIP code.');
+    setBusy(true);
+    let saved = true;
+    try { await submitWaitlist(em, z, energy, traits, plan); } catch { saved = false; }
+    // Checkout goes ahead even if the row didn't save: Stripe has the email.
+    if (paid) { window.location.href = `${FOUNDING_PACK_URL}${FOUNDING_PACK_URL.includes('?') ? '&' : '?'}prefilled_email=${encodeURIComponent(em)}`; return; }
+    setBusy(false);
+    if (!saved) return setError('That didn’t save. Check your connection and try again.');
+    setDone(inAustin(z) ? 'You’re in. We’ll email you when booking opens near you.' : 'You’re on the list. We’ll tell you when PackPass opens near you.');
+  };
+  const chips = [ENERGIES.find(([k]) => k === energy)?.[1], ...traits.map((t) => traitLabel(t))].filter(Boolean) as string[];
+  return (
+    <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <h2 className="pk-display-2xl" style={{ margin: 0, maxWidth: 760, fontSize: 'clamp(44px,6vw,88px)', lineHeight: 0.94 }}>Join the founding pack.</h2>
+      <p className="pk-body" style={{ margin: 0, maxWidth: 560, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>Austin’s first members get 2 bonus credits in month one. No 6-week commitment. Pause or cancel anytime.</p>
+      {done ? (
+        <p className="pk-heading" role="status" style={{ margin: 0, display: 'flex', gap: 10, alignItems: 'center' }}><Check size={20} />{done}</p>
+      ) : (
+        <form onSubmit={submit} noValidate className="pp-glass" style={{ width: '100%', maxWidth: 640, borderRadius: 28, padding: 'clamp(16px,2.4vw,24px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            {chips.map((c) => <Tag key={c} tone="glass">{c}</Tag>)}
+            <a href="#match" className="pk-label" style={{ color: '#fff', fontWeight: 600 }}>Change</a>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><span className="pk-label" style={{ fontWeight: 600 }}>Email</span>
+              <input className="pp-field" type="email" autoComplete="email" value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }} /></label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><span className="pk-label" style={{ fontWeight: 600 }}>ZIP code</span>
+              <input className="pp-field" inputMode="numeric" autoComplete="postal-code" maxLength={5} value={zip} onChange={(e) => { setZip(e.target.value); setError(''); }} /></label>
+          </div>
+          {error ? <span className="pk-label" role="alert" style={{ color: '#fff', fontWeight: 600 }}>{error}</span> : null}
+          <Button type="submit" variant="signal" block disabled={busy}>{busy ? 'Saving…' : paid ? 'Claim my founding spot' : 'Join the waitlist'}</Button>
+        </form>
+      )}
+    </div>
   );
 }

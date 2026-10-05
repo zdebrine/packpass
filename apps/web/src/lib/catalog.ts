@@ -84,6 +84,13 @@ export const when = (iso: string) => {
 export const creditsLabel = (n: number | null) => (n == null ? '' : `${n} credit${n === 1 ? '' : 's'}`);
 export const PARTNER_TYPE: Record<string, string> = { trainer: 'Independent trainer', facility: 'Training facility', sport_club: 'Sport club', behavior_specialist: 'Behavior specialist', outdoor_space: 'Outdoor space' };
 
+/** Saves (or updates, by email) a founding-member signup with what the matcher knows about the dog. */
+export async function submitWaitlist(email: string, zip: string, energy: string | null, traits: string[], plan: string | null) {
+  if (!db) throw new Error('offline');
+  const { error } = await db.rpc('submit_owner_waitlist', { p_email: email, p_zip: zip, p_energy: energy, p_traits: traits, p_plan: plan });
+  if (error) throw new Error(error.message);
+}
+
 export async function submitLead(type: string, name: string, business: string, email: string, zip: string) {
   if (!db) throw new Error('offline');
   const { error } = await db.rpc('submit_partner_lead', { p_type: type, p_name: name, p_business: business, p_email: email, p_zip: zip });
