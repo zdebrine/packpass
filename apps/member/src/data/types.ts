@@ -58,6 +58,8 @@ export interface ClassType {
   grants?: ClearanceType;
   /** Shown instead of a start time, e.g. open sniff spaces. */
   openWindow?: string;
+  /** Owners leave the dog with the trainer and pick up at the end. Every other class, they stay. */
+  dropOff: boolean;
   requirements: { icon: 'syringe' | 'cake' | 'link'; text: string }[];
 }
 

@@ -112,7 +112,10 @@ export default function BookingSheet() {
             </View>
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 22, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
-              <Text>{creditsLabel(cost)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text>{creditsLabel(cost)}</Text>
+                {cls.dropOff ? <Tag>Drop-off</Tag> : null}
+              </View>
               <Text variant="label" num color={short ? c.kennelRed : c.inkMuted}>
                 {short ? `You have ${creditsLabel(credits)} left` : `${credits - cost} of ${PLAN.credits} left after booking`}
               </Text>

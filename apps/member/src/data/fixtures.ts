@@ -1,6 +1,7 @@
 // Sample data for v1. Every value comes from `project/Pack Member App.dc.html` unless noted.
 // The app's clock is fixed to the moment the design depicts: Tuesday, Sep 29 2026, 9:41 am.
 
+import type { TraitGroup } from './traits';
 import type { ClassType, Dog, Partner, PhotoKey, Session, Trainer } from './types';
 
 export const NOW = new Date(2026, 8, 29, 9, 41);
@@ -47,7 +48,8 @@ const AGE = { icon: 'cake', text: '12 months or older' } as const;
 const LEASH = { icon: 'link', text: 'On leash until the trainer releases Juno' } as const;
 
 // Descriptions for classes the design doesn't detail are written in the same voice.
-const C = (c: ClassType) => c;
+// No sample class is drop-off.
+const C = (c: Omit<ClassType, 'dropOff'>): ClassType => ({ ...c, dropOff: false });
 export const classes: Record<string, ClassType> = {
   'herding-fundamentals': C({
     id: 'herding-fundamentals', title: 'Herding Fundamentals', discipline: 'Herding', category: 'Sport', sessionType: 'Class',
@@ -280,37 +282,42 @@ export const disciplineLevels = [
 
 // ---- Onboarding ----------------------------------------------------------------------------
 
-export const HERO_WORDS: [string, PhotoKey][] = [
-  ['an athlete.', 'sprint'],
-  ['an explorer.', 'leap'],
-  ['a good listener.', 'hurdle'],
-  ['a social butterfly.', 'tunnel'],
-  ['a problem solver.', 'weave'],
-  ['a scent detective.', 'grass'],
-];
+/** Welcome hero photos, cross-faded in this order. */
+export const HERO_PHOTOS: PhotoKey[] = ['sprint', 'leap', 'hurdle', 'tunnel', 'weave', 'grass'];
 
-export const ENERGY = ['Couch', 'Medium', 'High', 'Working dog'] as const;
-export const ENERGY_NOTE: Record<(typeof ENERGY)[number], string> = {
-  Couch: 'Happy with a walk and a nap.',
-  Medium: 'One good outing a day.',
-  High: 'Needs a hard session most days.',
-  'Working dog': 'Bred for a job. Needs work for body and brain.',
+/** Stored as dogs.energy (the energy_level enum). */
+export type Energy = 'couch' | 'medium' | 'high' | 'working';
+export const ENERGY: { key: Energy; label: string; note: string }[] = [
+  { key: 'couch', label: 'Couch potato', note: 'Happy with a walk and a nap.' },
+  { key: 'medium', label: 'Up for anything', note: 'One good outing a day.' },
+  { key: 'high', label: 'Needs a job', note: 'Needs a hard session most days.' },
+  { key: 'working', label: 'Never stops', note: 'Bred for a job. Needs work for body and brain.' },
+];
+/** Finishes "picked for a dog who …" on Juno's month. */
+export const ENERGY_PHRASE: Record<Energy, string> = {
+  couch: 'likes a slower pace',
+  medium: 'is up for anything',
+  high: 'needs a job',
+  working: 'never stops',
 };
 export const SOCIAL = ['Loves dogs', 'Selective', 'Prefers solo'] as const;
 export const INTERESTS = ['Agility', 'Scent', 'Sprint', 'Herding', 'Open play', 'Sniff spaces', 'Skills'] as const;
 
-export const TRAIT_SPECIAL = ['None of these', 'Not sure yet'];
-export const TRAIT_GROUPS: [string, string[]][] = [
-  ['Around dogs', ['Plays too rough', 'Nervous with new dogs', 'Guards food or toys']],
-  ['Around people', ['Nervous with strangers', 'Jumps up on people', 'Barks at visitors']],
-  ['On walks', ['Pulls on the leash', 'Lunges or barks at dogs on walks', 'Chases bikes or cars', 'Slow to come when called']],
-  ['When left alone', ['Struggles when left alone', 'Chews or digs when alone', 'Hard to settle in a crate']],
-  ['Or', TRAIT_SPECIAL],
+/** Trait ids that clear every other pick. The chips themselves come from the trait catalog (src/data/traits.ts). */
+export const TRAIT_SPECIAL = ['none', 'not_sure'];
+/** Headings for the catalog's groups on the traits step, in order. */
+export const TRAIT_GROUP_LABELS: [TraitGroup, string][] = [
+  ['dogs', 'Around dogs'],
+  ['people', 'Around people'],
+  ['walks', 'Out and about'],
+  ['home', 'At home'],
+  ['special', 'Or'],
 ];
 
-export const PLAN_GOALS = [
-  { trait: 'Pulls on the leash', title: 'Loose leash walking', outcome: '3 steps · Ends with a calm walk past other dogs' },
-  { trait: 'Nervous with new dogs', title: 'Calm around dogs', outcome: '4 steps · Ends with a Social clearance and group sport' },
+/** Training paths offered on Juno's month when any picked trait starts that path (traits.path_id). */
+export const PLAN_GOALS: { path: string; title: string; outcome: string }[] = [
+  { path: 'loose-leash-walking', title: 'Loose leash walking', outcome: '3 steps · Ends with a calm walk past other dogs' },
+  { path: 'calm-around-dogs', title: 'Calm around dogs', outcome: '4 steps · Ends with a Social clearance and group sport' },
 ];
 
 /**

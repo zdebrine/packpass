@@ -3,6 +3,7 @@
 
 import { setCatalog } from '@/data/catalog';
 import type { Goal, Notif } from '@/data/passport';
+import { loadTraits, pathsFor } from '@/data/traits';
 import type { Booking, ClassType, ClearanceRecord, Dog, LogEntry, PathProgress, Partner, PhotoKey, PickedDoc, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
 import type { OnboardingDraft, SocialStage } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
@@ -100,7 +101,7 @@ export async function loadCatalog() {
       suits: k.suits ?? '', suitsNote: k.suits_note ?? '', balance: cap(k.balance), description: k.description ?? '',
       partnerId: k.partner_id, trainerId: k.trainer_id, image: photo(k.image, 'weave'), premium: k.premium,
       requires: k.requires ?? undefined, grants: k.grants ?? undefined, openWindow: k.open_window ?? undefined,
-      requirements: k.requirements ?? [],
+      dropOff: k.drop_off ?? false, requirements: k.requirements ?? [],
     }])),
     sessions: (sessions as any[]).map((s): Session => ({ id: s.id, classId: s.class_id, startsAt: new Date(s.starts_at), spotsLeft: s.spots_left })),
     pathSpecialties: Object.fromEntries((paths as any[]).map((p) => [p.id, p.specialties ?? []])),
@@ -284,10 +285,7 @@ export async function loadLog(): Promise<LogEntry[]> {
 
 // ---- Writes --------------------------------------------------------------------------------
 
-const ENERGY: Record<string, string> = { Couch: 'couch', Medium: 'medium', High: 'high', 'Working dog': 'working' };
 const SOCIABILITY: Record<string, string> = { 'Loves dogs': 'loves_dogs', Selective: 'selective', 'Prefers solo': 'prefers_solo' };
-/** Traits that start a training path at sign-up (same as PLAN_GOALS in fixtures). */
-const TRAIT_PATHS: Record<string, Goal['id']> = { 'Nervous with new dogs': 'calm-around-dogs', 'Pulls on the leash': 'loose-leash-walking' };
 
 /** Edits the dog's traits from the Passport. */
 export async function saveTraits(dogId: string, traits: string[]) {
@@ -302,11 +300,10 @@ export async function createDog(d: OnboardingDraft) {
   const dog = check(await c.from('dogs').insert({
     owner_id: auth.user.id, name: d.dogName.trim(), sex: d.sex.toLowerCase(), breed: d.breed || null, mixed: d.mixed,
     birth_month: d.birthMonth + 1, birth_year: d.birthYear, weight_lb: d.weight, fixed: d.fixed,
-    energy: ENERGY[d.energy], sociability: SOCIABILITY[d.social], interests: d.interests, traits: d.traits, area: d.area,
+    energy: d.energy, sociability: SOCIABILITY[d.social], interests: d.interests, traits: d.traits, area: d.area,
   }).select('id').single()) as { id: string };
-  for (const t of d.traits) {
-    if (TRAIT_PATHS[t]) check(await c.rpc('start_path', { p_dog: dog.id, p_path: TRAIT_PATHS[t] }));
-  }
+  await loadTraits();
+  for (const path of pathsFor(d.traits)) check(await c.rpc('start_path', { p_dog: dog.id, p_path: path }));
   return dog.id;
 }
 

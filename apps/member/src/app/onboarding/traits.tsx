@@ -5,7 +5,8 @@ import { View } from 'react-native';
 import { isLive } from '@/api/client';
 import { errorCopy } from '@/api/errors';
 
-import { TRAIT_GROUPS, TRAIT_SPECIAL } from '@/data/fixtures';
+import { TRAIT_GROUP_LABELS, TRAIT_SPECIAL } from '@/data/fixtures';
+import { traitLabel, useTraits } from '@/data/traits';
 import { Button, Chip } from '@/ds/controls';
 import { Footer, Screen, themed } from '@/ds/layout';
 import { Text } from '@/ds/Text';
@@ -19,6 +20,7 @@ function Traits() {
   const dog = useDog();
   const draftName = useApp((s) => s.draft.dogName.trim());
   const name = (edit ? dog.name : draftName) || 'your dog';
+  const catalog = useTraits();
   const toggle = useApp((s) => s.toggleTrait);
   const updateDraft = useApp((s) => s.updateDraft);
   const saveTraits = useApp((s) => s.saveTraits);
@@ -35,7 +37,7 @@ function Traits() {
   const n = traits.length;
   const count =
     n === 0 ? 'Pick any that apply. You can change these later.'
-      : TRAIT_SPECIAL.includes(traits[0]) ? `${traits[0]}. You can add traits later.`
+      : TRAIT_SPECIAL.includes(traits[0]) ? `${traitLabel(traits[0])}. You can add traits later.`
         : `${n} selected. You can change these later.`;
 
   return (
@@ -45,13 +47,15 @@ function Traits() {
         <Intro
           eyebrow={edit ? `Passport · ${name}` : `Step 4 of 5 · About ${name}`}
           title={`Tell us about ${name}.`}
-          lede="Every dog has something to work on. This helps us point you to the right people."
+          lede="No judgment. Every dog has a thing or two. This helps us point you to the right trainers."
         />
         <View style={{ gap: 22 }}>
-          {TRAIT_GROUPS.map(([label, chips]) => (
-            <FieldGroup key={label} label={label}>
+          {TRAIT_GROUP_LABELS.map(([grp, label]) => (
+            <FieldGroup key={grp} label={label}>
               <ChipRow>
-                {chips.map((t) => <Chip key={t} selected={traits.includes(t)} onPress={() => toggle(t)}>{t}</Chip>)}
+                {catalog.filter((t) => t.grp === grp).map((t) => (
+                  <Chip key={t.id} selected={traits.includes(t.id)} onPress={() => toggle(t.id)}>{t.label}</Chip>
+                ))}
               </ChipRow>
             </FieldGroup>
           ))}

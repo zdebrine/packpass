@@ -197,6 +197,7 @@ export default function Today() {
                     key={id}
                     image={v.cls.image}
                     discipline={v.cls.sessionType === 'Private' ? 'Private' : v.cls.discipline}
+                    dropOff={v.cls.dropOff}
                     title={v.cls.title}
                     partner={v.cls.sessionType === 'Private' ? v.trainer.name : v.partner.name}
                     time={`${weekday(v.session.startsAt).slice(0, 3)} ${timeLabel(v)}`}

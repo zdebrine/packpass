@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { errorCopy } from '@/api/errors';
 import { catalog } from '@/data/catalog';
 import { payoff } from '@/data/payoffs';
-import { FALLBACK_TRAITS, loadTraits, traitLabel } from '@/data/traits';
+import { FALLBACK_TRAITS, loadTraits, pathsFor, traitLabel } from '@/data/traits';
 import { nextSession } from '@/lib/booking';
 import { setLiveClock } from '@/lib/clock';
 import { liveHerding, liveSocial } from '@/lib/clearances';
@@ -77,6 +77,8 @@ const S = () => useApp.getState();
   ok(S().credits === 10, 'a new member has 10 credits on Regular');
   ok(S().vaccines.length === 3, 'vaccines entered during onboarding are saved with the dog');
   ok(S().activePaths.includes('calm-around-dogs') && S().activePaths.includes('loose-leash-walking'), 'traits start both training paths');
+  ok(psql(`select energy || '|' || array_to_string(traits, ',') from dogs where id = '${S().dogs[0].id}'`) === 'working|pulls,nervous_dogs',
+     'onboarding saves the energy key and trait ids');
   ok(S().social === 'working', 'Social starts as working on it');
   const calm = () => liveGoal(S().paths!.find((p) => p.id === 'calm-around-dogs')!, 'Juno', S().log ?? []);
   ok(S().paths!.length === 2 && calm().steps[0].state === 'next' && calm().steps[0].classId === 'calm-private' && calm().steps[3].state === 'final',
@@ -104,6 +106,10 @@ const S = () => useApp.getState();
      'and the website and dashboard carry the same fallback');
   ok(traitLabel('leash_reactive') === 'Loses it at dogs on walks' && traitLabel('leash_reactive', 'partner') === 'Leash reactive (lunges or barks at dogs)'
      && traitLabel('Barks at bikes') === 'Barks at bikes', 'traits show in the owner\'s or trainer\'s words, and unknown ones as stored');
+  ok(JSON.stringify(pathsFor(['nervous_dogs', 'leash_reactive', 'Barks at bikes'])) === '["calm-around-dogs"]'
+     && JSON.stringify(pathsFor(['pulls', 'leash_reactive'])) === '["loose-leash-walking","calm-around-dogs"]',
+     'leash_reactive starts Calm around dogs, and a path shared by two traits starts once');
+  ok(Object.values(catalog.classes).every((c) => c.dropOff === false), 'classes load with the drop-off flag (off unless the partner sets it)');
   ok(Object.values(catalog.classes).every((c) => payoff(c.discipline) !== null) && payoff('Behavior') === null,
      'every class in the catalog has a payoff line; unknown disciplines have none');
 

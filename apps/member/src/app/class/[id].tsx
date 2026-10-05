@@ -158,6 +158,10 @@ export default function ClassDetail() {
             <View style={{ width: 8, height: 8, borderRadius: 9999, backgroundColor: c.turf }} />
             <Text variant="label">{`Adds to ${juno.name}'s month: ${cls.balance.toLowerCase()}`}</Text>
           </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
+            {cls.dropOff ? <Tag>Drop-off</Tag> : <View style={{ width: 8, height: 8, borderRadius: 9999, backgroundColor: c.inkMuted }} />}
+            <Text variant="label" style={{ flex: 1 }}>{cls.dropOff ? 'Leave your dog with the trainer. Pick up at the end.' : 'You stay with your dog.'}</Text>
+          </View>
 
           <Section title="What happens" gap={10}>
             <Text>{cls.description}</Text>

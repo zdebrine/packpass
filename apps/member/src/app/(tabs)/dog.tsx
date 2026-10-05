@@ -4,6 +4,7 @@ import { ScrollView, Share, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated';
 
 import { TRAIT_SPECIAL } from '@/data/fixtures';
+import { traitLabel, useTraits } from '@/data/traits';
 import { isComplete, STATUS_LABEL, stepIndex } from '@/data/passport';
 import { useClearances } from '@/lib/clearances';
 import { useGoals } from '@/lib/paths';
@@ -117,6 +118,7 @@ export default function DogProfile() {
   const juno = useDog();
   const { c } = useTheme();
   const draftTraits = useApp((s) => s.draft.traits);
+  useTraits(); // re-render with the catalog's labels once it loads
   const traits = (juno.traits ?? draftTraits).filter((t) => !TRAIT_SPECIAL.includes(t));
   const styleFor = useClearanceStyle();
   const dogs = useApp((s) => s.dogs);
@@ -211,7 +213,7 @@ export default function DogProfile() {
           <View style={{ gap: 8 }}>
             {traits.map((t) => (
               <View key={t} style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                <Text variant="label" style={{ flex: 1 }}>{t}</Text>
+                <Text variant="label" style={{ flex: 1 }}>{traitLabel(t)}</Text>
                 <Text variant="caption" muted>From you</Text>
               </View>
             ))}
