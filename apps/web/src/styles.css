@@ -19,6 +19,7 @@ input[type=range] { width: 100%; accent-color: var(--ink); height: 28px; margin:
 .pp-field { height: 52px; border: 0; border-radius: 9999px; background: var(--surface-raised); color: var(--ink); padding: 0 20px; font-size: 16px; box-sizing: border-box; width: 100%; }
 .pp-section { max-width: 1280px; margin: 0 auto; padding: clamp(72px, 9vw, 120px) clamp(20px, 4vw, 40px) 0; box-sizing: border-box; }
 .pp-h2 { margin: 0; font-size: clamp(36px, 4.6vw, 60px); line-height: 1; }
+.pk-tile-sub { display: block; margin-top: 4px; font-size: 14px; line-height: 18px; font-weight: 400; letter-spacing: 0; color: rgba(255,255,255,.85); }
 .pp-glass { background: var(--glass); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); }
 a.pk-btn { box-sizing: border-box; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 /* Section links in the top bar hide when space runs short, rather than wrapping the bar. */

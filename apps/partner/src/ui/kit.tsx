@@ -88,7 +88,7 @@ export function ErrorLine({ children }: { children: ReactNode }) {
   return children ? <span className="pk-label" role="alert" style={{ color: 'var(--kennel-red)', fontWeight: 600 }}>{children}</span> : null;
 }
 
-export const photoUrl = (key?: string | null) => `/photos/${key || 'grass'}.jpg`;
+export { photoSrc as photoUrl } from '@/lib/photos';
 
 /** The design system's ClassCard (tile layout): what members see on Book. */
 export function ClassCard({ image, discipline, premium, title, meta, credits, spotsLeft }: {

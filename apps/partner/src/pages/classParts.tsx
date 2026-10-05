@@ -3,7 +3,7 @@ import { Upload } from 'lucide-react';
 
 import type { SessionType } from '@/lib/api';
 import { DISCIPLINES, ENERGY, PHOTOS, REQS, SOCIAL, TYPES, type ClassForm } from '@/lib/classForm';
-import { Chip, Field, IntensityBars, Row, Stepper, photoUrl } from '@/ui/kit';
+import { Chip, Field, IntensityBars, Row, Stepper, Toggle, photoUrl } from '@/ui/kit';
 
 export type Patch = (p: Partial<ClassForm>) => void;
 
@@ -80,6 +80,17 @@ export const Requirements = ({ f, set }: { f: ClassForm; set: Patch }) => (
   </Field>
 );
 
+/** Group classes only: whether owners hand the dog over for the session. */
+export const DropOff = ({ f, set }: { f: ClassForm; set: Patch }) => f.type === 'class' ? (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <span className="pk-label" style={{ fontWeight: 600 }}>Drop-off class</span>
+      <span className="pk-caption pk-muted" style={{ textWrap: 'pretty' }}>Owners leave their dog with you for the session. Leave off if owners stay.</span>
+    </div>
+    <Toggle on={f.dropOff} onChange={(dropOff) => set({ dropOff })} label="Drop-off class" />
+  </div>
+) : null;
+
 /** Type chips with the note under them (the editor's compact version of the step-one cards). */
 export const TypeChips = ({ f, set }: { f: ClassForm; set: Patch }) => (
   <Field label="Session type" note={TYPES.find((t) => t.key === f.type)!.note}>
@@ -100,7 +111,7 @@ export function PhotoGrid({ value, onPick, onUpload }: { value: string | null; o
         </button>
       ) : null}
       {PHOTOS.map((p) => (
-        <button key={p} type="button" aria-label={`Use the ${p} photo`} aria-pressed={value === p} onClick={() => onPick(p)}
+        <button key={p} type="button" aria-label={`Use the ${p.replace(/_/g, ' ')} photo`} aria-pressed={value === p} onClick={() => onPick(p)}
           style={{ aspectRatio: '1', padding: 0, border: 0, borderRadius: 20, overflow: 'hidden', cursor: 'pointer', boxShadow: value === p ? '0 0 0 3px var(--bg),0 0 0 5px var(--ink)' : 'none' }}>
           <img src={photoUrl(p)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         </button>

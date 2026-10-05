@@ -2,6 +2,7 @@
 import { Minus, Plus, Smartphone, Play } from 'lucide-react';
 import { useState, type CSSProperties, type ReactNode } from 'react';
 
+import { photoSrc } from './lib/photos';
 import { ANDROID_URL, IOS_URL } from './lib/supabase';
 
 type Variant = 'primary' | 'signal' | 'quiet' | 'glass';
@@ -68,7 +69,7 @@ export function Faq({ id, eyebrow, rows }: { id: string; eyebrow: string; rows: 
 export function PhotoPanel({ children, photo, alt = '', minHeight, shade, style }: { children: ReactNode; photo?: string; alt?: string; minHeight: string | number; shade: string; style?: CSSProperties }) {
   return (
     <div data-theme="dark" style={{ position: 'relative', minHeight, borderRadius: 32, overflow: 'hidden', color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 'clamp(24px,4vw,56px)', boxSizing: 'border-box', ...style }}>
-      {photo ? <img src={`/photos/${photo}.jpg`} alt={alt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+      {photo ? <img src={photoSrc(photo)} alt={alt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
       <div style={{ position: 'absolute', inset: 0, background: shade }} />
       {children}
     </div>

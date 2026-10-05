@@ -1,7 +1,21 @@
 // Client types. These mirror the Supabase schema planned in docs/TECH_SPEC.md §5.
 
+/** A photo in assets/photos, named for what it shows. */
 export type PhotoKey =
-  | 'collie' | 'grass' | 'hurdle' | 'juno' | 'lab' | 'leap' | 'rail' | 'sprint' | 'tunnel' | 'wall' | 'weave';
+  | 'athletic_dog_catching_ball'
+  | 'dog_and_owner_chilling'
+  | 'dog_being_patient'
+  | 'dog_chilling'
+  | 'dog_chilling_in_car'
+  | 'dog_chilling_with_owner_on_porch'
+  | 'dog_getting_pets_at_park'
+  | 'dog_providing_good_eye_contact'
+  | 'dog_running_on_beach'
+  | 'dog_sleeping_while_owner_reads'
+  | 'dog_wrapped_in_blanket'
+  | 'dogs_meeting_on_leash'
+  | 'juno'
+  | 'pulling_on_leash';
 
 export type Category = 'Sport' | 'Scent' | 'Play' | 'Skills';
 export type SessionType = 'Class' | 'Private' | 'Assessment';
@@ -58,6 +72,8 @@ export interface ClassType {
   grants?: ClearanceType;
   /** Shown instead of a start time, e.g. open sniff spaces. */
   openWindow?: string;
+  /** Owners leave the dog with the trainer and pick up at the end. Every other class, they stay. */
+  dropOff: boolean;
   requirements: { icon: 'syringe' | 'cake' | 'link'; text: string }[];
 }
 

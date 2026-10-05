@@ -83,7 +83,7 @@ export default function Today() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }}>
         <View style={{ height: 440, overflow: 'hidden' }}>
           {/* The member's dog; a field photo until they add one. */}
-          <PhotoFill name={juno.photo ?? 'grass'} position={{ top: '35%', left: '50%' }} />
+          <PhotoFill name={juno.photo ?? 'dog_and_owner_chilling'} position={{ top: '35%', left: '50%' }} />
           <HeroScrim />
           <View style={{ position: 'absolute', top: top + 8, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Press onPress={() => router.push('/settings')} accessibilityLabel={`Distances from ${from}. Change`}>
@@ -197,6 +197,7 @@ export default function Today() {
                     key={id}
                     image={v.cls.image}
                     discipline={v.cls.sessionType === 'Private' ? 'Private' : v.cls.discipline}
+                    dropOff={v.cls.dropOff}
                     title={v.cls.title}
                     partner={v.cls.sessionType === 'Private' ? v.trainer.name : v.partner.name}
                     time={`${weekday(v.session.startsAt).slice(0, 3)} ${timeLabel(v)}`}

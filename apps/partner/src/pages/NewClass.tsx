@@ -5,9 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import { errorCopy, saveClass } from '@/lib/api';
 import { emptyForm, estimate, payloadOf, TYPES, type ClassForm } from '@/lib/classForm';
 import { usePartner } from '@/lib/partner';
-import { Button, ClassCard, Chip, ErrorLine, Field, Row, photoUrl } from '@/ui/kit';
+import { Button, ClassCard, Chip, ErrorLine, Field, Row, Tag, photoUrl } from '@/ui/kit';
 import { UploadNote } from './Classes';
-import { Clearance, Description, Discipline, Duration, Energy, Group, Intensity, Name, PhotoGrid, Requirements, Social, typeLabel, type Patch } from './classParts';
+import { Clearance, Description, Discipline, DropOff, Duration, Energy, Group, Intensity, Name, PhotoGrid, Requirements, Social, typeLabel, type Patch } from './classParts';
 
 const STEPS: [string, string][] = [['Basics', 'Type, name, photo'], ['Format', 'Length, size, who leads'], ['Who it’s for', 'Fit and requirements'], ['Review', 'Send to PackPass']];
 const TYPE_ICON = { class: Users, private: UserRound, assessment: ShieldCheck };
@@ -137,6 +137,7 @@ export function NewClass() {
                 {group > 1 ? <Social f={f} set={set} /> : null}
                 <Clearance f={f} set={set} />
                 <Requirements f={f} set={set} />
+                <DropOff f={f} set={set} />
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -148,6 +149,7 @@ export function NewClass() {
                 <Review title="Who it’s for" onEdit={() => setStep(2)} rows={[
                   ['Energy', f.energy.join(', ') || '—'], ...(group > 1 ? [['With other dogs', f.social.join(', ') || '—'] as [string, string]] : []),
                   [f.type === 'assessment' ? 'Grants' : 'Requires', f.clearance === 'social' ? 'Social' : f.clearance === 'herding' ? 'Herding' : 'No clearance'], ['Requirements', f.reqs.join(', ') || 'None'],
+                  ...(f.type === 'class' ? [['Owners', f.dropOff ? <Tag tone="signal">Drop-off</Tag> : 'Stay with their dog'] as [string, ReactNode]] : []),
                 ]} />
                 <div className="card" style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <span className="pk-title">What happens in the session</span>

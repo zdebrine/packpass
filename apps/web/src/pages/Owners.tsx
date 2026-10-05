@@ -1,46 +1,67 @@
-import { ArrowDown, Check, Flame, Stamp, TrendingUp, type LucideIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { ArrowDown, Check, Flame, MessageSquareText, TrendingUp, type LucideIcon } from 'lucide-react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
-import { AREAS, PARTNER_TYPE, creditsLabel, miles, useCatalog, when, type Catalog } from '@/lib/catalog';
+import { AREAS, PARTNER_TYPE, creditsLabel, miles, submitWaitlist, useCatalog, when, type Catalog } from '@/lib/catalog';
+import { payoff } from '@/lib/payoffs';
+import { photoSrc } from '@/lib/photos';
+import { APP_LIVE, FOUNDING_PACK_URL } from '@/lib/supabase';
+import { traitLabel, useTraits } from '@/lib/traits';
 import { Button, Chip, Faq, Heading, PhotoPanel, StoreButtons, Tag } from '@/ui';
 
 /** For owners (the design's "O" screens). Testimonials are left out until founding members have said something. */
 
+/** 'static' is the launch hero (decision 1, Oct 5); 'rotating' is kept so the two can be tested against each other. */
+const HERO_VARIANT: 'static' | 'rotating' = 'static';
+
+/** Rotating line, photo, alt text. The static hero cross-fades the same photos without the words. */
 const HERO: [string, string, string][] = [
-  ['an athlete.', 'sprint', 'Dog sprinting across a field'], ['an explorer.', 'leap', 'Dog leaping through a field'],
-  ['a good listener.', 'hurdle', 'Dog clearing a jump on cue'], ['a social butterfly.', 'tunnel', 'Dog running through a tunnel'],
-  ['a problem solver.', 'weave', 'Dog weaving through poles'], ['a scent detective.', 'grass', 'Dog sniffing through tall grass'],
+  ['easy on a patio.', 'dog_chilling_with_owner_on_porch', 'Dog lounging beside its owner on a porch'],
+  ['chill around other dogs.', 'dogs_meeting_on_leash', 'Two dogs meeting calmly on leash'],
+  ['back when you call.', 'dog_being_patient', 'Dog sitting and looking up at its owner'],
+  ['tired by dinner.', 'dog_and_owner_chilling', 'Golden retriever resting in the grass with its owner'],
+  ['welcome anywhere.', 'dog_chilling_in_car', 'Dog riding in the back of a red truck'],
 ];
 
 export const OWNER_FAQ: [string, string][] = [
   ['How do credits work?', 'Your plan adds credits on the same day each month. Every session shows its cost before you book, open play is 1, a group drop-in is 2, a 1:1 with a specialist is 3 to 4.'],
+  // The Book tab filters on sociability, not traits, so this says "filter to" rather than "you'll only see" (spec note).
+  ['My dog is reactive. Can we still join?', 'Yes. Filter to reactive-dog drop-ins and 1:1s with behavior specialists. Nobody puts your dog in a busy group class.'],
+  ['How is this different from daycare?', 'Daycare is a day of free play in a big group. PackPass sessions are short and structured, with a trainer or a purpose, and picked for what your dog needs.'],
+  ['Does this replace a trainer?', 'It gives you access to lots of them. Drop in to group classes, book a 1:1 with a specialist when something needs work, and keep it all in one profile.'],
+  ['What if a class isn’t a good fit?', 'Tell us in the app. We’ll adjust your dog’s matches, and the trainer’s notes help steer the next pick.'],
+  ['Do I stay with my dog?', 'Yes, for most sessions. Some classes are drop-off, where you leave your dog with the trainer. Those are marked before you book.'],
   ['Do unused credits roll over?', 'Unused credits roll into the next month, capped at one month of credits.'],
   ['Can I cancel a booking?', 'Cancel at least 12 hours before the start and the credits go back to your balance. Late cancellations and no-shows use the credits.'],
   ['What does my dog need to join?', 'Current rabies, DHPP and Bordetella records, uploaded once to your dog’s profile. Some classes list extra requirements like a level or minimum age.'],
   ['Can I pause or cancel my plan?', 'Pause for up to 2 months or cancel anytime in the app. Your plan runs to the end of the billing period.'],
-  ['My dog is reactive. Can we still join?', 'Yes. Reactive-dog drop-ins and 1:1 specialists are filtered by your dog’s profile, so you only see sessions that fit.'],
   ['Is PackPass outside Austin?', 'Not yet. Join the waitlist with your ZIP code and we’ll tell you when PackPass opens near you.'],
 ];
 
-export const PLANS: [string, string, number, string][] = [
-  ['Starter', '$79', 6, '3 group drop-ins a month'],
-  ['Regular', '$129', 10, 'A drop-in most weeks plus a skills session'],
-  ['Working Dog', '$189', 16, 'High-energy dogs out about twice a week'],
+/** Name, price, credits, who it fits, and the plan_tier it's stored as. */
+export const PLANS: [string, string, number, string, Plan][] = [
+  ['Starter', '$79', 6, 'A regular outlet for a mostly chill dog. About 3 classes a month.', 'starter'],
+  ['Regular', '$129', 10, 'A class most weeks, plus a session on the stuff that’s hard.', 'regular'],
+  ['Working Dog', '$189', 16, 'For dogs who are never tired. Out about twice a week.', 'working'],
 ];
+type Plan = 'starter' | 'regular' | 'working';
 
 export function Owners() {
   const cat = useCatalog();
+  // The matcher's answers and the picked plan, so the founding signup can carry them.
+  const [energy, setEnergy] = useState<Energy>('high');
+  const [traits, setTraits] = useState<string[]>(['nervous_dogs']);
+  const [plan, setPlan] = useState<Plan | null>(null);
   return (
     <>
       <Hero />
-      <Match cat={cat} />
+      <Match cat={cat} energy={energy} setEnergy={setEnergy} traits={traits} setTraits={setTraits} />
       <section id="how" className="pp-section">
-        <Heading eyebrow="How it works" title="One membership. A full month of enrichment for your dog." />
+        <Heading eyebrow="How it works" title="One membership. The right classes for your dog. No 6-week commitment." />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16, marginTop: 40 }}>
           {[
-            ['01', 'Tell us about your dog', 'Energy, play style and traits. We match the classes and specialists that fit.'],
-            ['02', 'Book a balanced month', 'Drop in to agility, scent work, open fields and skills. No 6-week commitment.'],
-            ['03', 'Watch the Passport fill', 'Every session stamps the Passport and counts toward a month that’s physical, mental and social.'],
+            ['01', 'Tell us about your dog', 'Energy, quirks, the stuff that makes walks hard. We match classes and certified trainers to fit.'],
+            ['02', 'Mix it up week to week', 'Agility one week, scent work the next, a 1:1 when you need one. Just drop in.'],
+            ['03', 'Watch them get easier', 'Trainers leave notes after every session, so you can see the progress and the next trainer picks up where the last one left off.'],
           ].map(([n, title, body]) => (
             <div key={n} style={{ background: 'var(--surface-raised)', borderRadius: 28, padding: 28, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 240, boxSizing: 'border-box' }}>
               <span className="pk-display-2xl" style={{ fontSize: 64, lineHeight: 1 }}>{n}</span>
@@ -54,12 +75,12 @@ export function Owners() {
       </section>
       <section id="classes" className="pp-section">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end', justifyContent: 'space-between' }}>
-          <Heading eyebrow="Classes" title="Train for anything." />
-          <p className="pk-body pk-muted" style={{ margin: 0, maxWidth: 380, textWrap: 'pretty' }}>Mix disciplines week to week. Every session lists its level, spots left and credit cost before you book.</p>
+          <Heading eyebrow="Classes" title="A different outlet every week." />
+          <p className="pk-body pk-muted" style={{ margin: 0, maxWidth: 380, textWrap: 'pretty' }}>Physical, mental and social work, so your dog comes home tired in the good way. Every session shows its level, spots left and credits before you book.</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12, marginTop: 40 }}>
-          {[['Agility', 'weave'], ['Scent work', 'grass'], ['Sprint and lure', 'sprint'], ['Herding', 'collie'], ['Open field', 'leap'], ['Sniff spaces', 'wall'], ['Recall and focus', 'hurdle'], ['Reactive dog drop-ins', 'rail']].map(([label, p]) => (
-            <div key={label} className="pk-tile" style={{ cursor: 'default' }}><img src={`/photos/${p}.jpg`} alt="" /><span className="pk-tile-label">{label}</span></div>
+          {CLASS_TILES.map(([label, p, sub]) => (
+            <div key={label} className="pk-tile" style={{ cursor: 'default' }}><img src={photoSrc(p)} alt="" /><span className="pk-tile-label">{label}<span className="pk-tile-sub">{sub}</span></span></div>
           ))}
         </div>
       </section>
@@ -70,13 +91,13 @@ export function Owners() {
           <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>Most sessions cost 1 to 4 credits depending on length and format. A typical group class is 2.</p>
         </Heading>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16, marginTop: 40 }}>
-          {PLANS.map(([name, price, credits, fit]) => {
+          {PLANS.map(([name, price, credits, fit, key]) => {
             const popular = name === 'Regular';
             return (
               <div key={name} data-theme={popular ? 'dark' : 'light'} style={{ background: 'var(--surface-raised)', color: 'var(--ink)', borderRadius: 28, padding: 28, display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 24 }}>
                   <span className="pk-wide">{name}</span>
-                  {popular ? <Tag tone="signal">Most popular</Tag> : null}
+                  {popular ? <Tag tone="signal">Best fit for most dogs</Tag> : null}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}><span className="pk-display-2xl pk-num" style={{ fontSize: 64, lineHeight: 1 }}>{price}</span><span className="pk-label pk-muted">/ month</span></div>
@@ -84,11 +105,11 @@ export function Owners() {
                   <span className="pk-label pk-muted">{fit}</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {['Any partner, any discipline', 'Free cancel up to 12 hours before', 'One month rollover'].map((k) => (
+                  {['Any partner, any class', 'Free cancel up to 12 hours before', 'Unused credits roll over', 'Pause or cancel anytime'].map((k) => (
                     <div key={k} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}><Check size={18} style={{ flex: 'none', marginTop: 1 }} /><span className="pk-label">{k}</span></div>
                   ))}
                 </div>
-                <div style={{ marginTop: 'auto' }}><Button block href="#get">{`Choose ${name}`}</Button></div>
+                <div style={{ marginTop: 'auto' }}><Button block href="#get" onClick={() => setPlan(key)}>{`Choose ${name}`}</Button></div>
               </div>
             );
           })}
@@ -96,9 +117,14 @@ export function Owners() {
       </section>
       <Faq id="faq" eyebrow="FAQ" rows={OWNER_FAQ} />
       <section id="get" style={{ padding: 'clamp(72px,9vw,120px) 16px 0' }}>
-        <PhotoPanel photo="tunnel" minHeight={520} shade="linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.72) 100%)" style={{ alignItems: 'flex-start', gap: 20 }}>
-          <h2 className="pk-display-2xl" style={{ position: 'relative', margin: 0, maxWidth: 760, fontSize: 'clamp(44px,6vw,88px)', lineHeight: 0.94 }}>Book your dog’s first drop-in this week.</h2>
-          <div style={{ position: 'relative', display: 'flex', gap: 10, flexWrap: 'wrap' }}><StoreButtons /></div>
+        <PhotoPanel photo="dogs_meeting_on_leash" minHeight={520} shade={APP_LIVE ? 'linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.72) 100%)' : 'linear-gradient(90deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.55) 55%,rgba(0,0,0,.2) 100%)'} style={{ alignItems: 'flex-start', gap: 20 }}>
+          {APP_LIVE ? (
+            <>
+              <h2 className="pk-display-2xl" style={{ position: 'relative', margin: 0, maxWidth: 760, fontSize: 'clamp(44px,6vw,88px)', lineHeight: 0.94 }}>Book your dog’s first class this week.</h2>
+              <p className="pk-body" style={{ position: 'relative', margin: 0, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)' }}>No 6-week commitment. Pause or cancel anytime.</p>
+              <div style={{ position: 'relative', display: 'flex', gap: 10, flexWrap: 'wrap' }}><StoreButtons /></div>
+            </>
+          ) : <FoundingSignup energy={energy} traits={traits} plan={plan} />}
         </PhotoPanel>
       </section>
     </>
@@ -109,6 +135,7 @@ function Hero() {
   const [i, setI] = useState(0);
   useEffect(() => {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    // Both variants keep the photos moving; only 'rotating' animates the words.
     const t = setInterval(() => setI((x) => (x + 1) % HERO.length), 3400);
     return () => clearInterval(t);
   }, []);
@@ -117,21 +144,25 @@ function Hero() {
       {/* The photos cross-fade inside the panel, so the shade comes after them. */}
       <PhotoPanel minHeight="min(820px, calc(100vh - 88px))" shade="transparent">
         {HERO.map(([, p, alt], k) => (
-          <img key={p} src={`/photos/${p}.jpg`} alt={k === i ? alt : ''} aria-hidden={k !== i}
+          <img key={p} src={photoSrc(p)} alt={k === i ? alt : ''} aria-hidden={k !== i}
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, opacity: k === i ? 1 : 0, transform: k === i ? 'scale(1)' : 'scale(1.03)', transition: 'opacity 1100ms cubic-bezier(.2,.8,.2,1), transform 3400ms ease-out' }} />
         ))}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,0) 26%,rgba(0,0,0,.08) 50%,rgba(0,0,0,.74) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,.04) 24%,rgba(0,0,0,.32) 50%,rgba(0,0,0,.8) 100%)' }} />
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <span className="pk-wide" style={{ opacity: 0.92 }}>Sport · Scent · Play · Skills · Austin</span>
-          <h1 className="pk-display-2xl" style={{ margin: 0, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94 }}>
-            <span style={{ display: 'block', whiteSpace: 'nowrap' }}>Every dog is</span>
-            <span key={i} style={{ display: 'block', whiteSpace: 'nowrap', animation: 'ppWordIn 800ms cubic-bezier(.2,.8,.2,1) both' }}>{HERO[i][0]}</span>
-          </h1>
-          <p className="pk-body" style={{ margin: 0, maxWidth: 520, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>Drop-in agility, scent work, open fields and skill classes across Austin. Tell us about your dog and we’ll build their month.</p>
+          <span className="pk-wide" style={{ opacity: 0.92 }}>Dog classes matched to your dog · Austin</span>
+          {HERO_VARIANT === 'static' ? (
+            <h1 className="pk-display-2xl" style={{ margin: 0, maxWidth: 1000, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94, textWrap: 'balance' }}>Make your dog a good hang.</h1>
+          ) : (
+            <h1 className="pk-display-2xl" style={{ margin: 0, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94 }}>
+              <span style={{ display: 'block', whiteSpace: 'nowrap' }}>A dog who’s</span>
+              <span key={i} style={{ display: 'block', whiteSpace: 'nowrap', animation: 'ppWordIn 800ms cubic-bezier(.2,.8,.2,1) both' }}>{HERO[i][0]}</span>
+            </h1>
+          )}
+          <p className="pk-body" style={{ margin: 0, maxWidth: 520, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>Drop-in classes across Austin, picked for your dog’s energy and quirks. Burn the energy, work on the pulling, and take them everywhere.</p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
-            <StoreButtons />
+            {APP_LIVE ? <StoreButtons /> : <Button href="#get" style={{ minWidth: 200 }}>Join the founding pack</Button>}
             <a href="#match" className="pp-glass" style={{ flex: 'none', marginLeft: 'auto', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 12, height: 52, padding: '0 8px 0 20px', borderRadius: 9999, color: '#fff', textDecoration: 'none' }}>
-              <span className="pk-label" style={{ fontWeight: 600 }}>Build my dog’s month</span>
+              <span className="pk-label" style={{ fontWeight: 600 }}>Match my dog</span>
               <span style={{ width: 36, height: 36, borderRadius: 9999, background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ArrowDown size={18} /></span>
             </a>
           </div>
@@ -141,32 +172,47 @@ function Hero() {
   );
 }
 
-const ENERGIES = ['Couch', 'Medium', 'High', 'Working dog'];
-const TRAITS = ['Nervous with new dogs', 'Plays too rough', 'Pulls on the leash', 'Slow to come when called', 'Jumps up on people', 'Barks at visitors'];
+/** The class tiles: label, photo, the payoff line under the label. */
+const CLASS_TILES: [string, string, string][] = [
+  ['Agility', 'athletic_dog_catching_ball', 'Builds focus and confidence'], ['Scent work', 'dog_and_owner_chilling', 'Tires the brain fast'],
+  ['Sprint and lure', 'dog_running_on_beach', 'For dogs who need to really run'], ['Herding', 'dog_chilling', 'A job for dogs bred to have one'],
+  ['Open field', 'dog_getting_pets_at_park', 'Room to run off leash'], ['Sniff spaces', 'dog_wrapped_in_blanket', 'A quiet, private space to decompress'],
+  ['Recall and focus', 'dog_being_patient', 'Come when called. The first time.'], ['Reactive dog drop-ins', 'pulling_on_leash', 'Small groups, lots of space, no judgment'],
+];
+
+/** Energy chips by dogs.energy_level value. */
+type Energy = 'couch' | 'medium' | 'high' | 'working';
+const ENERGIES: [Energy, string][] = [['couch', 'Couch potato'], ['medium', 'Up for anything'], ['high', 'Needs a job'], ['working', 'Never stops']];
+/** Trait ids from the catalog (lib/traits), in chip order. */
+const TRAIT_CHIPS = ['nervous_dogs', 'rough_play', 'pulls', 'recall', 'jumps', 'barks_visitors', 'settle_public', 'bored_chewing'];
 const BALANCE: Record<string, string> = { sport: 'Physical', play: 'Social', scent: 'Mental', skills: 'Mental' };
 
 /**
  * "Matched to your dog": a sample month from the live catalog. The picks follow the design's rules (energy sets
  * how much, traits add skills work, at most 16 credits); the neighborhood sets the distances shown.
  */
-function Match({ cat }: { cat: Catalog }) {
-  const [energy, setEnergy] = useState('High');
-  const [traits, setTraits] = useState<string[]>(['Nervous with new dogs']);
+function Match({ cat, energy, setEnergy, traits, setTraits }: {
+  cat: Catalog; energy: Energy; setEnergy: (e: Energy) => void; traits: string[]; setTraits: React.Dispatch<React.SetStateAction<string[]>>;
+}) {
+  useTraits(); // re-render with the live labels once the catalog loads
   const [hood, setHood] = useState(AREAS[0].label);
   const area = AREAS.find((a) => a.label === hood)!;
   const toggle = (t: string) => setTraits((x) => (x.includes(t) ? x.filter((y) => y !== t) : x.length >= 3 ? x : [...x, t]));
 
   const month = useMemo(() => {
     const has = (t: string) => traits.includes(t);
-    const nervous = has('Nervous with new dogs') || has('Plays too rough');
+    const nervous = has('nervous_dogs') || has('rough_play');
     let ids: string[];
-    if (energy === 'Couch') ids = ['sniff-space', 'scent-work', nervous ? 'calm-private' : 'open-field'];
+    if (energy === 'couch') ids = ['sniff-space', 'scent-work', nervous ? 'calm-private' : 'open-field'];
     else {
       ids = ['scent-work', 'agility-drop-in', 'open-field', nervous ? 'calm-private' : 'small-group-play'];
-      if (energy !== 'Medium') ids.push('agility-drop-in');
-      if (energy === 'Working dog') ids.push('lure-sprint', 'herding-assessment', 'scent-work');
+      if (energy !== 'medium') ids.push('agility-drop-in');
+      if (energy === 'working') ids.push('lure-sprint', 'herding-assessment', 'scent-work');
     }
-    if (has('Slow to come when called') || has('Pulls on the leash') || has('Jumps up on people') || has('Barks at visitors')) ids.push('focus-recall');
+    // One Focus and Recall however many traits call for it.
+    if (has('pulls') || has('recall') || has('jumps') || has('barks_visitors') || has('settle_public')) ids.push('focus-recall');
+    if (has('settle_public')) ids.push('sniff-space');
+    if (has('bored_chewing')) ids.push('scent-work');
     const rows = ids.map((id) => cat.classes.find((c) => c.id === id)).filter((c): c is NonNullable<typeof c> => !!c && c.credits != null)
       .map((c) => ({ c, p: cat.partners.find((p) => p.id === c.partner_id) }));
     while (rows.reduce((a, r) => a + r.c.credits!, 0) > 16) rows.pop();
@@ -178,11 +224,11 @@ function Match({ cat }: { cat: Catalog }) {
 
   return (
     <section id="match" className="pp-section">
-      <Heading eyebrow="Matched to your dog" title="Describe your dog once. Get the right month." />
+      <Heading eyebrow="Matched to your dog" title="Tell us what your dog’s like. We’ll build the month." />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 40 }}>
         <div style={{ flex: '3 1 480px', minWidth: 0, boxSizing: 'border-box', background: 'var(--surface-raised)', borderRadius: 28, padding: 'clamp(24px,3vw,36px)', display: 'flex', flexDirection: 'column', gap: 32 }}>
-          <Pick n="01" title="Energy">{ENERGIES.map((e) => <Chip key={e} on={energy === e} onClick={() => setEnergy(e)}>{e}</Chip>)}</Pick>
-          <Pick n="02" title="Traits, up to three" right={`${traits.length} of 3`}>{TRAITS.map((t) => <Chip key={t} on={traits.includes(t)} onClick={() => toggle(t)}>{t}</Chip>)}</Pick>
+          <Pick n="01" title="Energy">{ENERGIES.map(([k, label]) => <Chip key={k} on={energy === k} onClick={() => setEnergy(k)}>{label}</Chip>)}</Pick>
+          <Pick n="02" title="Traits, up to three" right={`${traits.length} of 3`}>{TRAIT_CHIPS.map((t) => <Chip key={t} on={traits.includes(t)} onClick={() => toggle(t)}>{traitLabel(t)}</Chip>)}</Pick>
           <Pick n="03" title="Neighborhood">{AREAS.map((a) => <Chip key={a.label} on={hood === a.label} onClick={() => setHood(a.label)}>{a.label}</Chip>)}</Pick>
         </div>
         <div data-theme="dark" style={{ flex: '2 1 300px', minWidth: 0, boxSizing: 'border-box', background: 'var(--surface-raised)', color: 'var(--ink)', borderRadius: 28, padding: 'clamp(24px,3vw,32px)', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -193,12 +239,13 @@ function Match({ cat }: { cat: Catalog }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-live="polite">
             {month.map(({ c, p }, i) => {
               const mi = p ? miles(area, p) : null;
+              const why = payoff(c.discipline);
               return (
                 <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'center', padding: '14px 16px', borderRadius: 20, background: 'var(--bg)' }}>
                   <span className="pk-wide" style={{ width: 44, flex: 'none' }}>{`Wk ${Math.floor((i * 4) / month.length) + 1}`}</span>
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <span className="pk-heading">{c.title}</span>
-                    <span className="pk-caption pk-muted">{[p?.short_name, BALANCE[c.category], mi != null ? `${mi < 10 ? mi.toFixed(1) : Math.round(mi)} mi` : null].filter(Boolean).join(' · ')}</span>
+                    <span className="pk-caption pk-muted">{[p?.short_name, why ? `“${why}”` : BALANCE[c.category], mi != null ? `${mi < 10 ? mi.toFixed(1) : Math.round(mi)} mi` : null].filter(Boolean).join(' · ')}</span>
                   </div>
                   <span className="pk-label pk-num" style={{ whiteSpace: 'nowrap' }}>{creditsLabel(c.credits)}</span>
                 </div>
@@ -206,7 +253,7 @@ function Match({ cat }: { cat: Catalog }) {
             })}
           </div>
           <span className="pk-label pk-muted" style={{ textWrap: 'pretty' }}>{`${plan[0]} plan covers it${left ? `, with ${left} ${left === 1 ? 'credit' : 'credits'} left for anything.` : '.'}`}</span>
-          <div style={{ marginTop: 'auto' }}><Button variant="signal" block href="#get">Get the app to book it</Button></div>
+          <div style={{ marginTop: 'auto' }}><Button variant="signal" block href="#get">{APP_LIVE ? 'Book this month in the app' : 'Save this month'}</Button></div>
         </div>
       </div>
     </section>
@@ -240,12 +287,14 @@ function Partners({ cat }: { cat: Catalog }) {
   }, [cat]);
   return (
     <section id="partners" className="pp-section">
-      <Heading eyebrow="Partners near you" title="Verified trainers, sport clubs and open spaces." />
+      <Heading eyebrow="Partners near you" title="Local trainers we’d trust with our own dogs.">
+        <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>Every lead trainer is certified (CPDT-KA, KPA, IAABC or equivalent). Every partner is licensed and insured.</p>
+      </Heading>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16, marginTop: 40 }}>
         {picks.map(({ p, c, at }) => (
           <article key={p.id} style={{ background: 'var(--surface-raised)', borderRadius: 28, padding: '10px 10px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
             <div style={{ position: 'relative', height: 260, borderRadius: 20, overflow: 'hidden' }}>
-              <img src={`/photos/${c?.image || 'grass'}.jpg`} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={photoSrc(c?.image)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'var(--scrim-top)' }} />
               <div style={{ position: 'absolute', top: 14, left: 14 }}><Tag tone="glass">Verified</Tag></div>
             </div>
@@ -271,7 +320,7 @@ function Partners({ cat }: { cat: Catalog }) {
 
 function Passport() {
   const rows: [LucideIcon, string, string][] = [
-    [Stamp, 'Stamps for every class', '38 classes across 6 disciplines'],
+    [MessageSquareText, 'Trainer notes after every class', '“Held a down-stay with two dogs passing. Big win.”'],
     [TrendingUp, 'Levels set by trainers', 'Agility Level 3, Scent Work Level 1'],
     [Flame, 'Weekly streaks', 'Book once a week to keep it going'],
   ];
@@ -280,8 +329,8 @@ function Passport() {
     <section id="passport" className="pp-section">
       <div style={{ background: 'var(--surface-raised)', borderRadius: 32, padding: 'clamp(28px,5vw,64px)', display: 'flex', flexWrap: 'wrap', gap: 48, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ flex: '1 1 420px', maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 28 }}>
-          <Heading eyebrow="Dog Passport" title="Juno’s record, class by class.">
-            <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>Every session stamps your dog’s Passport. Trainers log levels and notes, so the next coach knows where to start.</p>
+          <Heading eyebrow="Dog Passport" title="One profile. Every trainer on the same page.">
+            <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>Juno’s vaccines, temperament and trainer notes travel with her. No re-explaining her quirks at every new place, and you can see what’s actually working.</p>
           </Heading>
           <div style={{ background: 'var(--bg)', borderRadius: 20, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}><span className="pk-heading">This month’s balance</span><span className="pk-caption pk-muted">Resets on the 1st</span></div>
@@ -304,7 +353,7 @@ function Passport() {
         </div>
         <div style={{ flex: '0 0 auto', margin: '0 auto' }}>
           <div className="pk-athlete" role="img" aria-label="Juno's Athlete Card: 38 classes, 6 disciplines, Agility level 3">
-            <img className="pk-athlete-img" src="/photos/juno.jpg" alt="" />
+            <img className="pk-athlete-img" src={photoSrc('juno')} alt="" />
             <div className="pk-athlete-top"><Tag tone="glass">Since Mar 2026</Tag><Tag tone="glass"><Flame size={12} /> 12 wk streak</Tag></div>
             <div className="pk-athlete-body">
               <h3 className="pk-athlete-name">Juno</h3>
@@ -317,5 +366,61 @@ function Passport() {
         </div>
       </div>
     </section>
+  );
+}
+
+/** Austin ZIPs (786xx, 787xx). Others still sign up; they hear when PackPass opens near them. */
+const inAustin = (zip: string) => /^78[67]\d\d$/.test(zip);
+
+/**
+ * Pre-launch signup in place of the store buttons (phase 7). Saves the matcher's answers with the email; with a
+ * Founding Pack Payment Link set, it then opens checkout with the email filled in.
+ */
+function FoundingSignup({ energy, traits, plan }: { energy: Energy; traits: string[]; plan: Plan | null }) {
+  useTraits();
+  const [email, setEmail] = useState('');
+  const [zip, setZip] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+  const paid = !!FOUNDING_PACK_URL;
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    const em = email.trim(), z = zip.trim();
+    if (!/^\S+@\S+\.\S+$/.test(em)) return setError('Enter a valid email.');
+    if (!/^\d{5}$/.test(z)) return setError('Enter a 5-digit ZIP code.');
+    setBusy(true);
+    let saved = true;
+    try { await submitWaitlist(em, z, energy, traits, plan); } catch { saved = false; }
+    // Checkout goes ahead even if the row didn't save: Stripe has the email.
+    if (paid) { window.location.href = `${FOUNDING_PACK_URL}${FOUNDING_PACK_URL.includes('?') ? '&' : '?'}prefilled_email=${encodeURIComponent(em)}`; return; }
+    setBusy(false);
+    if (!saved) return setError('That didn’t save. Check your connection and try again.');
+    setDone(inAustin(z) ? 'You’re in. We’ll email you when booking opens near you.' : 'You’re on the list. We’ll tell you when PackPass opens near you.');
+  };
+  const chips = [ENERGIES.find(([k]) => k === energy)?.[1], ...traits.map((t) => traitLabel(t))].filter(Boolean) as string[];
+  return (
+    <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <h2 className="pk-display-2xl" style={{ margin: 0, maxWidth: 760, fontSize: 'clamp(44px,6vw,88px)', lineHeight: 0.94 }}>Join the founding pack.</h2>
+      <p className="pk-body" style={{ margin: 0, maxWidth: 560, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>Austin’s first members get 2 bonus credits in month one. No 6-week commitment. Pause or cancel anytime.</p>
+      {done ? (
+        <p className="pk-heading" role="status" style={{ margin: 0, display: 'flex', gap: 10, alignItems: 'center' }}><Check size={20} />{done}</p>
+      ) : (
+        <form onSubmit={submit} noValidate className="pp-glass" style={{ width: '100%', maxWidth: 640, borderRadius: 28, padding: 'clamp(16px,2.4vw,24px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            {chips.map((c) => <Tag key={c} tone="glass">{c}</Tag>)}
+            <a href="#match" className="pk-label" style={{ color: '#fff', fontWeight: 600 }}>Change</a>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><span className="pk-label" style={{ fontWeight: 600 }}>Email</span>
+              <input className="pp-field" type="email" autoComplete="email" value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }} /></label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><span className="pk-label" style={{ fontWeight: 600 }}>ZIP code</span>
+              <input className="pp-field" inputMode="numeric" autoComplete="postal-code" maxLength={5} value={zip} onChange={(e) => { setZip(e.target.value); setError(''); }} /></label>
+          </div>
+          {error ? <span className="pk-label" role="alert" style={{ color: '#fff', fontWeight: 600 }}>{error}</span> : null}
+          <Button type="submit" variant="signal" block disabled={busy}>{busy ? 'Saving…' : paid ? 'Claim my founding spot' : 'Join the waitlist'}</Button>
+        </form>
+      )}
+    </div>
   );
 }

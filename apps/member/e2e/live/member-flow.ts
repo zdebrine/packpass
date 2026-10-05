@@ -1,7 +1,10 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 import { errorCopy } from '@/api/errors';
 import { catalog } from '@/data/catalog';
+import { payoff } from '@/data/payoffs';
+import { FALLBACK_TRAITS, loadTraits, pathsFor, traitLabel } from '@/data/traits';
 import { nextSession } from '@/lib/booking';
 import { setLiveClock } from '@/lib/clock';
 import { liveHerding, liveSocial } from '@/lib/clearances';
@@ -74,6 +77,8 @@ const S = () => useApp.getState();
   ok(S().credits === 10, 'a new member has 10 credits on Regular');
   ok(S().vaccines.length === 3, 'vaccines entered during onboarding are saved with the dog');
   ok(S().activePaths.includes('calm-around-dogs') && S().activePaths.includes('loose-leash-walking'), 'traits start both training paths');
+  ok(psql(`select energy || '|' || array_to_string(traits, ',') from dogs where id = '${S().dogs[0].id}'`) === 'working|pulls,nervous_dogs',
+     'onboarding saves the energy key and trait ids');
   ok(S().social === 'working', 'Social starts as working on it');
   const calm = () => liveGoal(S().paths!.find((p) => p.id === 'calm-around-dogs')!, 'Juno', S().log ?? []);
   ok(S().paths!.length === 2 && calm().steps[0].state === 'next' && calm().steps[0].classId === 'calm-private' && calm().steps[3].state === 'final',
@@ -93,6 +98,20 @@ const S = () => useApp.getState();
   ok(S().remoteNotifications!.some((n) => n.title === 'Step 1 of 4 done' && n.href === '/goal/calm-around-dogs'), 'and the member is told');
   psql(`update bookings set status = 'cancelled' where id = '${stepBooking}'`); // keep the booking counts below as they were
   ok(Object.keys(catalog.classes).length >= 16 && catalog.sessions.length > 300, 'the catalog loads from Supabase');
+  // Trait catalog and payoff lines (copy refresh, phase 2).
+  const traits = await loadTraits();
+  ok(JSON.stringify(traits) === JSON.stringify(FALLBACK_TRAITS), 'the trait catalog loads, and matches the built-in fallback');
+  const block = (f: string) => readFileSync(f, 'utf8').split('export const FALLBACK_TRAITS')[1].split('];')[0];
+  ok(block('src/data/traits.ts') === block('../web/src/lib/traits.ts') && block('src/data/traits.ts') === block('../partner/src/lib/traits.ts'),
+     'and the website and dashboard carry the same fallback');
+  ok(traitLabel('leash_reactive') === 'Loses it at dogs on walks' && traitLabel('leash_reactive', 'partner') === 'Leash reactive (lunges or barks at dogs)'
+     && traitLabel('Barks at bikes') === 'Barks at bikes', 'traits show in the owner\'s or trainer\'s words, and unknown ones as stored');
+  ok(JSON.stringify(pathsFor(['nervous_dogs', 'leash_reactive', 'Barks at bikes'])) === '["calm-around-dogs"]'
+     && JSON.stringify(pathsFor(['pulls', 'leash_reactive'])) === '["loose-leash-walking","calm-around-dogs"]',
+     'leash_reactive starts Calm around dogs, and a path shared by two traits starts once');
+  ok(Object.values(catalog.classes).every((c) => c.dropOff === false), 'classes load with the drop-off flag (off unless the partner sets it)');
+  ok(Object.values(catalog.classes).every((c) => payoff(c.discipline) !== null) && payoff('Behavior') === null,
+     'every class in the catalog has a payoff line; unknown disciplines have none');
 
   // Distances: from the area picked in onboarding, or anywhere the member chooses.
   ok(S().area === 'Mueller' && catalog.partners.ridgeline.distanceMi < 2, 'the onboarding area is saved, and distances are measured from it');
@@ -147,9 +166,9 @@ const S = () => useApp.getState();
   ok(social.status === 'cleared' && social.facts[0][1] === 'Eastside Dog Club' && social.assessor?.startsWith('Sam Reyes, Eastside Dog Club'),
      'the Passport shows the real clearance: issuer and assessor');
   ok(liveHerding(S().clearanceRecords!).status === 'needs', 'and Herding still needs an assessment');
-  await S().updateDraft({ traits: ['Pulls on the leash', 'Barks at bikes'] });
+  await S().updateDraft({ traits: ['pulls', 'Barks at bikes'] });
   await S().saveTraits(dog);
-  ok(psql(`select array_to_string(traits, ',') from dogs where id = '${dog}'`) === 'Pulls on the leash,Barks at bikes' && S().dogs[0].traits?.length === 2,
+  ok(psql(`select array_to_string(traits, ',') from dogs where id = '${dog}'`) === 'pulls,Barks at bikes' && S().dogs[0].traits?.length === 2,
      'editing traits saves them to the dog');
   r = await S().bookSession(agility.session.id, dog);
   ok(r.ok, 'with Social, group sport books');

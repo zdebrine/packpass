@@ -82,7 +82,7 @@ function Scan() {
         <CameraView style={StyleSheet.absoluteFill} facing="back" enableTorch={torch} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} onBarcodeScanned={(r) => done(r.data)} />
       ) : (
         <>
-          <Image source={photos.wall} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={2} />
+          <Image source={photos.dog_chilling_with_owner_on_porch} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={2} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.2)' }]} />
           <View style={{ position: 'absolute', left: 0, right: 0, top: 286, alignItems: 'center' }} pointerEvents="none">
             <View style={{ padding: 14, borderRadius: 14, backgroundColor: '#fff', transform: [{ rotate: '-4deg' }, { skewX: '2deg' }], boxShadow: '0 10px 30px rgba(0,0,0,0.35)' }}>

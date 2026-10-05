@@ -7,7 +7,7 @@ import { useData, usePartner } from '@/lib/partner';
 import { credits } from '@/lib/sessions';
 import { addDays, austin, mondayOf } from '@/lib/time';
 import { Button, ClassCard, Chip, ErrorLine, Field, Modal, Row, Tag, photoUrl } from '@/ui/kit';
-import { Clearance, Description, Discipline, Duration, Energy, Group, Intensity, Name, PhotoGrid, Requirements, Social, TypeChips, typeLabel, type Patch } from './classParts';
+import { Clearance, Description, Discipline, DropOff, Duration, Energy, Group, Intensity, Name, PhotoGrid, Requirements, Social, TypeChips, typeLabel, type Patch } from './classParts';
 
 const STATUS: Record<ClassType['status'], string> = { live: 'Live', in_review: 'In review', paused: 'Paused' };
 
@@ -49,6 +49,7 @@ export function Classes() {
                   <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3, textAlign: 'left' }}>
                     <span style={{ fontSize: 15, fontWeight: 600 }}>{c.title}</span>
                     <span style={{ fontSize: 12, opacity: 0.7 }}>{meta}</span>
+                    {c.drop_off && c.session_type === 'class' ? <span style={{ alignSelf: 'flex-start', marginTop: 2 }}><Tag tone="signal">Drop-off</Tag></span> : null}
                   </span>
                   <span style={{ fontSize: 12, opacity: 0.7 }}>{c.credit_review ? 'Credit review' : STATUS[c.status]}</span>
                 </button>
@@ -98,6 +99,7 @@ function Editor({ cls, partnerName, gym, trainers }: { cls: ClassType; partnerNa
           <Row gap={6}>
             <Tag tone="glass">{f.discipline ?? typeLabel(f.type)}</Tag>
             {cls.premium ? <Tag tone="premium">Premium</Tag> : null}
+            {f.dropOff && f.type === 'class' ? <Tag tone="glass">Drop-off</Tag> : null}
             {cls.status !== 'live' ? <Tag tone="glass">{STATUS[cls.status]}</Tag> : null}
           </Row>
           <Button variant="glass" size="sm" onClick={() => setPhotos(true)}>Replace photo</Button>
@@ -117,6 +119,7 @@ function Editor({ cls, partnerName, gym, trainers }: { cls: ClassType; partnerNa
         <TypeChips f={f} set={set} />
         <Clearance f={f} set={set} />
         <Requirements f={f} set={set} />
+        <DropOff f={f} set={set} />
         {gym ? (
           <Field label="Lead trainer">
             <Row gap={6}>{trainers.map((t) => <Chip key={t.id} on={f.trainerId === t.id} onClick={() => set({ trainerId: t.id })}>{t.name}</Chip>)}</Row>

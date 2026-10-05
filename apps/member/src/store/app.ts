@@ -4,7 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { isLive } from '@/api/client';
 import * as live from '@/api/live';
-import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, TRAIT_SPECIAL } from '@/data/fixtures';
+import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, TRAIT_SPECIAL, type Energy } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
 import type { Booking, ClearanceRecord, Dog, LogEntry, PathProgress, PhotoSource, PickedDoc, VaccineRecord, WaitEntry } from '@/data/types';
 import { now } from '@/lib/clock';
@@ -29,13 +29,25 @@ export interface OnboardingDraft {
   birthYear: number;
   weight: number;
   fixed: boolean;
-  energy: string;
+  energy: Energy;
   social: string;
   interests: string[];
+  /** Trait ids from the catalog (src/data/traits.ts). */
   traits: string[];
   /** "Trains near" (01g); one of AREAS in src/lib/location.ts. */
   area: string;
 }
+
+/** For persisted state from before v5, which stored labels (supabase/migrations/20261005000100_trait_catalog.sql has the same backfill). */
+const LEGACY_ENERGY: Record<string, Energy> = { Couch: 'couch', Medium: 'medium', High: 'high', 'Working dog': 'working' };
+const LEGACY_TRAITS: Record<string, string> = {
+  'Plays too rough': 'rough_play', 'Nervous with new dogs': 'nervous_dogs', 'Guards food or toys': 'guards',
+  'Nervous with strangers': 'shy_people', 'Jumps up on people': 'jumps', 'Barks at visitors': 'barks_visitors',
+  'Pulls on the leash': 'pulls', 'Lunges or barks at dogs on walks': 'leash_reactive', 'Chases bikes or cars': 'chases',
+  'Slow to come when called': 'recall', 'Struggles when left alone': 'alone', 'Chews or digs when alone': 'bored_chewing',
+  'Hard to settle in a crate': 'crate', 'None of these': 'none', 'Not sure yet': 'not_sure',
+};
+const legacyTraitId = (t: string) => LEGACY_TRAITS[t] ?? t;
 
 const DRAFT: OnboardingDraft = {
   ownerName: 'Alex Kim',
@@ -50,11 +62,11 @@ const DRAFT: OnboardingDraft = {
   birthYear: 2023,
   weight: 38,
   fixed: true,
-  energy: 'Working dog',
+  energy: 'working',
   social: 'Loves dogs',
   interests: ['Herding', 'Sprint', 'Scent'],
   area: 'Austin · South',
-  traits: ['Pulls on the leash', 'Nervous with new dogs'],
+  traits: ['pulls', 'nervous_dogs'],
 };
 
 interface Demo {
@@ -571,7 +583,7 @@ export const useApp = create<AppState>()(
     },
     {
       name: 'packpass-member',
-      version: 4,
+      version: 5,
       storage: createJSONStorage(() => AsyncStorage),
       // Live mode keeps member data in Supabase; only preferences and the onboarding draft persist.
       partialize: (s) =>
@@ -589,6 +601,11 @@ export const useApp = create<AppState>()(
         if (version < 3) p.planSwaps = [];
         // v4: the draft's photo went from a yes/no to the photo itself.
         if (p.draft && typeof p.draft.photo === 'boolean') p.draft = { ...p.draft, photo: p.draft.photo ? 'juno' : null };
+        // v5: the draft stores the energy key and trait ids instead of their old labels.
+        if (version < 5 && p.draft) {
+          p.draft = { ...p.draft, energy: LEGACY_ENERGY[p.draft.energy] ?? p.draft.energy, traits: (p.draft.traits ?? []).map(legacyTraitId) };
+          if (Array.isArray(p.dogs)) p.dogs = p.dogs.map((d: Dog) => (d.traits ? { ...d, traits: d.traits.map(legacyTraitId) } : d));
+        }
         return p as never;
       },
     },

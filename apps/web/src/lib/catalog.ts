@@ -19,15 +19,15 @@ const FALLBACK: Catalog = {
     { id: 'southfork', name: 'South Fork Yard', short_name: 'South Fork', type: 'outdoor_space', street: 'S Lamar Blvd', lat: 30.24, lng: -97.786 },
   ],
   classes: [
-    ['agility-drop-in', 'ridgeline', 'Agility drop-in', 'Agility', 'sport', 2, 'weave', 'class'],
-    ['herding-assessment', 'ridgeline', 'Herding assessment', 'Herding', 'sport', 2, 'collie', 'assessment'],
-    ['lure-sprint', 'eastfield', 'Lure Sprint Heats', 'Sprint', 'sport', 2, 'sprint', 'class'],
-    ['scent-work', 'northside', 'Scent Work I', 'Scent', 'scent', 2, 'grass', 'class'],
-    ['sniff-space', 'southfork', 'Sniff space', 'Sniff', 'scent', 1, 'wall', 'class'],
-    ['open-field', 'eastfield', 'Open Field Session', 'Open play', 'play', 1, 'leap', 'class'],
-    ['small-group-play', 'eastside', 'Small-group play', 'Play', 'play', 1, 'tunnel', 'class'],
-    ['focus-recall', 'northside', 'Focus and Recall', 'Skills', 'skills', 2, 'hurdle', 'class'],
-    ['calm-private', 'eastside', 'Calm around dogs', 'Skills', 'skills', 3, 'rail', 'private'],
+    ['agility-drop-in', 'ridgeline', 'Agility drop-in', 'Agility', 'sport', 2, 'athletic_dog_catching_ball', 'class'],
+    ['herding-assessment', 'ridgeline', 'Herding assessment', 'Herding', 'sport', 2, 'dog_chilling', 'assessment'],
+    ['lure-sprint', 'eastfield', 'Lure Sprint Heats', 'Sprint', 'sport', 2, 'dog_running_on_beach', 'class'],
+    ['scent-work', 'northside', 'Scent Work I', 'Scent', 'scent', 2, 'dog_and_owner_chilling', 'class'],
+    ['sniff-space', 'southfork', 'Sniff space', 'Sniff', 'scent', 1, 'dog_wrapped_in_blanket', 'class'],
+    ['open-field', 'eastfield', 'Open Field Session', 'Open play', 'play', 1, 'dog_getting_pets_at_park', 'class'],
+    ['small-group-play', 'eastside', 'Small-group play', 'Play', 'play', 1, 'dogs_meeting_on_leash', 'class'],
+    ['focus-recall', 'northside', 'Focus and Recall', 'Skills', 'skills', 2, 'dog_being_patient', 'class'],
+    ['calm-private', 'eastside', 'Calm around dogs', 'Skills', 'skills', 3, 'dogs_meeting_on_leash', 'private'],
   ].map(([id, partner_id, title, discipline, category, credits, image, session_type]) =>
     ({ id, partner_id, title, discipline, category, credits, image, session_type }) as ClassType),
   sessions: [],
@@ -83,6 +83,13 @@ export const when = (iso: string) => {
 };
 export const creditsLabel = (n: number | null) => (n == null ? '' : `${n} credit${n === 1 ? '' : 's'}`);
 export const PARTNER_TYPE: Record<string, string> = { trainer: 'Independent trainer', facility: 'Training facility', sport_club: 'Sport club', behavior_specialist: 'Behavior specialist', outdoor_space: 'Outdoor space' };
+
+/** Saves (or updates, by email) a founding-member signup with what the matcher knows about the dog. */
+export async function submitWaitlist(email: string, zip: string, energy: string | null, traits: string[], plan: string | null) {
+  if (!db) throw new Error('offline');
+  const { error } = await db.rpc('submit_owner_waitlist', { p_email: email, p_zip: zip, p_energy: energy, p_traits: traits, p_plan: plan });
+  if (error) throw new Error(error.message);
+}
 
 export async function submitLead(type: string, name: string, business: string, email: string, zip: string) {
   if (!db) throw new Error('offline');

@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { photos } from '@/data/fixtures';
+import { photoKey, photos } from '@/data/fixtures';
 import type { PhotoSource } from '@/data/types';
 
 /** Glass capsule: white 22% over a 20px blur with 1.4 saturate. Only use over photography. */
@@ -28,7 +28,7 @@ export function Photo({ name, style, position }: { name?: PhotoSource | null; st
   if (!name) return <View style={[style as StyleProp<ViewStyle>, { backgroundColor: '#3a3d38' }]} />;
   return (
     <Image
-      source={typeof name === 'string' ? photos[name] : name}
+      source={typeof name === 'string' ? photos[photoKey(name) ?? 'dog_and_owner_chilling'] : name}
       style={style}
       contentFit="cover"
       contentPosition={position as never}
