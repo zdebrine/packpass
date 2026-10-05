@@ -11,10 +11,10 @@ export function Site() {
   const partners = loc.pathname.startsWith('/partners');
   useEffect(() => {
     if (!loc.hash) window.scrollTo({ top: 0 });
-    document.title = partners ? 'Partner with PackPass · Fill your open spots' : 'PackPass · Dog classes in Austin, matched to your dog';
+    document.title = partners ? 'Partner with PackPass · Fill your empty spots' : 'PackPass · Dog classes in Austin, matched to your dog';
   }, [loc.pathname, loc.hash, partners]);
   const links = partners
-    ? [['Payouts', '#payouts'], ['Earnings', '#earnings'], ['Requirements', '#requirements'], ['FAQ', '#partner-faq']]
+    ? [['Payouts', '#payouts'], ['Earnings', '#earnings'], ['Clients', '#clients'], ['Requirements', '#requirements'], ['FAQ', '#partner-faq']]
     : [['How it works', '#how'], ['Classes', '#classes'], ['Partners', '#partners'], ['Plans', '#pricing'], ['FAQ', '#faq']];
 
   return (
