@@ -298,8 +298,16 @@ export const disciplineLevels = [
 // ---- Onboarding ----------------------------------------------------------------------------
 
 /** Welcome hero photos, cross-faded in this order. */
-export const HERO_PHOTOS: PhotoKey[] = [
-  'dog_chilling_with_owner_on_porch', 'dogs_meeting_on_leash', 'dog_being_patient', 'dog_and_owner_chilling', 'dog_chilling_in_car', 'dog_running_on_beach',
+/** Welcome headline: HERO_LEAD, then each slide's line while its photo is up. Same as the website hero. */
+/** Split by hand so phones break it cleanly: "The dog you" / "can take". */
+export const HERO_LEAD = ['The dog you', 'can take'];
+export const HERO_HEADLINE = 'The dog you can take anywhere.';
+export const HERO_SLIDES: { photo: PhotoKey; line: string }[] = [
+  { photo: 'dog_chilling_with_owner_on_porch', line: 'to the patio.' },
+  { photo: 'dog_sleeping_while_owner_reads', line: 'to a friend’s place.' },
+  { photo: 'dog_running_on_beach', line: 'off leash.' },
+  { photo: 'dog_chilling_in_car', line: 'on a road trip.' },
+  { photo: 'dog_and_owner_chilling', line: 'anywhere.' },
 ];
 
 /** Stored as dogs.energy (the energy_level enum). */
