@@ -262,9 +262,29 @@
           type: 'string',
         },
         {
+          name: 'variant',
+          title: 'Headline style',
+          type: 'string',
+          options: {
+            list: [
+              { title: 'Rotating: lead line plus one line per photo', value: 'rotating' },
+              { title: 'Static: one headline', value: 'static' },
+            ],
+            layout: 'radio',
+          },
+          description: 'Rotating shows the lead line, then each photo\'s rotating line. Static shows the headline only.',
+        },
+        {
+          name: 'lead',
+          title: 'Rotating lead line',
+          type: 'string',
+          description: 'The fixed first line of the rotating headline, e.g. "The dog you can take". Keep it short.',
+        },
+        {
           name: 'headline',
           title: 'Headline',
           type: 'string',
+          description: 'The full headline. Shown as is in the static style. In the rotating style it is what screen readers and search engines read.',
         },
         {
           name: 'body',
@@ -302,7 +322,7 @@
                   name: 'line',
                   title: 'Rotating line',
                   type: 'string',
-                  description: 'Only used by the rotating headline variant.',
+                  description: 'Shown under the lead line while this photo is up (rotating style only). End with a period. Keep it to about 20 characters so it fits in two lines on phones.',
                 },
               ],
             },
