@@ -322,7 +322,7 @@
                   name: 'line',
                   title: 'Rotating line',
                   type: 'string',
-                  description: 'Shown under the lead line while this photo is up (rotating style only). End with a period. Keep it under about 20 characters so it fits on one line on phones.',
+                  description: 'Shown under the lead line while this photo is up (rotating style only). End with a period. Keep it to about 20 characters so it fits in two lines on phones.',
                 },
               ],
             },
