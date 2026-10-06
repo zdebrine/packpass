@@ -1,9 +1,9 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
-import { HERO_PHOTOS } from '@/data/fixtures';
+import { HERO_HEADLINE, HERO_LEAD, HERO_SLIDES } from '@/data/fixtures';
 import type { PhotoKey } from '@/data/types';
 import { Button, Tag } from '@/ds/controls';
 import { useBottom, useTop, Screen, themed } from '@/ds/layout';
@@ -27,7 +27,17 @@ function CrossfadePhoto({ name, active }: { name: PhotoKey; active: boolean }) {
   );
 }
 
-/** 01a Welcome. A static headline over cross-fading photos. */
+/** The rotating line eases up into place each time it changes. */
+function RiseIn({ children }: { children: React.ReactNode }) {
+  const t = useSharedValue(0);
+  useEffect(() => {
+    t.value = withTiming(1, { duration: 800, easing: ease });
+  }, [t]);
+  const style = useAnimatedStyle(() => ({ opacity: t.value, transform: [{ translateY: (1 - t.value) * 12 }] }));
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
+
+/** 01a Welcome. "The dog you can take" + a line that changes with each cross-fading photo. */
 function Welcome() {
   const [i, setI] = useState(0);
   const top = useTop();
@@ -36,26 +46,32 @@ function Welcome() {
   // Cycle only while Welcome is on screen; it stays mounted (hidden) under Sign in and Sign up.
   useFocusEffect(
     useCallback(() => {
-      const t = setInterval(() => setI((n) => (n + 1) % HERO_PHOTOS.length), PHOTO_MS);
+      const t = setInterval(() => setI((n) => (n + 1) % HERO_SLIDES.length), PHOTO_MS);
       return () => clearInterval(t);
     }, []),
   );
 
   return (
     <Screen theme="dark" bleed statusLight>
-      {HERO_PHOTOS.map((photo, k) => (
-        <CrossfadePhoto key={photo} name={photo} active={k === i} />
+      {HERO_SLIDES.map((s, k) => (
+        <CrossfadePhoto key={s.photo} name={s.photo} active={k === i} />
       ))}
-      <Gradient stops={[['rgba(0,0,0,0.42)', 0], ['rgba(0,0,0,0)', 0.24], ['rgba(0,0,0,0)', 0.38], ['rgba(0,0,0,0.78)', 1]]} />
+      <Gradient stops={[['rgba(0,0,0,0.42)', 0], ['rgba(0,0,0,0)', 0.2], ['rgba(0,0,0,0.28)', 0.42], ['rgba(0,0,0,0.85)', 1]]} />
 
       <View style={{ position: 'absolute', top: top + 14, left: 0, right: 0, alignItems: 'center' }}>
         <Text variant="wide" weight="700" color="#fff" style={{ fontSize: 15, lineHeight: 18 }}>PackPass</Text>
       </View>
 
       <View style={{ position: 'absolute', left: 20, right: 20, bottom, gap: 12 }}>
-        <View accessible accessibilityRole="header" accessibilityLabel="Make your dog a good hang.">
-          <Text variant="display2xl" color="#fff" style={styles.h1} numberOfLines={1}>Make your dog</Text>
-          <Text variant="display2xl" color="#fff" style={styles.h1} numberOfLines={1}>a good hang.</Text>
+        {/* Screen readers hear the full headline once; the changing line is visual. */}
+        <View accessible accessibilityRole="header" accessibilityLabel={HERO_HEADLINE}>
+          {HERO_LEAD.map((l) => <Text key={l} variant="display2xl" color="#fff" style={styles.h1} numberOfLines={1}>{l}</Text>)}
+          {/* One line, shrunk to fit if a line is ever too long, so the copy below never jumps. */}
+          <View style={styles.line}>
+            <RiseIn key={i}>
+              <Text variant="display2xl" color="#fff" style={styles.h1} numberOfLines={1} adjustsFontSizeToFit>{HERO_SLIDES[i].line}</Text>
+            </RiseIn>
+          </View>
         </View>
         <Text color="rgba(255,255,255,0.88)">{`Drop-in classes across Austin, picked for your dog's energy and quirks.`}</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4, marginBottom: 14 }}>
@@ -71,7 +87,9 @@ function Welcome() {
 }
 
 const styles = StyleSheet.create({
-  h1: { fontSize: 34, lineHeight: 34, letterSpacing: -0.85 },
+  // The shadow keeps white type readable over bright photos (the porch).
+  h1: { fontSize: 34, lineHeight: 34, letterSpacing: -0.85, textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 14 },
+  line: { minHeight: 34 },
 });
 
 export default themed('dark', Welcome);
