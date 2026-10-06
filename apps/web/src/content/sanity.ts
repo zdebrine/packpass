@@ -39,7 +39,8 @@ function clean(v: Json): Json {
     const ref = isObj(v.asset) && typeof v.asset._ref === 'string' ? v.asset._ref : '';
     const src = imageUrl(ref);
     if (!src) return undefined; // no picture chosen: keep the default one
-    const { asset: _a, hotspot, crop: _c, ...rest } = v;
+    // Drop _type too, or clean() would see an image again and throw away its alt text and other fields.
+    const { asset: _a, hotspot, crop: _c, _type: _t, ...rest } = v;
     const h = isObj(hotspot) && typeof hotspot.x === 'number' && typeof hotspot.y === 'number' ? hotspot : null;
     return { ...(clean(rest) as object), src, ...(h ? { position: `${Math.round((h.x as number) * 100)}% ${Math.round((h.y as number) * 100)}%` } : {}) };
   }
