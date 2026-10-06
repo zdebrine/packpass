@@ -5,6 +5,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { loadAssessments, loadNotes, signOut } from '@/lib/api';
 import { usePartner } from '@/lib/partner';
 import { Avatar } from '@/ui/kit';
+import { LegalLinks } from '@/ui/LegalLinks';
 import { AdminNav } from '@/admin/AdminNav';
 
 const PARTNER_SUB: Record<string, string> = { trainer: 'Independent trainer', facility: 'Facility', sport_club: 'Sport club', behavior_specialist: 'Behavior specialist', outdoor_space: 'Outdoor space' };
@@ -60,7 +61,8 @@ export function Shell() {
           ))}
         </nav>
         {admin ? <AdminNav /> : null}
-        <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 12, padding: '0 10px' }}>
+        <LegalLinks style={{ marginTop: 'auto', padding: '0 10px' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 10px' }}>
           <Avatar name={staff.name} size={36} />
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span className="pk-label" style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{staff.name}</span>

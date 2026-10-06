@@ -43,12 +43,15 @@ select t.expect_error($$set local role authenticated; select public.extend_sched
 select t.expect_error($$set local role authenticated; insert into timetable (class_id, starts) values ('fitness', '06:00')$$, 'permission denied');
 
 -- ---- Sign-up ---------------------------------------------------------------------------------
+-- These checks were written for the pre-launch credits (10 on sign-up, a free monthly grant); the launch
+-- policy (credit_policy defaults) is checked at the end of stripe.test.sql.
+update credit_policy set signup_credits = 10, free_monthly = true;
 insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-00000000000a', 'alex@kim.co', '{"name":"Alex Kim"}'),
   ('00000000-0000-0000-0000-00000000000b', 'sam@example.com', '{"name":"Someone Else"}');
 
 select t.ok((select credits_balance from profiles where email = 'alex@kim.co') = 10, 'new member starts on Regular with 10 credits');
-select t.ok((select count(*) from credit_ledger where reason = 'monthly_grant') = 2, 'sign-up writes a monthly grant to the ledger');
+select t.ok((select count(*) from credit_ledger where reason = 'adjustment') = 2, 'sign-up writes the grant to the ledger');
 
 select public.seed_demo_member('00000000-0000-0000-0000-00000000000a');
 select public.seed_demo_member('00000000-0000-0000-0000-00000000000b');

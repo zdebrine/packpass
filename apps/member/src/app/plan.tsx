@@ -57,7 +57,7 @@ export default function PlanScreen() {
   });
 
   const status = !paid
-    ? `No paid plan yet. Credits refresh on ${onDay(m.renewsOn)}.`
+    ? 'No plan yet. Choose one for credits every month, or buy a few to try a class.'
     : m.status === 'past_due'
       ? 'Your last payment didn\'t go through. Stripe will try your card again.'
       : m.cancels

@@ -17,7 +17,7 @@ import { addToCalendar } from '@/lib/calendar';
 import { cancelCopy, dayTimeInline, relativeDay, time } from '@/lib/dates';
 import { pay, settle } from '@/lib/checkout';
 import { comingWithAccounts } from '@/lib/notice';
-import { useApp, usePlan, useRules } from '@/store/app';
+import { useAllowance, useApp, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 import { motion } from '@/theme/tokens';
 
@@ -38,7 +38,7 @@ export default function BookingSheet() {
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const credits = useApp((s) => s.credits);
-  const plan = usePlan();
+  const allowance = useAllowance();
   const bookings = useApp((s) => s.bookings);
   const rules = useRules();
   const book = useApp((s) => s.bookSession);
@@ -95,7 +95,7 @@ export default function BookingSheet() {
             <View style={{ height: 260, borderRadius: 28, overflow: 'hidden' }}>
               <PhotoFill name={cls.image} />
               <Scrim />
-              <View style={{ position: 'absolute', top: 14, left: 14 }}><Tag tone="glass">{`${credits} of ${plan.credits} credits left`}</Tag></View>
+              <View style={{ position: 'absolute', top: 14, left: 14 }}><Tag tone="glass">{allowance ? `${credits} of ${allowance} credits left` : `${creditsLabel(credits)} left`}</Tag></View>
               <View style={{ position: 'absolute', left: 20, right: 20, bottom: 18 }}>
                 <Text variant="display2xl" color="#fff" accessibilityRole="header" accessibilityLiveRegion="polite">Booked.</Text>
                 <Text color="#fff" style={{ marginTop: 8 }}>{`${cls.title}, ${dayTimeInline(session.startsAt)}.`}</Text>
@@ -134,7 +134,7 @@ export default function BookingSheet() {
                 {cls.dropOff ? <Tag>Drop-off</Tag> : null}
               </View>
               <Text variant="label" num color={short ? c.kennelRed : c.inkMuted}>
-                {short ? `You have ${creditsLabel(credits)} left` : `${credits - cost} of ${plan.credits} left after booking`}
+                {short ? `You have ${creditsLabel(credits)} left` : allowance ? `${credits - cost} of ${allowance} left after booking` : `${creditsLabel(credits - cost)} left after booking`}
               </Text>
             </View>
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { confirmAccount, createAccount, errorCopy, resendAccountCode, sendPasswordCode, setPasswordWithCode, signIn } from '@/lib/api';
 import { Button, ErrorLine } from '@/ui/kit';
+import { LegalLinks } from '@/ui/LegalLinks';
 import { ApplyWelcome, markApplying } from '@/apply/Apply';
 
 /** Staff sign in with the email and password of their PackPass account, or set one with an emailed code. */
@@ -140,6 +141,9 @@ function CreateAccount({ email, setEmail, onBack, apply }: { email: string; setE
 
 export const Centered = ({ children }: { children: React.ReactNode }) => (
   <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'var(--surface-raised)' }}>
-    <div style={{ width: 420, maxWidth: '100%', padding: 32, borderRadius: 32, background: 'var(--bg)', boxShadow: 'var(--shadow-card)' }}>{children}</div>
+    <div style={{ width: 420, maxWidth: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+      <div style={{ width: '100%', boxSizing: 'border-box', padding: 32, borderRadius: 32, background: 'var(--bg)', boxShadow: 'var(--shadow-card)' }}>{children}</div>
+      <LegalLinks />
+    </div>
   </div>
 );

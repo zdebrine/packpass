@@ -5,6 +5,7 @@ import {
   accountName, errorCopy, loadMyApplication, removeApplicationDoc, saveApplication, signOut, submitApplication, uploadApplicationDoc,
   type Application, type DocKind, type PartnerType,
 } from '@/lib/api';
+import { SITE_URL } from '@/lib/supabase';
 import { Button, Chip, ErrorLine, Tag, photoUrl } from '@/ui/kit';
 
 /**
@@ -264,7 +265,10 @@ function Flow({ app, name, step, setStep, reload }: { app: Application | null; n
             <div style={{ maxWidth: 580, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <ErrorLine>{error}</ErrorLine>
               <Button block disabled={busy || blocked} onClick={next}>{busy ? 'Saving…' : step === 5 ? 'Submit application' : 'Continue'}</Button>
-              <p className="pk-caption pk-muted" style={{ margin: 0, textAlign: 'center', textWrap: 'pretty' }}>{notes[step]}</p>
+              <p className="pk-caption pk-muted" style={{ margin: 0, textAlign: 'center', textWrap: 'pretty' }}>
+                {notes[step]}
+                {step === 5 ? <> Submitting means you agree to the <a href={`${SITE_URL}/terms#partner-terms`} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>partner terms</a>.</> : null}
+              </p>
             </div>
           </div>
         ) : null}

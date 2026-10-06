@@ -631,6 +631,12 @@ export const useOriginLabel = () => useApp((s) => s.origin?.label ?? s.area ?? D
 
 /** The plan this month's credits came from: name and monthly credits. */
 export const usePlan = () => planOf(useApp((s) => s.membership.plan));
+/** The plan's monthly credits, or null for a live member without a paid plan (credits are then a trial or top-ups). */
+export const useAllowance = () => {
+  const plan = usePlan();
+  const paid = useApp((s) => s.membership.status === 'active' || s.membership.status === 'past_due');
+  return !isLive || paid ? plan.credits : null;
+};
 
 /** The dog the app is about (Juno in sample mode). */
 export const useDog = () => useApp((s) => s.dogs[0] ?? sampleDogs.juno);

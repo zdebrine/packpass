@@ -9,6 +9,7 @@ import { BackButton, Body, Intro } from '@/features/onboarding/parts';
 import { isLive } from '@/api/client';
 import { errorCopy } from '@/api/errors';
 import { comingWithAccounts } from '@/lib/notice';
+import { openSite } from '@/lib/site';
 import { useApp } from '@/store/app';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -73,7 +74,11 @@ function SignUp() {
         >
           {busy ? 'Creating account…' : 'Create account'}
         </Button>
-        <Text variant="caption" muted center>By continuing you agree to the Membership terms and Privacy policy.</Text>
+        <Text variant="caption" muted center>
+          By continuing you agree to the{' '}
+          <Text variant="caption" weight="600" accessibilityRole="link" onPress={() => openSite('/terms')}>Membership terms</Text> and{' '}
+          <Text variant="caption" weight="600" accessibilityRole="link" onPress={() => openSite('/privacy')}>Privacy policy</Text>.
+        </Text>
       </Footer>
     </Screen>
   );

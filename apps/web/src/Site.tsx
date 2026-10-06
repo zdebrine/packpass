@@ -5,15 +5,19 @@ import { useContent } from '@/content/context';
 import { APP_LIVE, APPLY_URL, DASHBOARD_URL } from '@/lib/supabase';
 import { Button, Chip } from '@/ui';
 
+const PAGE_TITLES: Record<string, string> = { '/privacy': 'Privacy policy · PackPass', '/terms': 'Membership terms · PackPass', '/support': 'Support · PackPass' };
+
 /** The top bar and footer around both pages. Owners is light, Partner with us is dark, as in the design. */
 export function Site() {
   const loc = useLocation();
   const nav = useNavigate();
   const partners = loc.pathname.startsWith('/partners');
+  // On /privacy, /terms and /support the section links point back at the owners page.
+  const home = partners || loc.pathname === '/' ? '' : '/';
   const { site } = useContent();
   useEffect(() => {
     if (!loc.hash) window.scrollTo({ top: 0 });
-    document.title = partners ? site.partnerTitle : site.ownerTitle;
+    document.title = PAGE_TITLES[loc.pathname] ?? (partners ? site.partnerTitle : site.ownerTitle);
   }, [loc.pathname, loc.hash, partners, site]);
   const links = partners
     ? [['Payouts', '#payouts'], ['Earnings', '#earnings'], ['Clients', '#clients'], ['Requirements', '#requirements'], ['FAQ', '#partner-faq']]
@@ -31,11 +35,11 @@ export function Site() {
           <Chip on={partners} onClick={() => nav('/partners')}><span className="pp-lg">Partner with us</span><span className="pp-sm">Partners</span></Chip>
         </div>
         <div data-pp-navlinks="" style={{ flex: '1 1 0', minWidth: 0, display: 'flex', gap: 24, alignItems: 'center', overflow: 'hidden' }}>
-          {links.map(([label, href]) => <a key={href} href={href} style={{ fontSize: 14, fontWeight: 500, lineHeight: '40px', textDecoration: 'none', whiteSpace: 'nowrap' }}>{label}</a>)}
+          {links.map(([label, href]) => <a key={href} href={home + href} style={{ fontSize: 14, fontWeight: 500, lineHeight: '40px', textDecoration: 'none', whiteSpace: 'nowrap' }}>{label}</a>)}
         </div>
         <div data-pp-hide-sm="" style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 'auto' }}>
           {partners ? <Button variant="quiet" size="sm" href={DASHBOARD_URL}>Sign in</Button> : null}
-          {partners ? <Button size="sm" href={APPLY_URL}>Apply to partner</Button> : <Button size="sm" href="#get">{APP_LIVE ? 'Get the app' : 'Join the founding pack'}</Button>}
+          {partners ? <Button size="sm" href={APPLY_URL}>Apply to partner</Button> : <Button size="sm" href={`${home}#get`}>{APP_LIVE ? 'Get the app' : 'Join the founding pack'}</Button>}
         </div>
       </nav>
 
@@ -58,6 +62,12 @@ export function Site() {
             <Link to="/partners" className="pk-label" style={{ textDecoration: 'none' }}>Partner with us</Link>
             <a href={APPLY_URL} className="pk-label" style={{ textDecoration: 'none' }}>Apply</a>
             <a href={DASHBOARD_URL} className="pk-label" style={{ textDecoration: 'none' }}>Partner sign in</a>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <span className="pk-wide pk-muted">PackPass</span>
+            <Link to="/support" className="pk-label" style={{ textDecoration: 'none' }}>Support</Link>
+            <Link to="/terms" className="pk-label" style={{ textDecoration: 'none' }}>Membership terms</Link>
+            <Link to="/privacy" className="pk-label" style={{ textDecoration: 'none' }}>Privacy policy</Link>
           </div>
         </div>
         <span className="pk-caption pk-muted" style={{ flexBasis: '100%' }}>{`© ${new Date().getFullYear()} PackPass`}</span>

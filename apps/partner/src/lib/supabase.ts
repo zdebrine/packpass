@@ -11,3 +11,6 @@ export function check<T>(r: { data: T | null; error: { message: string } | null 
   if (r.error) throw new Error(r.error.message);
   return r.data as T;
 }
+
+/** The public website, which hosts the membership and partner terms, privacy policy and support page. */
+export const SITE_URL = ((import.meta.env.VITE_SITE_URL as string | undefined) || 'https://packpass-landing.vercel.app').replace(/\/$/, '');

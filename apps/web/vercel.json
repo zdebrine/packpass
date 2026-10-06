@@ -8,6 +8,9 @@
       "source": "/partners",
       "destination": "/partners/index.html"
     },
+    { "source": "/privacy", "destination": "/privacy/index.html" },
+    { "source": "/terms", "destination": "/terms/index.html" },
+    { "source": "/support", "destination": "/support/index.html" },
     {
       "source": "/(.*)",
       "destination": "/index.html"
