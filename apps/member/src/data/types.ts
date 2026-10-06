@@ -186,3 +186,16 @@ export interface Dog {
   /** What the owner picked in onboarding (01h), e.g. "Pulls on the leash". Live mode only. */
   traits?: string[];
 }
+
+export type PlanKey = 'starter' | 'regular' | 'working';
+
+/** The member's plan. `plan` gave this month's credits; `nextPlan` is what the next renewal bills (Stripe). */
+export interface Membership {
+  plan: PlanKey;
+  status: 'none' | 'active' | 'past_due' | 'canceled';
+  nextPlan: PlanKey | null;
+  /** When credits next refresh: the renewal date with a paid plan, else the 1st. */
+  renewsOn: string | null;
+  /** Ends at renewsOn instead of renewing. */
+  cancels: boolean;
+}

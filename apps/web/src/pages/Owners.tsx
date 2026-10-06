@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useContent } from '@/content/context';
 import type { PlanCopy, PlanKey } from '@/content/defaults';
 import { icon } from '@/content/icons';
-import { AREAS, PARTNER_TYPE, creditsLabel, miles, submitWaitlist, useCatalog, when, type Catalog } from '@/lib/catalog';
+import { AREAS, PARTNER_TYPE, creditsLabel, miles, foundingCheckout, submitWaitlist, useCatalog, when, type Catalog } from '@/lib/catalog';
 import { payoff } from '@/lib/payoffs';
 import { photoSrc } from '@/lib/photos';
-import { APP_LIVE, FOUNDING_PACK_URL } from '@/lib/supabase';
+import { APP_LIVE, FOUNDING_PACK_CHECKOUT } from '@/lib/supabase';
 import { traitLabel, useTraits } from '@/lib/traits';
 import { Button, Chip, Faq, Heading, Img, PhotoPanel, StoreButtons, Tag } from '@/ui';
 
@@ -336,8 +336,8 @@ function Passport() {
 const inAustin = (zip: string) => /^78[67]\d\d$/.test(zip);
 
 /**
- * Pre-launch signup in place of the store buttons (phase 7). Saves the matcher's answers with the email; with a
- * Founding Pack Payment Link set, it then opens checkout with the email filled in.
+ * Pre-launch signup in place of the store buttons (phase 7). Saves the matcher's answers with the email; with
+ * VITE_FOUNDING_PACK_CHECKOUT on, it then opens Stripe Checkout for the Founding Pack with the email filled in.
  */
 function FoundingSignup({ energy, traits, plan }: { energy: Energy; traits: string[]; plan: Plan | null }) {
   useTraits();
@@ -347,7 +347,13 @@ function FoundingSignup({ energy, traits, plan }: { energy: Energy; traits: stri
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<string | null>(null);
-  const paid = !!FOUNDING_PACK_URL;
+  const paid = FOUNDING_PACK_CHECKOUT;
+  // Back from Stripe Checkout.
+  useEffect(() => {
+    const back = new URLSearchParams(window.location.search).get('checkout');
+    if (back === 'done') setDone('You’re in. Your Founding Pack is paid, and we’ll email you when booking opens.');
+    if (back === 'cancel') setError('Checkout closed. Nothing was charged.');
+  }, []);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const em = email.trim(), z = zip.trim();
@@ -356,8 +362,10 @@ function FoundingSignup({ energy, traits, plan }: { energy: Energy; traits: stri
     setBusy(true);
     let saved = true;
     try { await submitWaitlist(em, z, energy, traits, plan); } catch { saved = false; }
-    // Checkout goes ahead even if the row didn't save: Stripe has the email.
-    if (paid) { window.location.href = `${FOUNDING_PACK_URL}${FOUNDING_PACK_URL.includes('?') ? '&' : '?'}prefilled_email=${encodeURIComponent(em)}`; return; }
+    // Checkout goes ahead even if the row didn't save: the webhook adds the row when it's paid.
+    if (paid) {
+      try { window.location.assign(await foundingCheckout(em)); return; } catch { setBusy(false); return setError('Checkout didn’t open. Try again in a minute.'); }
+    }
     setBusy(false);
     if (!saved) return setError('That didn’t save. Check your connection and try again.');
     setDone(inAustin(z) ? 'You’re in. We’ll email you when booking opens near you.' : 'You’re on the list. We’ll tell you when PackPass opens near you.');

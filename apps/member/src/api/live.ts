@@ -5,7 +5,7 @@ import { setCatalog } from '@/data/catalog';
 import { photoKey } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
-import type { Booking, ClassType, ClearanceRecord, Dog, LogEntry, PathProgress, Partner, PhotoKey, PickedDoc, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
+import type { Booking, ClassType, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, Partner, PhotoKey, PickedDoc, PlanKey, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
 import type { OnboardingDraft, SocialStage } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { db } from './client';
@@ -114,6 +114,7 @@ export interface MemberSnapshot {
   name: string;
   email: string;
   credits: number;
+  membership: Membership;
   dogs: Dog[];
   bookings: Booking[];
   social: SocialStage;
@@ -183,6 +184,10 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     name: profile.name,
     email: profile.email ?? auth.user.email ?? '',
     credits: profile.credits_balance,
+    membership: {
+      plan: profile.plan, status: profile.subscription_status ?? 'none', nextPlan: profile.subscription_plan ?? null,
+      renewsOn: profile.subscription_renews_on ?? profile.credits_reset_on ?? null, cancels: !!profile.subscription_cancels,
+    },
     dogs: dogs.map((d) => ({
       id: d.id, name: d.name, photo: photoUrl.has(d.photo_path) ? { uri: photoUrl.get(d.photo_path)!, cacheKey: d.photo_path } : undefined, breed: d.mixed ? 'Mixed breed' : d.breed ?? '',
       ...ageOf(d.birth_year, d.birth_month), since: d.member_since, traits: d.traits ?? [],
@@ -227,6 +232,23 @@ export async function loadPaths(dogId: string): Promise<PathProgress[]> {
 
 export async function startPath(dogId: string, pathId: string) {
   check(await db().rpc('start_path', { p_dog: dogId, p_path: pathId }));
+}
+
+// ---- Payments (Stripe, through the stripe-checkout Edge Function) --------------------------------
+
+export type CheckoutRequest =
+  | { action: 'plan'; plan: PlanKey; back: string }
+  | { action: 'credits'; back: string }
+  | { action: 'cancel' | 'resume' };
+
+/** Starts a payment. Returns Stripe Checkout's URL, or nothing when the change needed no payment (switching plans). */
+export async function checkout(req: CheckoutRequest): Promise<string | null> {
+  const { data, error } = await db().functions.invoke('stripe-checkout', { body: req });
+  if (error) {
+    const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
+    throw new Error(body?.error ?? 'stripe_error');
+  }
+  return data?.url ?? null;
 }
 
 // ---- Account (Settings) -------------------------------------------------------------------

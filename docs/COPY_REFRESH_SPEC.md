@@ -13,7 +13,7 @@ This spec turns the copy review into code changes across:
 - `apps/partner` (apply flow, roster, assessments)
 - `supabase` (trait catalog and data migration)
 
-Work is split into 7 phases. Each phase is one PR and ships on its own. Phases 1 and 2 must land before 4 and 5 (they share the trait catalog). Phase 7's paid path turns on when a Stripe Payment Link URL is set.
+Work is split into 7 phases. Each phase is one PR and ships on its own. Phases 1 and 2 must land before 4 and 5 (they share the trait catalog). Phase 7's paid path turns on with `VITE_FOUNDING_PACK_CHECKOUT=true` (Stripe Checkout through the `stripe-checkout` function; it replaced the Payment Link).
 
 ## Copy rules (apply to every string in this spec)
 
