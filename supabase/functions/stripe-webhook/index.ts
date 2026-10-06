@@ -4,8 +4,9 @@
 //   invoice.paid                     a plan's first month or renewal: the plan's credits (or the Founding Pack signup)
 //   customer.subscription.updated    plan switch, cancellation, past due
 //   customer.subscription.deleted    plan ended
-//   account.updated                  a partner's Connect account (only arrives if the endpoint listens to connected accounts;
-//                                    stripe-connect also checks the account when the partner comes back from Stripe)
+//   account.updated                  optional: a partner's Connect account, only if a connected-accounts destination with
+//                                    the same signing secret exists. Without it, stripe-connect checks the account when the
+//                                    partner comes back from Stripe or opens Earnings, and stripe-payouts before paying.
 // Each grant is applied once per event id (stripe_events), so retries are safe.
 import { admin, day, periodEnd, planOfLookup, Stripe, stripe, syncSubscription } from '../_shared/stripe.ts';
 import { payoutStatus } from '../_shared/connect.ts';

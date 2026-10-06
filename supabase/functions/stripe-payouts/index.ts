@@ -3,10 +3,22 @@
 // send-push. Each month is recorded in partner_payouts before its transfer, so a rerun never pays a month twice.
 // In test mode the balance needs available funds: pay a top-up with the 4000 0000 0000 0077 card first.
 import { admin, json, stripe } from '../_shared/stripe.ts';
+import { payoutStatus } from '../_shared/connect.ts';
 
 Deno.serve(async (req) => {
   const { data: ok } = await admin.rpc('push_secret_ok', { p_secret: req.headers.get('x-webhook-secret') });
   if (ok !== true) return new Response('forbidden', { status: 403 });
+
+  // Partners still verifying: Stripe may have turned payouts on since they last opened Earnings.
+  const { data: waiting } = await admin.from('partner_stripe').select('partner_id, account_id, partners!inner(payout_status)').neq('partners.payout_status', 'connected');
+  for (const w of waiting ?? []) {
+    try {
+      const status = payoutStatus(await stripe.accounts.retrieve(w.account_id));
+      await admin.from('partners').update({ payout_status: status }).eq('id', w.partner_id);
+    } catch (e) {
+      console.error('stripe-payouts: account check', w.partner_id, e);
+    }
+  }
 
   const { data: due, error } = await admin.rpc('payouts_due');
   if (error) return json({ error: error.message }, 500);

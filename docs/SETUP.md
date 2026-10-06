@@ -80,7 +80,8 @@ Supabase's test sender: links instead of codes, a couple of emails an hour, and 
     Stripe's hosted Connect pages.
   - Webhook: Stripe › Developers › Webhooks, endpoint
     `https://<ref>.supabase.co/functions/v1/stripe-webhook`, events `payment_intent.succeeded`, `invoice.paid`,
-    `customer.subscription.updated`, `customer.subscription.deleted`, `account.updated`.
+    `customer.subscription.updated`, `customer.subscription.deleted` (events on your account). No connected-accounts
+    destination is needed: partner status is checked when they come back from Stripe, open Earnings, and before payouts.
   - Connect: turn on Connect once in the Stripe dashboard (Connect › Get started) before partners can set up payouts.
   - Plans and prices: created in Stripe on first use (lookup keys `packpass_plan_starter|regular|working`).
   - Payouts run on the 1st (`partner-payouts` cron job). To run them now: `select public.request_partner_payouts();`

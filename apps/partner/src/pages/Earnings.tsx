@@ -29,6 +29,11 @@ export function Earnings() {
     if (back === 'retry') { setSetup(true); return; }
     stripeConnect('refresh').then(() => reloadCatalog()).catch(() => setStripeError('Couldn’t check your Stripe account. Refresh the page to try again.'));
   }, [back, navigate, reloadCatalog]);
+  // Verifying: Stripe may have turned payouts on since the last visit.
+  const verifying = partner.payout_status === 'pending';
+  useEffect(() => {
+    if (verifying && !back) stripeConnect('refresh').then((r) => { if (r.status !== 'pending') reloadCatalog(); }).catch(() => {});
+  }, [verifying, back, reloadCatalog]);
   const openStripe = async (action: 'onboard' | 'dashboard') => {
     setBusy(true); setStripeError('');
     try {
