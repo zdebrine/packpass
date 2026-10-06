@@ -12,7 +12,7 @@ export interface PlanCopy { key: PlanKey; name: string; price: string; credits: 
 export interface SiteContent {
   site: { ownerTitle: string; partnerTitle: string; description: string; shareImage: Photo; badge: string; footerTagline: string };
   owners: {
-    hero: { eyebrow: string; headline: string; body: string; cta: string; matchCta: string; slides: (Photo & { line: string })[] };
+    hero: { variant: 'rotating' | 'static'; lead: string; eyebrow: string; headline: string; body: string; cta: string; matchCta: string; slides: (Photo & { line: string })[] };
     match: { eyebrow: string; title: string };
     how: { eyebrow: string; title: string; steps: Card[] };
     classes: { eyebrow: string; title: string; body: string; tiles: { label: string; sub: string; photo: Photo }[] };
@@ -51,18 +51,20 @@ export const DEFAULT_CONTENT: SiteContent = {
   },
   owners: {
     hero: {
+      variant: 'rotating',
+      lead: 'The dog you can take',
       eyebrow: 'Dog classes matched to your dog · Austin',
-      headline: 'Make your dog a good hang.',
-      body: 'Drop-in classes across Austin, picked for your dog’s energy and quirks. Burn the energy, work on the pulling, and take them everywhere.',
+      headline: 'The dog you can take anywhere.',
+      body: 'Drop-in classes across Austin, picked for your dog’s energy and quirks. Burn off the extra, work on the hard stuff, and bring them along.',
       cta: 'Join the founding pack',
       matchCta: 'Match my dog',
-      // `line` is only shown by the rotating hero variant (Owners.tsx HERO_VARIANT).
+      // In the rotating variant each photo's `line` follows `lead`. The last one lands on the full headline.
       slides: [
-        { ...photo('dog_chilling_with_owner_on_porch', 'Dog lounging beside its owner on a porch'), line: 'easy on a patio.' },
-        { ...photo('dogs_meeting_on_leash', 'Two dogs meeting calmly on leash'), line: 'chill around other dogs.' },
-        { ...photo('dog_being_patient', 'Dog sitting and looking up at its owner'), line: 'back when you call.' },
-        { ...photo('dog_and_owner_chilling', 'Golden retriever resting in the grass with its owner'), line: 'tired by dinner.' },
-        { ...photo('dog_chilling_in_car', 'Dog riding in the back of a red truck'), line: 'welcome anywhere.' },
+        { ...photo('dog_chilling_with_owner_on_porch', 'Dog lounging beside its owner on a porch'), line: 'to the patio.' },
+        { ...photo('dog_sleeping_while_owner_reads', 'Dog asleep on the couch while its owner reads'), line: 'to a friend’s place.' },
+        { ...photo('dog_getting_pets_at_park', 'Dog getting pets from its owner at the park'), line: 'off leash.' },
+        { ...photo('dog_chilling_in_car', 'Dog riding in the back of a red truck'), line: 'on a road trip.' },
+        { ...photo('dog_and_owner_chilling', 'Golden retriever resting in the grass with its owner'), line: 'anywhere.' },
       ],
     },
     match: { eyebrow: 'Matched to your dog', title: 'Tell us what your dog’s like. We’ll build the month.' },

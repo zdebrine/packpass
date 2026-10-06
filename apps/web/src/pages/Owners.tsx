@@ -13,9 +13,6 @@ import { Button, Chip, Faq, Heading, Img, PhotoPanel, StoreButtons, Tag } from '
 
 /** For owners (the design's "O" screens). Testimonials are left out until founding members have said something. */
 
-/** 'static' is the launch hero (decision 1, Oct 5); 'rotating' is kept so the two can be tested against each other. */
-const HERO_VARIANT: 'static' | 'rotating' = 'static';
-
 /** Copy and photos come from useContent() (src/content). */
 type Plan = PlanKey;
 
@@ -107,7 +104,7 @@ function Hero() {
   const [i, setI] = useState(0);
   useEffect(() => {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    // Both variants keep the photos moving; only 'rotating' animates the words.
+    // Both styles keep the photos moving; only 'rotating' changes the words with them.
     const t = setInterval(() => setI((x) => (x + 1) % HERO.length), 3400);
     return () => clearInterval(t);
   }, []);
@@ -122,12 +119,14 @@ function Hero() {
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,.04) 24%,rgba(0,0,0,.32) 50%,rgba(0,0,0,.8) 100%)' }} />
         <div className="pp-hero-copy" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20 }}>
           <span className="pk-wide pp-hero-eyebrow" style={{ opacity: 0.92 }}>{hero.eyebrow}</span>
-          {HERO_VARIANT === 'static' ? (
+          {hero.variant === 'static' ? (
             <h1 className="pk-display-2xl pp-hero-title" style={{ margin: 0, maxWidth: 1000, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94, textWrap: 'balance' }}>{hero.headline}</h1>
           ) : (
-            <h1 className="pk-display-2xl pp-hero-title" style={{ margin: 0, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94 }}>
-              <span style={{ display: 'block', whiteSpace: 'nowrap' }}>A dog who’s</span>
-              <span key={i} style={{ display: 'block', whiteSpace: 'nowrap', animation: 'ppWordIn 800ms cubic-bezier(.2,.8,.2,1) both' }}>{HERO[i]?.line}</span>
+            // Screen readers and search get the full headline; the lead and the line for the current photo are visual.
+            <h1 className="pk-display-2xl pp-hero-title pp-hero-rotating" style={{ margin: 0, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94 }}>
+              <span className="pp-sr-only">{hero.headline}</span>
+              <span aria-hidden style={{ display: 'block', whiteSpace: 'nowrap' }}>{hero.lead}</span>
+              <span aria-hidden key={i} style={{ display: 'block', whiteSpace: 'nowrap', animation: 'ppWordIn 800ms cubic-bezier(.2,.8,.2,1) both' }}>{HERO[i]?.line}</span>
             </h1>
           )}
           <p className="pk-body pp-hero-body" style={{ margin: 0, maxWidth: 520, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>{hero.body}</p>

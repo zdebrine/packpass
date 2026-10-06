@@ -37,6 +37,10 @@ The words and photos on both pages live in Sanity, project `17ja5m2z` (dataset `
 - **Fallbacks.** `src/content/defaults.ts` holds the same copy. A field left empty in Sanity shows the default.
   If Sanity can't be read during a Vercel build, the build fails and the live site keeps its last good version;
   a local build without network uses the defaults.
+- **The owner hero headline.** Owners page › Hero › *Headline style* picks **Rotating** (the *Rotating lead line*,
+  then each photo's *Rotating line*, e.g. "The dog you can take" / "to the patio.") or **Static** (just *Headline*).
+  *Headline* is always the full sentence screen readers and search read, so keep it in step with the last rotating
+  line. Photos and lines change together, in the order of the Photos list.
 - **What isn't in Sanity.** Partner cards, the class list in the matcher and trait names come from the live
   Supabase catalog. Form labels, error messages and the $9.50 payout rate in the calculator stay in code.
 - **Changing the fields.** Edit `sanity/schema.js` and the `SiteContent` type in `src/content/defaults.ts`
