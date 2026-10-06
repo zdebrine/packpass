@@ -4,11 +4,16 @@ import { renderToString } from 'react-dom/server';
 import { StaticRouter } from 'react-router-dom';
 
 import { App } from '@/App';
+import { ContentProvider } from '@/content/context';
+import type { SiteContent } from '@/content/defaults';
 
-export function render(url: string) {
+export { DEFAULT_CONTENT } from '@/content/defaults';
+export { loadContent, SANITY_CONFIGURED } from '@/content/sanity';
+
+export function render(url: string, content: SiteContent) {
   return renderToString(
     <StrictMode>
-      <StaticRouter location={url}><App /></StaticRouter>
+      <ContentProvider value={content}><StaticRouter location={url}><App /></StaticRouter></ContentProvider>
     </StrictMode>,
   );
 }

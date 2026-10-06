@@ -1,51 +1,23 @@
-import { ArrowDown, Check, Flame, MessageSquareText, TrendingUp, type LucideIcon } from 'lucide-react';
+import { ArrowDown, Check, Flame } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
+import { useContent } from '@/content/context';
+import type { PlanCopy, PlanKey } from '@/content/defaults';
+import { icon } from '@/content/icons';
 import { AREAS, PARTNER_TYPE, creditsLabel, miles, submitWaitlist, useCatalog, when, type Catalog } from '@/lib/catalog';
 import { payoff } from '@/lib/payoffs';
 import { photoSrc } from '@/lib/photos';
 import { APP_LIVE, FOUNDING_PACK_URL } from '@/lib/supabase';
 import { traitLabel, useTraits } from '@/lib/traits';
-import { Button, Chip, Faq, Heading, PhotoPanel, StoreButtons, Tag } from '@/ui';
+import { Button, Chip, Faq, Heading, Img, PhotoPanel, StoreButtons, Tag } from '@/ui';
 
 /** For owners (the design's "O" screens). Testimonials are left out until founding members have said something. */
 
-/** 'static' is the launch hero (decision 1, Oct 5); 'rotating' is kept so the two can be tested against each other. */
-const HERO_VARIANT: 'static' | 'rotating' = 'static';
-
-/** Rotating line, photo, alt text. The static hero cross-fades the same photos without the words. */
-const HERO: [string, string, string][] = [
-  ['easy on a patio.', 'dog_chilling_with_owner_on_porch', 'Dog lounging beside its owner on a porch'],
-  ['chill around other dogs.', 'dogs_meeting_on_leash', 'Two dogs meeting calmly on leash'],
-  ['back when you call.', 'dog_being_patient', 'Dog sitting and looking up at its owner'],
-  ['tired by dinner.', 'dog_and_owner_chilling', 'Golden retriever resting in the grass with its owner'],
-  ['welcome anywhere.', 'dog_chilling_in_car', 'Dog riding in the back of a red truck'],
-];
-
-export const OWNER_FAQ: [string, string][] = [
-  ['How do credits work?', 'Your plan adds credits on the same day each month. Every session shows its cost before you book, open play is 1, a group drop-in is 2, a 1:1 with a specialist is 3 to 4.'],
-  // The Book tab filters on sociability, not traits, so this says "filter to" rather than "you'll only see" (spec note).
-  ['My dog is reactive. Can we still join?', 'Yes. Filter to reactive-dog drop-ins and 1:1s with behavior specialists. Nobody puts your dog in a busy group class.'],
-  ['How is this different from daycare?', 'Daycare is a day of free play in a big group. PackPass sessions are short and structured, with a trainer or a purpose, and picked for what your dog needs.'],
-  ['Does this replace a trainer?', 'It gives you access to lots of them. Drop in to group classes, book a 1:1 with a specialist when something needs work, and keep it all in one profile.'],
-  ['What if a class isn’t a good fit?', 'Tell us in the app. We’ll adjust your dog’s matches, and the trainer’s notes help steer the next pick.'],
-  ['Do I stay with my dog?', 'Yes, for most sessions. Some classes are drop-off, where you leave your dog with the trainer. Those are marked before you book.'],
-  ['Do unused credits roll over?', 'Unused credits roll into the next month, capped at one month of credits.'],
-  ['Can I cancel a booking?', 'Cancel at least 12 hours before the start and the credits go back to your balance. Late cancellations and no-shows use the credits.'],
-  ['What does my dog need to join?', 'Current rabies, DHPP and Bordetella records, uploaded once to your dog’s profile. Some classes list extra requirements like a level or minimum age.'],
-  ['Can I pause or cancel my plan?', 'Pause for up to 2 months or cancel anytime in the app. Your plan runs to the end of the billing period.'],
-  ['Is PackPass outside Austin?', 'Not yet. Join the waitlist with your ZIP code and we’ll tell you when PackPass opens near you.'],
-];
-
-/** Name, price, credits, who it fits, and the plan_tier it's stored as. */
-export const PLANS: [string, string, number, string, Plan][] = [
-  ['Starter', '$79', 6, 'A regular outlet for a mostly chill dog. About 3 classes a month.', 'starter'],
-  ['Regular', '$129', 10, 'A class most weeks, plus a session on the stuff that’s hard.', 'regular'],
-  ['Working Dog', '$189', 16, 'For dogs who are never tired. Out about twice a week.', 'working'],
-];
-type Plan = 'starter' | 'regular' | 'working';
+/** Copy and photos come from useContent() (src/content). */
+type Plan = PlanKey;
 
 export function Owners() {
+  const { owners: c } = useContent();
   const cat = useCatalog();
   // The matcher's answers and the picked plan, so the founding signup can carry them.
   const [energy, setEnergy] = useState<Energy>('high');
@@ -54,17 +26,13 @@ export function Owners() {
   return (
     <>
       <Hero />
-      <Match cat={cat} energy={energy} setEnergy={setEnergy} traits={traits} setTraits={setTraits} />
+      <Match plans={c.plans.items} cat={cat} energy={energy} setEnergy={setEnergy} traits={traits} setTraits={setTraits} />
       <section id="how" className="pp-section">
-        <Heading eyebrow="How it works" title="One membership. The right classes for your dog. No 6-week commitment." />
+        <Heading eyebrow={c.how.eyebrow} title={c.how.title} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16, marginTop: 40 }}>
-          {[
-            ['01', 'Tell us about your dog', 'Energy, quirks, the stuff that makes walks hard. We match classes and certified trainers to fit.'],
-            ['02', 'Mix it up week to week', 'Agility one week, scent work the next, a 1:1 when you need one. Just drop in.'],
-            ['03', 'Watch them get easier', 'Trainers leave notes after every session, so you can see the progress and the next trainer picks up where the last one left off.'],
-          ].map(([n, title, body]) => (
-            <div key={n} style={{ background: 'var(--surface-raised)', borderRadius: 28, padding: 28, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 240, boxSizing: 'border-box' }}>
-              <span className="pk-display-2xl" style={{ fontSize: 64, lineHeight: 1 }}>{n}</span>
+          {c.how.steps.map(({ title, body }, k) => (
+            <div key={k} style={{ background: 'var(--surface-raised)', borderRadius: 28, padding: 28, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 240, boxSizing: 'border-box' }}>
+              <span className="pk-display-2xl" style={{ fontSize: 64, lineHeight: 1 }}>{String(k + 1).padStart(2, '0')}</span>
               <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <h3 className="pk-title" style={{ margin: 0 }}>{title}</h3>
                 <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>{body}</p>
@@ -75,29 +43,28 @@ export function Owners() {
       </section>
       <section id="classes" className="pp-section">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end', justifyContent: 'space-between' }}>
-          <Heading eyebrow="Classes" title="A different outlet every week." />
-          <p className="pk-body pk-muted" style={{ margin: 0, maxWidth: 380, textWrap: 'pretty' }}>Physical, mental and social work, so your dog comes home tired in the good way. Every session shows its level, spots left and credits before you book.</p>
+          <Heading eyebrow={c.classes.eyebrow} title={c.classes.title} />
+          <p className="pk-body pk-muted" style={{ margin: 0, maxWidth: 380, textWrap: 'pretty' }}>{c.classes.body}</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12, marginTop: 40 }}>
-          {CLASS_TILES.map(([label, p, sub]) => (
-            <div key={label} className="pk-tile" style={{ cursor: 'default' }}><img src={photoSrc(p)} alt="" /><span className="pk-tile-label">{label}<span className="pk-tile-sub">{sub}</span></span></div>
+          {c.classes.tiles.map(({ label, photo, sub }) => (
+            <div key={label} className="pk-tile" style={{ cursor: 'default' }}><Img photo={photo} alt="" /><span className="pk-tile-label">{label}<span className="pk-tile-sub">{sub}</span></span></div>
           ))}
         </div>
       </section>
       <Partners cat={cat} />
       <Passport />
       <section id="pricing" className="pp-section">
-        <Heading eyebrow="Plans" title="Pick a plan. Change it any month.">
-          <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>Most sessions cost 1 to 4 credits depending on length and format. A typical group class is 2.</p>
+        <Heading eyebrow={c.plans.eyebrow} title={c.plans.title}>
+          <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>{c.plans.body}</p>
         </Heading>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16, marginTop: 40 }}>
-          {PLANS.map(([name, price, credits, fit, key]) => {
-            const popular = name === 'Regular';
+          {c.plans.items.map(({ name, price, credits, fit, key, popular }) => {
             return (
               <div key={name} data-theme={popular ? 'dark' : 'light'} style={{ background: 'var(--surface-raised)', color: 'var(--ink)', borderRadius: 28, padding: 28, display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 24 }}>
                   <span className="pk-wide">{name}</span>
-                  {popular ? <Tag tone="signal">Best fit for most dogs</Tag> : null}
+                  {popular ? <Tag tone="signal">{c.plans.popularTag}</Tag> : null}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}><span className="pk-display-2xl pk-num" style={{ fontSize: 64, lineHeight: 1 }}>{price}</span><span className="pk-label pk-muted">/ month</span></div>
@@ -105,7 +72,7 @@ export function Owners() {
                   <span className="pk-label pk-muted">{fit}</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {['Any partner, any class', 'Free cancel up to 12 hours before', 'Unused credits roll over', 'Pause or cancel anytime'].map((k) => (
+                  {c.plans.perks.map((k) => (
                     <div key={k} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}><Check size={18} style={{ flex: 'none', marginTop: 1 }} /><span className="pk-label">{k}</span></div>
                   ))}
                 </div>
@@ -115,13 +82,13 @@ export function Owners() {
           })}
         </div>
       </section>
-      <Faq id="faq" eyebrow="FAQ" rows={OWNER_FAQ} />
+      <Faq id="faq" eyebrow={c.faq.eyebrow} rows={c.faq.rows} />
       <section id="get" style={{ padding: 'clamp(72px,9vw,120px) 16px 0' }}>
-        <PhotoPanel photo="dogs_meeting_on_leash" minHeight={520} shade={APP_LIVE ? 'linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.72) 100%)' : 'linear-gradient(90deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.55) 55%,rgba(0,0,0,.2) 100%)'} style={{ alignItems: 'flex-start', gap: 20 }}>
+        <PhotoPanel photo={c.signup.photo} minHeight={520} shade={APP_LIVE ? 'linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.72) 100%)' : 'linear-gradient(90deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.55) 55%,rgba(0,0,0,.2) 100%)'} style={{ alignItems: 'flex-start', gap: 20 }}>
           {APP_LIVE ? (
             <>
-              <h2 className="pk-display-2xl" style={{ position: 'relative', margin: 0, maxWidth: 760, fontSize: 'clamp(44px,6vw,88px)', lineHeight: 0.94 }}>Book your dog’s first class this week.</h2>
-              <p className="pk-body" style={{ position: 'relative', margin: 0, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)' }}>No 6-week commitment. Pause or cancel anytime.</p>
+              <h2 className="pk-display-2xl" style={{ position: 'relative', margin: 0, maxWidth: 760, fontSize: 'clamp(44px,6vw,88px)', lineHeight: 0.94 }}>{c.signup.liveTitle}</h2>
+              <p className="pk-body" style={{ position: 'relative', margin: 0, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)' }}>{c.signup.liveBody}</p>
               <div style={{ position: 'relative', display: 'flex', gap: 10, flexWrap: 'wrap' }}><StoreButtons /></div>
             </>
           ) : <FoundingSignup energy={energy} traits={traits} plan={plan} />}
@@ -132,37 +99,41 @@ export function Owners() {
 }
 
 function Hero() {
+  const { hero } = useContent().owners;
+  const HERO = hero.slides;
   const [i, setI] = useState(0);
   useEffect(() => {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    // Both variants keep the photos moving; only 'rotating' animates the words.
+    // Both styles keep the photos moving; only 'rotating' changes the words with them.
     const t = setInterval(() => setI((x) => (x + 1) % HERO.length), 3400);
     return () => clearInterval(t);
   }, []);
   return (
     <section style={{ padding: '0 16px' }}>
       {/* The photos cross-fade inside the panel, so the shade comes after them. */}
-      <PhotoPanel minHeight="min(820px, calc(100vh - 88px))" shade="transparent">
-        {HERO.map(([, p, alt], k) => (
-          <img key={p} src={photoSrc(p)} alt={k === i ? alt : ''} aria-hidden={k !== i}
+      <PhotoPanel className="pp-hero" minHeight="min(820px, calc(100vh - 88px))" shade="transparent">
+        {HERO.map((p, k) => (
+          <Img key={k} photo={p} alt={k === i ? p.alt : ''} aria-hidden={k !== i}
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, opacity: k === i ? 1 : 0, transform: k === i ? 'scale(1)' : 'scale(1.03)', transition: 'opacity 1100ms cubic-bezier(.2,.8,.2,1), transform 3400ms ease-out' }} />
         ))}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,.04) 24%,rgba(0,0,0,.32) 50%,rgba(0,0,0,.8) 100%)' }} />
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <span className="pk-wide" style={{ opacity: 0.92 }}>Dog classes matched to your dog · Austin</span>
-          {HERO_VARIANT === 'static' ? (
-            <h1 className="pk-display-2xl" style={{ margin: 0, maxWidth: 1000, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94, textWrap: 'balance' }}>Make your dog a good hang.</h1>
+        <div className="pp-hero-copy" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <span className="pk-wide pp-hero-eyebrow" style={{ opacity: 0.92 }}>{hero.eyebrow}</span>
+          {hero.variant === 'static' ? (
+            <h1 className="pk-display-2xl pp-hero-title" style={{ margin: 0, maxWidth: 1000, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94, textWrap: 'balance' }}>{hero.headline}</h1>
           ) : (
-            <h1 className="pk-display-2xl" style={{ margin: 0, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94 }}>
-              <span style={{ display: 'block', whiteSpace: 'nowrap' }}>A dog who’s</span>
-              <span key={i} style={{ display: 'block', whiteSpace: 'nowrap', animation: 'ppWordIn 800ms cubic-bezier(.2,.8,.2,1) both' }}>{HERO[i][0]}</span>
+            // Screen readers and search get the full headline; the lead and the line for the current photo are visual.
+            <h1 className="pk-display-2xl pp-hero-title pp-hero-rotating" style={{ margin: 0, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94 }}>
+              <span className="pp-sr-only">{hero.headline}</span>
+              <span aria-hidden style={{ display: 'block', whiteSpace: 'nowrap' }}>{hero.lead}</span>
+              <span aria-hidden key={i} style={{ display: 'block', whiteSpace: 'nowrap', animation: 'ppWordIn 800ms cubic-bezier(.2,.8,.2,1) both' }}>{HERO[i]?.line}</span>
             </h1>
           )}
-          <p className="pk-body" style={{ margin: 0, maxWidth: 520, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>Drop-in classes across Austin, picked for your dog’s energy and quirks. Burn the energy, work on the pulling, and take them everywhere.</p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
-            {APP_LIVE ? <StoreButtons /> : <Button href="#get" style={{ minWidth: 200 }}>Join the founding pack</Button>}
-            <a href="#match" className="pp-glass" style={{ flex: 'none', marginLeft: 'auto', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 12, height: 52, padding: '0 8px 0 20px', borderRadius: 9999, color: '#fff', textDecoration: 'none' }}>
-              <span className="pk-label" style={{ fontWeight: 600 }}>Match my dog</span>
+          <p className="pk-body pp-hero-body" style={{ margin: 0, maxWidth: 520, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>{hero.body}</p>
+          <div className="pp-hero-ctas" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
+            {APP_LIVE ? <StoreButtons /> : <Button href="#get" style={{ minWidth: 200 }}>{hero.cta}</Button>}
+            <a href="#match" className="pp-glass pp-hero-match" style={{ flex: 'none', marginLeft: 'auto', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 12, height: 52, padding: '0 8px 0 20px', borderRadius: 9999, color: '#fff', textDecoration: 'none' }}>
+              <span className="pk-label" style={{ fontWeight: 600 }}>{hero.matchCta}</span>
               <span style={{ width: 36, height: 36, borderRadius: 9999, background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ArrowDown size={18} /></span>
             </a>
           </div>
@@ -171,14 +142,6 @@ function Hero() {
     </section>
   );
 }
-
-/** The class tiles: label, photo, the payoff line under the label. */
-const CLASS_TILES: [string, string, string][] = [
-  ['Agility', 'athletic_dog_catching_ball', 'Builds focus and confidence'], ['Scent work', 'dog_and_owner_chilling', 'Tires the brain fast'],
-  ['Sprint and lure', 'dog_running_on_beach', 'For dogs who need to really run'], ['Herding', 'dog_chilling', 'A job for dogs bred to have one'],
-  ['Open field', 'dog_getting_pets_at_park', 'Room to run off leash'], ['Sniff spaces', 'dog_wrapped_in_blanket', 'A quiet, private space to decompress'],
-  ['Recall and focus', 'dog_being_patient', 'Come when called. The first time.'], ['Reactive dog drop-ins', 'pulling_on_leash', 'Small groups, lots of space, no judgment'],
-];
 
 /** Energy chips by dogs.energy_level value. */
 type Energy = 'couch' | 'medium' | 'high' | 'working';
@@ -191,10 +154,11 @@ const BALANCE: Record<string, string> = { sport: 'Physical', play: 'Social', sce
  * "Matched to your dog": a sample month from the live catalog. The picks follow the design's rules (energy sets
  * how much, traits add skills work, at most 16 credits); the neighborhood sets the distances shown.
  */
-function Match({ cat, energy, setEnergy, traits, setTraits }: {
-  cat: Catalog; energy: Energy; setEnergy: (e: Energy) => void; traits: string[]; setTraits: React.Dispatch<React.SetStateAction<string[]>>;
+function Match({ plans, cat, energy, setEnergy, traits, setTraits }: {
+  plans: PlanCopy[]; cat: Catalog; energy: Energy; setEnergy: (e: Energy) => void; traits: string[]; setTraits: React.Dispatch<React.SetStateAction<string[]>>;
 }) {
   useTraits(); // re-render with the live labels once the catalog loads
+  const { match } = useContent().owners;
   const [hood, setHood] = useState(AREAS[0].label);
   const area = AREAS.find((a) => a.label === hood)!;
   const toggle = (t: string) => setTraits((x) => (x.includes(t) ? x.filter((y) => y !== t) : x.length >= 3 ? x : [...x, t]));
@@ -219,12 +183,13 @@ function Match({ cat, energy, setEnergy, traits, setTraits }: {
     return rows;
   }, [cat, energy, traits]);
   const total = month.reduce((a, r) => a + r.c.credits!, 0);
-  const plan = total <= 6 ? PLANS[0] : total <= 10 ? PLANS[1] : PLANS[2];
-  const left = plan[2] - total;
+  // The smallest plan that covers the month (plans are listed smallest first).
+  const plan = plans.find((p) => total <= p.credits) ?? plans[plans.length - 1];
+  const left = Math.max(0, plan.credits - total);
 
   return (
     <section id="match" className="pp-section">
-      <Heading eyebrow="Matched to your dog" title="Tell us what your dog’s like. We’ll build the month." />
+      <Heading eyebrow={match.eyebrow} title={match.title} />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 40 }}>
         <div style={{ flex: '3 1 480px', minWidth: 0, boxSizing: 'border-box', background: 'var(--surface-raised)', borderRadius: 28, padding: 'clamp(24px,3vw,36px)', display: 'flex', flexDirection: 'column', gap: 32 }}>
           <Pick n="01" title="Energy">{ENERGIES.map(([k, label]) => <Chip key={k} on={energy === k} onClick={() => setEnergy(k)}>{label}</Chip>)}</Pick>
@@ -234,7 +199,7 @@ function Match({ cat, energy, setEnergy, traits, setTraits }: {
         <div data-theme="dark" style={{ flex: '2 1 300px', minWidth: 0, boxSizing: 'border-box', background: 'var(--surface-raised)', color: 'var(--ink)', borderRadius: 28, padding: 'clamp(24px,3vw,32px)', display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span className="pk-wide pk-muted">{`Sample month · ${hood}`}</span>
-            <span className="pk-display-md">{`${total} of ${plan[2]} credits`}</span>
+            <span className="pk-display-md">{`${total} of ${plan.credits} credits`}</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-live="polite">
             {month.map(({ c, p }, i) => {
@@ -252,7 +217,7 @@ function Match({ cat, energy, setEnergy, traits, setTraits }: {
               );
             })}
           </div>
-          <span className="pk-label pk-muted" style={{ textWrap: 'pretty' }}>{`${plan[0]} plan covers it${left ? `, with ${left} ${left === 1 ? 'credit' : 'credits'} left for anything.` : '.'}`}</span>
+          <span className="pk-label pk-muted" style={{ textWrap: 'pretty' }}>{`${plan.name} plan covers it${left ? `, with ${left} ${left === 1 ? 'credit' : 'credits'} left for anything.` : '.'}`}</span>
           <div style={{ marginTop: 'auto' }}><Button variant="signal" block href="#get">{APP_LIVE ? 'Book this month in the app' : 'Save this month'}</Button></div>
         </div>
       </div>
@@ -285,10 +250,11 @@ function Partners({ cat }: { cat: Catalog }) {
     }
     return out;
   }, [cat]);
+  const copy = useContent().owners.partners;
   return (
     <section id="partners" className="pp-section">
-      <Heading eyebrow="Partners near you" title="Local trainers we’d trust with our own dogs.">
-        <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>Every lead trainer is certified (CPDT-KA, KPA, IAABC or equivalent). Every partner is licensed and insured.</p>
+      <Heading eyebrow={copy.eyebrow} title={copy.title}>
+        <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>{copy.body}</p>
       </Heading>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16, marginTop: 40 }}>
         {picks.map(({ p, c, at }) => (
@@ -319,18 +285,15 @@ function Partners({ cat }: { cat: Catalog }) {
 }
 
 function Passport() {
-  const rows: [LucideIcon, string, string][] = [
-    [MessageSquareText, 'Trainer notes after every class', '“Held a down-stay with two dogs passing. Big win.”'],
-    [TrendingUp, 'Levels set by trainers', 'Agility Level 3, Scent Work Level 1'],
-    [Flame, 'Weekly streaks', 'Book once a week to keep it going'],
-  ];
+  const { passport: pp } = useContent().owners;
+  const { dog } = pp;
   const balance: [string, number, number, string][] = [['Physical', 3, 4, 'var(--agility)'], ['Mental', 2, 3, 'var(--turf)'], ['Social', 1, 2, 'var(--pitch)']];
   return (
     <section id="passport" className="pp-section">
       <div style={{ background: 'var(--surface-raised)', borderRadius: 32, padding: 'clamp(28px,5vw,64px)', display: 'flex', flexWrap: 'wrap', gap: 48, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ flex: '1 1 420px', maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 28 }}>
-          <Heading eyebrow="Dog Passport" title="One profile. Every trainer on the same page.">
-            <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>Juno’s vaccines, temperament and trainer notes travel with her. No re-explaining her quirks at every new place, and you can see what’s actually working.</p>
+          <Heading eyebrow={pp.eyebrow} title={pp.title}>
+            <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>{pp.body}</p>
           </Heading>
           <div style={{ background: 'var(--bg)', borderRadius: 20, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}><span className="pk-heading">This month’s balance</span><span className="pk-caption pk-muted">Resets on the 1st</span></div>
@@ -343,23 +306,23 @@ function Passport() {
             ))}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {rows.map(([Icon, title, body]) => (
+            {pp.rows.map(({ icon: name, title, body }) => { const Icon = icon(name); return (
               <div key={title} style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '14px 18px', borderRadius: 20, background: 'var(--bg)' }}>
                 <span style={{ width: 44, height: 44, flex: 'none', borderRadius: 9999, background: 'var(--surface-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={20} /></span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span className="pk-heading">{title}</span><span className="pk-label pk-muted">{body}</span></div>
               </div>
-            ))}
+            ); })}
           </div>
         </div>
         <div style={{ flex: '0 0 auto', margin: '0 auto' }}>
-          <div className="pk-athlete" role="img" aria-label="Juno's Athlete Card: 38 classes, 6 disciplines, Agility level 3">
-            <img className="pk-athlete-img" src={photoSrc('juno')} alt="" />
-            <div className="pk-athlete-top"><Tag tone="glass">Since Mar 2026</Tag><Tag tone="glass"><Flame size={12} /> 12 wk streak</Tag></div>
+          <div className="pk-athlete" role="img" aria-label={`${dog.name}'s Athlete Card: ${dog.stats.map((x) => `${x.value} ${x.label}`).join(', ')}`}>
+            <Img className="pk-athlete-img" photo={dog.photo} alt="" />
+            <div className="pk-athlete-top"><Tag tone="glass">{dog.since}</Tag><Tag tone="glass"><Flame size={12} /> {dog.streak}</Tag></div>
             <div className="pk-athlete-body">
-              <h3 className="pk-athlete-name">Juno</h3>
-              <p className="pk-athlete-sub">Border Collie · 3 yrs</p>
+              <h3 className="pk-athlete-name">{dog.name}</h3>
+              <p className="pk-athlete-sub">{dog.sub}</p>
               <dl className="pk-athlete-stats">
-                {[['38', 'Classes'], ['6', 'Disciplines'], ['L3', 'Agility']].map(([v, l]) => <div key={l} className="pk-stat"><dd>{v}</dd><dt>{l}</dt></div>)}
+                {dog.stats.map(({ value: v, label: l }) => <div key={l} className="pk-stat"><dd>{v}</dd><dt>{l}</dt></div>)}
               </dl>
             </div>
           </div>
@@ -378,6 +341,7 @@ const inAustin = (zip: string) => /^78[67]\d\d$/.test(zip);
  */
 function FoundingSignup({ energy, traits, plan }: { energy: Energy; traits: string[]; plan: Plan | null }) {
   useTraits();
+  const { signup } = useContent().owners;
   const [email, setEmail] = useState('');
   const [zip, setZip] = useState('');
   const [error, setError] = useState('');
@@ -401,8 +365,8 @@ function FoundingSignup({ energy, traits, plan }: { energy: Energy; traits: stri
   const chips = [ENERGIES.find(([k]) => k === energy)?.[1], ...traits.map((t) => traitLabel(t))].filter(Boolean) as string[];
   return (
     <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <h2 className="pk-display-2xl" style={{ margin: 0, maxWidth: 760, fontSize: 'clamp(44px,6vw,88px)', lineHeight: 0.94 }}>Join the founding pack.</h2>
-      <p className="pk-body" style={{ margin: 0, maxWidth: 560, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>Austin’s first members get 2 bonus credits in month one. No 6-week commitment. Pause or cancel anytime.</p>
+      <h2 className="pk-display-2xl" style={{ margin: 0, maxWidth: 760, fontSize: 'clamp(44px,6vw,88px)', lineHeight: 0.94 }}>{signup.foundingTitle}</h2>
+      <p className="pk-body" style={{ margin: 0, maxWidth: 560, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>{signup.foundingBody}</p>
       {done ? (
         <p className="pk-heading" role="status" style={{ margin: 0, display: 'flex', gap: 10, alignItems: 'center' }}><Check size={20} />{done}</p>
       ) : (

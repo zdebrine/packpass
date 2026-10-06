@@ -25,6 +25,28 @@ npm run build      # type-checks, then builds to dist/
   read leads back except PackPass admins, on PackPass › Applications in the dashboard). Once submitted, the
   calculator stays open in that browser. The design's "We'll email a copy" is left out until emails send.
 
+## Editing copy and photos (Sanity)
+
+The words and photos on both pages live in Sanity, project `17ja5m2z` (dataset `production`), and are edited at
+**https://packpass.sanity.studio** in three documents: Site settings, Owners page and Partners page.
+
+- **How it gets to the site.** The build reads the published documents once (`scripts/prerender.mjs` →
+  `src/content/sanity.ts`) and bakes them into the prerendered HTML, so search and link previews see the copy and
+  no request goes to Sanity from the visitor's browser. Publishing in Sanity calls a Vercel deploy hook, which
+  rebuilds the site with the new content.
+- **Fallbacks.** `src/content/defaults.ts` holds the same copy. A field left empty in Sanity shows the default.
+  If Sanity can't be read during a Vercel build, the build fails and the live site keeps its last good version;
+  a local build without network uses the defaults.
+- **The owner hero headline.** Owners page › Hero › *Headline style* picks **Rotating** (the *Rotating lead line*,
+  then each photo's *Rotating line*, e.g. "The dog you can take" / "to the patio.") or **Static** (just *Headline*).
+  *Headline* is always the full sentence screen readers and search read, so keep it in step with the last rotating
+  line. Photos and lines change together, in the order of the Photos list.
+- **What isn't in Sanity.** Partner cards, the class list in the matcher and trait names come from the live
+  Supabase catalog. Form labels, error messages and the $9.50 payout rate in the calculator stay in code.
+- **Changing the fields.** Edit `sanity/schema.js` and the `SiteContent` type in `src/content/defaults.ts`
+  together, then deploy the schema (Sanity MCP `deploy_schema`, then `deploy_studio`). The dev server reads Sanity
+  live (`localhost:5175` is an allowed CORS origin).
+
 ## Left out on purpose
 
 - Owner testimonials and the partner quote: the design marks both as placeholders hidden on the live site.
@@ -33,4 +55,5 @@ npm run build      # type-checks, then builds to dist/
 ## Hosting
 
 A second Vercel project with root `apps/web` (framework Vite, output `dist`; `vercel.json` rewrites every path to
-`index.html`). No environment variables are needed on Vercel: `.env` is committed and holds public values only.
+`index.html`). No environment variables are needed on Vercel: `.env` is committed and holds public values only (the Sanity
+project id is public and the dataset is public read-only).

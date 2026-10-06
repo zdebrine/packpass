@@ -1,8 +1,8 @@
 // Small wrappers over the design system's pk- classes.
 import { Minus, Plus, Smartphone, Play } from 'lucide-react';
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ImgHTMLAttributes, type ReactNode } from 'react';
 
-import { photoSrc } from './lib/photos';
+import type { Faq as FaqRow, Photo } from './content/defaults';
 import { ANDROID_URL, IOS_URL } from './lib/supabase';
 
 type Variant = 'primary' | 'signal' | 'quiet' | 'glass';
@@ -41,7 +41,7 @@ export function Heading({ eyebrow, title, children, maxWidth = 720 }: { eyebrow:
   );
 }
 
-export function Faq({ id, eyebrow, rows }: { id: string; eyebrow: string; rows: [string, string][] }) {
+export function Faq({ id, eyebrow, rows }: { id: string; eyebrow: string; rows: FaqRow[] }) {
   const [open, setOpen] = useState<Record<number, boolean>>({});
   return (
     <section id={id} className="pp-section" style={{ display: 'flex', flexWrap: 'wrap', gap: 40 }}>
@@ -50,7 +50,7 @@ export function Faq({ id, eyebrow, rows }: { id: string; eyebrow: string; rows: 
         <h2 className="pk-display-xl pp-h2">Questions.</h2>
       </div>
       <div style={{ flex: '2 1 560px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {rows.map(([q, a], i) => (
+        {rows.map(({ question: q, answer: a }, i) => (
           <div key={q} style={{ background: 'var(--surface-raised)', borderRadius: 28 }}>
             <button type="button" onClick={() => setOpen((o) => ({ ...o, [i]: !o[i] }))} aria-expanded={!!open[i]}
               style={{ width: '100%', border: 0, background: 'none', color: 'var(--ink)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16, padding: '22px 24px' }}>
@@ -66,12 +66,17 @@ export function Faq({ id, eyebrow, rows }: { id: string; eyebrow: string; rows: 
 }
 
 /** A full-bleed photo panel with a bottom-weighted shade, for the hero and closing sections. */
-export function PhotoPanel({ children, photo, alt = '', minHeight, shade, style }: { children: ReactNode; photo?: string; alt?: string; minHeight: string | number; shade: string; style?: CSSProperties }) {
+export function PhotoPanel({ children, photo, minHeight, shade, style, className }: { children: ReactNode; photo?: Photo; minHeight: string | number; shade: string; style?: CSSProperties; className?: string }) {
   return (
-    <div data-theme="dark" style={{ position: 'relative', minHeight, borderRadius: 32, overflow: 'hidden', color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 'clamp(24px,4vw,56px)', boxSizing: 'border-box', ...style }}>
-      {photo ? <img src={photoSrc(photo)} alt={alt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+    <div data-theme="dark" className={className} style={{ position: 'relative', minHeight, borderRadius: 32, overflow: 'hidden', color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 'clamp(24px,4vw,56px)', boxSizing: 'border-box', ...style }}>
+      {photo ? <Img photo={photo} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
       <div style={{ position: 'absolute', inset: 0, background: shade }} />
       {children}
     </div>
   );
 }
+
+/** A content photo, with the focal point set in Sanity. `alt` overrides the photo's own (empty for decorative use). */
+export const Img = ({ photo, alt, style, ...rest }: { photo: Photo } & ImgHTMLAttributes<HTMLImageElement>) => (
+  <img {...rest} src={photo.src} alt={alt ?? photo.alt} style={photo.position ? { objectPosition: photo.position, ...style } : style} />
+);
