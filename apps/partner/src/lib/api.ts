@@ -240,6 +240,9 @@ export const loadApplications = async () => check(await db.rpc('admin_applicatio
 export interface PartnerLead { id: string; business_type: string; name: string; business_name: string; email: string; zip: string; created_at: string; applied: boolean }
 /** The website's earnings-calculator form, last 90 days. */
 export const loadPartnerLeads = async () => check(await db.rpc('admin_partner_leads')) as PartnerLead[];
+export interface OwnerSignup { id: string; email: string; zip: string; energy: string | null; traits: string[]; plan: string | null; created_at: string; updated_at: string }
+/** The website's founding-pack signup on the owner page, every signup. */
+export const loadOwnerWaitlist = async () => check(await db.rpc('admin_owner_waitlist')) as OwnerSignup[];
 /** Approve returns the new partner's id. */
 export const decideApplication = async (id: string, approve: boolean, reason?: string) =>
   check(await db.rpc('admin_decide_application', { p_id: id, p_approve: approve, p_reason: reason ?? null })) as string | null;

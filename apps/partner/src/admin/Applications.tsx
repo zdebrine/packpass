@@ -2,14 +2,17 @@ import { FileText } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { decideApplication, errorCopy, loadApplications, loadPartnerLeads, type AdminApplication, type DocKind } from '@/lib/api';
+import { decideApplication, errorCopy, loadApplications, loadOwnerWaitlist, loadPartnerLeads, type AdminApplication, type DocKind } from '@/lib/api';
 import { useData } from '@/lib/partner';
 import { monthDay } from '@/lib/time';
+import { traitLabel, useTraits } from '@/lib/traits';
 import { useSigned } from '@/lib/useSigned';
 import { Button, ErrorLine, Row, Tag } from '@/ui/kit';
 import { Empty, Loading } from '@/pages/Overview';
 
 const TYPE: Record<string, string> = { trainer: 'Independent trainer', facility: 'Training facility', sport_club: 'Dog sport club', behavior_specialist: 'Behavior specialist', outdoor_space: 'Outdoor space' };
+const ENERGY: Record<string, string> = { couch: 'Couch energy', medium: 'Medium energy', high: 'High energy', working: 'Working dog' };
+const PLAN: Record<string, string> = { starter: 'Starter', regular: 'Regular', working: 'Working Dog' };
 const DOC: Record<DocKind, string> = { license: 'Business license', insurance: 'Liability insurance', certs: 'Trainer certification', firstaid: 'Pet first aid and CPR', photos: 'Photo of the space' };
 
 /**
@@ -30,6 +33,7 @@ export function Applications() {
       </header>
       {waiting.length ? waiting.map((a) => <ApplicationCard key={a.id} a={a} onDone={reload} />) : <Empty>No applications waiting. New ones from the dashboard’s Apply to partner show up here.</Empty>}
       <Leads />
+      <FoundingPack />
       {decided.length ? (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <h2 className="pk-title" style={{ margin: 0 }}>Decided in the last 30 days</h2>
@@ -130,6 +134,29 @@ function Leads() {
           <a href={`mailto:${l.email}`} className="pk-label">{l.email}</a>
           <span className="pk-caption pk-muted">{monthDay(new Date(l.created_at))}</span>
           {l.applied ? <Tag tone="signal">Applied</Tag> : null}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+/** Who signed up for the founding pack on the website's owner page: people to invite when the app opens. */
+function FoundingPack() {
+  const { data } = useData(loadOwnerWaitlist, []);
+  useTraits(); // re-render with the live catalog's wording
+  if (!data?.length) return null;
+  return (
+    <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <h2 className="pk-title" style={{ margin: 0 }}>{`Founding pack · ${data.length}`}</h2>
+      <span className="pk-label pk-muted">Dog owners who joined the founding pack on the owner page. Signing up again with the same email updates their answers.</span>
+      {data.map((w) => (
+        <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderRadius: 20, background: 'var(--surface-raised)', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <a href={`mailto:${w.email}`} className="pk-label" style={{ fontWeight: 600 }}>{w.email}</a>
+            <span className="pk-caption pk-muted">{[w.zip, w.energy && ENERGY[w.energy], ...w.traits.map((t) => traitLabel(t))].filter(Boolean).join(' · ')}</span>
+          </div>
+          {w.plan ? <Tag tone="signal">{PLAN[w.plan] ?? w.plan}</Tag> : null}
+          <span className="pk-caption pk-muted">{monthDay(new Date(w.created_at))}</span>
         </div>
       ))}
     </section>
