@@ -6,7 +6,8 @@ import { isLive } from '@/api/client';
 import * as live from '@/api/live';
 import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, TRAIT_SPECIAL, type Energy } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
-import type { Booking, ClearanceRecord, Dog, LogEntry, PathProgress, PhotoSource, PickedDoc, VaccineRecord, WaitEntry } from '@/data/types';
+import { planOf } from '@/data/plans';
+import type { Booking, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, VaccineRecord, WaitEntry } from '@/data/types';
 import { now } from '@/lib/clock';
 import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
@@ -128,6 +129,8 @@ interface AppState extends Demo {
   startPath: (dogId: string, pathId: string) => Promise<void>;
   /** The signed-in member's name and email (Settings › Account). */
   account: { name: string; email: string };
+  /** The member's plan (Settings › Plan and credits). Sample mode: Regular, no payment set up. */
+  membership: Membership;
   saveName: (name: string) => Promise<void>;
   changePassword: (password: string) => Promise<void>;
   /** Sends a code to the new address (and, with secure email change, the current one). */
@@ -213,6 +216,7 @@ const fresh = {
   clearanceRecords: null as ClearanceRecord[] | null,
   paths: null as PathProgress[] | null,
   account: { name: 'Alex Kim', email: 'alex@kim.co' },
+  membership: { plan: 'regular', status: 'none', nextPlan: null, renewsOn: null, cancels: false } as Membership,
   social: 'working' as SocialStage,
   socialExpired: false,
   behaviorNote: false,
@@ -494,6 +498,7 @@ export const useApp = create<AppState>()(
             log: log ?? get().log,
             clearanceRecords: m.clearances,
             account: { name: m.name, email: m.email },
+            membership: m.membership,
             paths: paths ?? get().paths,
             pendingPlan: m.holds,
             waitlist: m.waitlist,
@@ -623,6 +628,9 @@ function syncDistances() {
 
 /** What distances are measured from, for the Today pill and Settings. Subscribing re-renders on change. */
 export const useOriginLabel = () => useApp((s) => s.origin?.label ?? s.area ?? DEFAULT_AREA.label);
+
+/** The plan this month's credits came from: name and monthly credits. */
+export const usePlan = () => planOf(useApp((s) => s.membership.plan));
 
 /** The dog the app is about (Juno in sample mode). */
 export const useDog = () => useApp((s) => s.dogs[0] ?? sampleDogs.juno);

@@ -1,10 +1,11 @@
 import { Landmark } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { loadEarnings, loadEarningsByClass, type EarningsMonth } from '@/lib/api';
+import { loadEarnings, loadEarningsByClass, stripeConnect, type EarningsMonth } from '@/lib/api';
 import { useData, usePartner } from '@/lib/partner';
 import { money } from '@/lib/time';
-import { Button, Modal, Tag } from '@/ui/kit';
+import { Button, ErrorLine, Modal, Tag } from '@/ui/kit';
 import { Loading } from './Overview';
 
 // Months come back as dates ("2026-09-01"); format them without shifting time zones.
@@ -13,9 +14,36 @@ const nextFirst = (m: string) => { const d = new Date(`${m}T12:00:00Z`); d.setUT
 
 /** 07 Earnings: credits redeemed at the partner's rate, by month and by class, and how payouts reach the bank. */
 export function Earnings() {
-  const { partner } = usePartner();
+  const { partner, reloadCatalog } = usePartner();
   const { data } = useData(async () => ({ months: await loadEarnings(6), byClass: await loadEarningsByClass() }), []);
   const [setup, setSetup] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [stripeError, setStripeError] = useState('');
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  // Back from Stripe's onboarding (?stripe=return, or ?stripe=retry when its link expired): read the account's status.
+  const back = params.get('stripe');
+  useEffect(() => {
+    if (!back) return;
+    navigate('/earnings', { replace: true });
+    if (back === 'retry') { setSetup(true); return; }
+    stripeConnect('refresh').then(() => reloadCatalog()).catch(() => setStripeError('Couldn’t check your Stripe account. Refresh the page to try again.'));
+  }, [back, navigate, reloadCatalog]);
+  // Verifying: Stripe may have turned payouts on since the last visit.
+  const verifying = partner.payout_status === 'pending';
+  useEffect(() => {
+    if (verifying && !back) stripeConnect('refresh').then((r) => { if (r.status !== 'pending') reloadCatalog(); }).catch(() => {});
+  }, [verifying, back, reloadCatalog]);
+  const openStripe = async (action: 'onboard' | 'dashboard') => {
+    setBusy(true); setStripeError('');
+    try {
+      const { url } = await stripeConnect(action);
+      if (url) window.location.assign(url);
+    } catch {
+      setStripeError('Stripe didn’t open. Try again in a minute.');
+      setBusy(false);
+    }
+  };
   if (!data) return <Loading />;
   const { months, byClass } = data;
   const [now, ...past] = months;
@@ -82,10 +110,14 @@ export function Earnings() {
             {connected ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <span style={{ width: 44, height: 44, flex: 'none', borderRadius: 9999, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Landmark size={20} /></span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span className="pk-label" style={{ fontWeight: 600 }}>Bank account on file</span><span className="pk-caption pk-muted">Through Stripe · Monthly on the 1st</span></div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}><span className="pk-label" style={{ fontWeight: 600 }}>Bank account on file</span><span className="pk-caption pk-muted">Through Stripe · Monthly on the 1st</span></div>
+                <Button variant="quiet" disabled={busy} onClick={() => openStripe('dashboard')}>Open Stripe</Button>
               </div>
             ) : partner.payout_status === 'pending' ? (
-              <p className="pk-label" style={{ margin: 0, textWrap: 'pretty' }}>Stripe is checking your details. This usually takes one business day. You'll get an email when payouts are on.</p>
+              <>
+                <p className="pk-label" style={{ margin: 0, textWrap: 'pretty' }}>Stripe is checking your details. This usually takes one business day. You'll get an email when payouts are on.</p>
+                <Button variant="quiet" block disabled={busy} onClick={() => openStripe('onboard')}>Review details in Stripe</Button>
+              </>
             ) : (
               <>
                 <p className="pk-label" style={{ margin: 0, textWrap: 'pretty' }}>Add a bank account through Stripe to get paid. Earnings are held until then.</p>
@@ -93,6 +125,7 @@ export function Earnings() {
               </>
             )}
           </div>
+          {setup ? null : <ErrorLine>{stripeError}</ErrorLine>}
           <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <h2 className="pk-title" style={{ margin: 0 }}>Past months</h2>
             {past.some((m) => m.dogs) ? null : <span className="pk-label pk-muted">{`Nothing before ${monthOf(now.month)} yet.`}</span>}
@@ -114,8 +147,9 @@ export function Earnings() {
         <Modal eyebrow="Payouts" title="Get paid through Stripe" width={560} onClose={() => setSetup(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <p className="pk-body" style={{ margin: 0, textWrap: 'pretty' }}>PackPass pays partners through Stripe on the 1st of each month, for every credit redeemed the month before. Stripe asks for your business details and a bank account, and checks them in about a business day.</p>
-            <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>Stripe setup isn't open yet. Your earnings are recorded and held, and you'll get an email when you can connect your account.</p>
-            <Button onClick={() => setSetup(false)}>Got it</Button>
+            <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>Your bank and tax details go to Stripe, not PackPass. Earnings so far stay held until Stripe turns payouts on.</p>
+            <Button disabled={busy} onClick={() => openStripe('onboard')}>{busy ? 'Opening Stripe…' : 'Continue to Stripe'}</Button>
+            <ErrorLine>{stripeError}</ErrorLine>
           </div>
         </Modal>
       ) : null}

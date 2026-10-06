@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { errorCopy, SHORT } from '@/api/errors';
-import { ENERGY_PHRASE, MONTH_PLAN, MONTH_PLAN_NEW_DOG, PLAN, PLAN_GOALS } from '@/data/fixtures';
+import { ENERGY_PHRASE, MONTH_PLAN, MONTH_PLAN_NEW_DOG, PLAN_GOALS } from '@/data/fixtures';
 import { payoff } from '@/data/payoffs';
 import { traitById, useTraits } from '@/data/traits';
 import { Button, Pill } from '@/ds/controls';
@@ -14,7 +14,7 @@ import { Text } from '@/ds/Text';
 import { bookError, credits as creditsLabel, sessionOn } from '@/lib/booking';
 import { time, weekday } from '@/lib/dates';
 import { enablePush } from '@/lib/push';
-import { useApp, useRules } from '@/store/app';
+import { useApp, usePlan, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const TARGET = { Physical: 2, Mental: 2, Social: 2 };
@@ -32,6 +32,7 @@ function Month() {
   const { c } = useTheme();
   const bottom = useBottom(34);
   const d = useApp((s) => s.draft);
+  const tier = usePlan();
   const swaps = useApp((s) => s.planSwaps);
   const toggleSwap = useApp((s) => s.toggleSwap);
   const finish = useApp((s) => s.finishOnboarding);
@@ -60,7 +61,7 @@ function Month() {
   });
   const planned = rows.filter((r) => r.v);
   const used = planned.reduce((n, r) => n + r.v!.cls.credits, 0);
-  const left = PLAN.credits - used;
+  const left = tier.credits - used;
   const balance = (Object.keys(TARGET) as (keyof typeof TARGET)[]).map((k) => ({
     label: k,
     pct: planned.filter((r) => r.v!.cls.balance === k).length / TARGET[k],
@@ -176,7 +177,7 @@ function Month() {
 
         <View style={{ gap: 10, marginTop: 16, padding: 16, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-            <Text variant="label" weight="600">{`${used} of ${PLAN.credits} credits on ${PLAN.name}`}</Text>
+            <Text variant="label" weight="600">{`${used} of ${tier.credits} credits on ${tier.name}`}</Text>
             <Text variant="caption" muted>{`${left} ${left === 1 ? 'credit' : 'credits'} left for anything`}</Text>
           </View>
           {balance.map((b) => (

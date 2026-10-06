@@ -39,6 +39,11 @@ Schema, security rules and booking logic for the member app. It's deployed to th
 - `functions/send-push` — Edge Function that sends `hold_expiring`, `holds_released` and `clearance_earned`
   notifications to the member's phones through the Expo push API, and forgets devices Expo reports as gone.
   The logic is in `push.ts`, tested with `node --test supabase/functions/send-push/push.test.ts`.
+- `migrations/…_stripe.sql` and `functions/stripe-*` — payments. `stripe-checkout` opens Stripe Checkout for a
+  plan, a 2-credit top-up or the website's Founding Pack (and switches or cancels a plan); `stripe-webhook` grants
+  credits when Stripe confirms the payment (once per event, `stripe_events`); `stripe-connect` onboards partners to
+  Connect Express; `stripe-payouts` pays connected partners for finished months on the 1st (`partner_payouts`).
+  Members without a paid plan keep the free monthly grant. Setup: docs/SETUP.md › Stripe.
 - `migrations/…_timetable_and_jobs.sql` — `timetable` (each class's weekly slots) and `extend_schedule`, which
   keeps four weeks of sessions bookable; pg_cron runs it daily with the holds, reminders and monthly-credit jobs.
 - `migrations/…_hardening.sql` — fixes from the Supabase advisors: internal functions aren't callable over the

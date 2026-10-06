@@ -20,7 +20,7 @@ Edge Function secrets, EAS or Vercel.
 | Apple push key (.p8) / Android FCM key | Push on real phones | EAS credentials (`eas credentials`) | To do, with store accounts |
 | Apple Developer and Google Play accounts | TestFlight and store builds | Apple / Google | To do |
 | Apple and Google sign-in | The "Continue with Apple/Google" buttons (show "coming soon" now) | Supabase Auth › Providers, plus Apple/Google consoles | Later |
-| Stripe keys | Plans, credit packs, partner payouts (Connect) | Publishable key in the apps; secret and webhook secret as Edge Function secrets | Later |
+| Stripe keys (test mode) | Plans, credit top-ups, Founding Pack, partner payouts (Connect) | `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` as Edge Function secrets. The apps need no Stripe key (payments open Stripe's hosted Checkout) | Done (test mode); see section 3 |
 | Maps key | A real map instead of the drawn one | Google Maps or Mapbox key in the app config | Later |
 | Vercel project | Hosting the partner dashboard | `packpass-partner` → packpass-partner.vercel.app (Supabase values come from `apps/partner/.env`) | Done |
 | Vercel project for the website | Hosting the public site (`apps/web`) | New project, root `apps/web`, no env vars needed (`apps/web/.env` is public) | **To do** |
@@ -74,8 +74,22 @@ Supabase's test sender: links instead of codes, a couple of emails an hour, and 
 
 - **Apple / Google sign-in:** an Apple Services ID and sign-in key, and Google OAuth client IDs (web, iOS,
   Android), entered in Supabase › Authentication › Providers. The app's buttons then switch on.
-- **Stripe:** the publishable key goes in the apps' env files; the secret key and webhook signing secret go
-  in Edge Function secrets (never in the repo). Partner payouts use Stripe Connect.
+- **Stripe** (`supabase/functions/stripe-*`, `migrations/…_stripe.sql`):
+  - Secrets: `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in Supabase › Edge Functions › Secrets. Nothing goes
+    in the repo or the apps: members and the website pay on Stripe's hosted Checkout, partners onboard on
+    Stripe's hosted Connect pages.
+  - Webhook: Stripe › Developers › Webhooks, endpoint
+    `https://<ref>.supabase.co/functions/v1/stripe-webhook`, events `payment_intent.succeeded`, `invoice.paid`,
+    `customer.subscription.updated`, `customer.subscription.deleted` (events on your account). No connected-accounts
+    destination is needed: partner status is checked when they come back from Stripe, open Earnings, and before payouts.
+  - Connect: turn on Connect once in the Stripe dashboard (Connect › Get started) before partners can set up payouts.
+  - Plans and prices: created in Stripe on first use (lookup keys `packpass_plan_starter|regular|working`).
+  - Payouts run on the 1st (`partner-payouts` cron job). To run them now: `select public.request_partner_payouts();`
+    In test mode the Stripe balance needs available funds first: pay a top-up with card `4000 0000 0000 0077`.
+  - Founding Pack on the website: set `VITE_FOUNDING_PACK_CHECKOUT=true` (keep it off in production while Stripe is
+    in test mode).
+  - Going live: swap both secrets for live ones, add a live-mode webhook endpoint, and stop the free monthly
+    grant for members without a plan (`grant_monthly_credits`) if launch pricing needs it.
 - **Maps:** a Google Maps (or Mapbox) key for real maps on the class and booking screens.
 - **Dashboard address:** when you have a domain, add it to the `packpass-partner` Vercel project and use it as
   the Site URL (`SITE_URL=https://… node supabase/scripts/setup-auth.mjs`). Until then

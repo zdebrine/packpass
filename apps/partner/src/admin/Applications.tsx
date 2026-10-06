@@ -155,6 +155,7 @@ function FoundingPack() {
             <a href={`mailto:${w.email}`} className="pk-label" style={{ fontWeight: 600 }}>{w.email}</a>
             <span className="pk-caption pk-muted">{[w.zip, w.energy && ENERGY[w.energy], ...w.traits.map((t) => traitLabel(t))].filter(Boolean).join(' · ')}</span>
           </div>
+          {w.founding_paid_at ? <Tag tone="premium">Paid</Tag> : null}
           {w.plan ? <Tag tone="signal">{PLAN[w.plan] ?? w.plan}</Tag> : null}
           <span className="pk-caption pk-muted">{monthDay(new Date(w.created_at))}</span>
         </div>

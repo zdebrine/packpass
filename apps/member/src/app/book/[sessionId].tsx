@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn, SlideInDown } from 'react-native-reanimated';
 
+import { isLive } from '@/api/client';
 import { errorCopy } from '@/api/errors';
-import { PLAN } from '@/data/fixtures';
+import { TOP_UP } from '@/data/plans';
 import { Button, Chip, Tag } from '@/ds/controls';
 import { Grabber, useBottom } from '@/ds/layout';
 import { WaitlistActions } from '@/features/book/Waitlist';
@@ -14,8 +15,9 @@ import { Text } from '@/ds/Text';
 import { credits as creditsLabel, eligibility, sameDaySessions, view } from '@/lib/booking';
 import { addToCalendar } from '@/lib/calendar';
 import { cancelCopy, dayTimeInline, relativeDay, time } from '@/lib/dates';
+import { pay, settle } from '@/lib/checkout';
 import { comingWithAccounts } from '@/lib/notice';
-import { useApp, useRules } from '@/store/app';
+import { useApp, usePlan, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 import { motion } from '@/theme/tokens';
 
@@ -36,6 +38,7 @@ export default function BookingSheet() {
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const credits = useApp((s) => s.credits);
+  const plan = usePlan();
   const bookings = useApp((s) => s.bookings);
   const rules = useRules();
   const book = useApp((s) => s.bookSession);
@@ -48,6 +51,20 @@ export default function BookingSheet() {
   const already = bookings.some((b) => b.sessionId === session.id && b.dogId === dogId && b.status !== 'cancelled');
   const dog = dogs.find((d) => d.id === dogId) ?? dogs[0];
   const el = eligibility(v, rules, dog?.name);
+
+  // A 2-credit top-up through Stripe Checkout, then back to this sheet with the credits added.
+  const buyCredits = async () => {
+    if (!isLive) return comingWithAccounts('Buy more credits');
+    setBusy(true);
+    setError(null);
+    try {
+      if ((await pay('credits', `/book/${sessionId}`)) === 'done') await settle();
+    } catch (e) {
+      setError(errorCopy(e));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const confirm = async () => {
     setBusy(true);
@@ -78,7 +95,7 @@ export default function BookingSheet() {
             <View style={{ height: 260, borderRadius: 28, overflow: 'hidden' }}>
               <PhotoFill name={cls.image} />
               <Scrim />
-              <View style={{ position: 'absolute', top: 14, left: 14 }}><Tag tone="glass">{`${credits} of ${PLAN.credits} credits left`}</Tag></View>
+              <View style={{ position: 'absolute', top: 14, left: 14 }}><Tag tone="glass">{`${credits} of ${plan.credits} credits left`}</Tag></View>
               <View style={{ position: 'absolute', left: 20, right: 20, bottom: 18 }}>
                 <Text variant="display2xl" color="#fff" accessibilityRole="header" accessibilityLiveRegion="polite">Booked.</Text>
                 <Text color="#fff" style={{ marginTop: 8 }}>{`${cls.title}, ${dayTimeInline(session.startsAt)}.`}</Text>
@@ -117,7 +134,7 @@ export default function BookingSheet() {
                 {cls.dropOff ? <Tag>Drop-off</Tag> : null}
               </View>
               <Text variant="label" num color={short ? c.kennelRed : c.inkMuted}>
-                {short ? `You have ${creditsLabel(credits)} left` : `${credits - cost} of ${PLAN.credits} left after booking`}
+                {short ? `You have ${creditsLabel(credits)} left` : `${credits - cost} of ${plan.credits} left after booking`}
               </Text>
             </View>
 
@@ -135,7 +152,7 @@ export default function BookingSheet() {
                 <WaitlistActions v={v} dogId={dogId} dogName={dog?.name ?? 'your dog'} />
               ) : short ? (
                 <>
-                  <Button block onPress={() => comingWithAccounts('Buy more credits')}>Buy more credits</Button>
+                  <Button block disabled={busy} onPress={buyCredits}>{busy ? 'Opening checkout…' : `Buy ${TOP_UP.credits} credits · ${TOP_UP.price}`}</Button>
                   <Button variant="quiet" block onPress={() => router.replace('/book')}>Pick a 1-credit class</Button>
                 </>
               ) : (

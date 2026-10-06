@@ -54,13 +54,11 @@ insert into public.packpass_admins (user_id) select id from auth.users where ema
 | Session notes | A short note per dog after each session, sent to the owner's training log. |
 | Assessments | Score the rubric, then clear the dog or record "not yet" (optionally starting a training path). The Passport updates and the owner is told. |
 | Locations | Arrival notes (parking, where to meet) and today's check-in codes. |
-| Earnings | Credits redeemed by month and by class at the partner's rate, and a CSV statement. |
+| Earnings | Credits redeemed by month and by class at the partner's rate, and a CSV statement. "Set up payouts" opens Stripe Connect onboarding (the `stripe-connect` function); `partners.payout_status` tracks it, and `stripe-payouts` pays finished months on the 1st. |
 | Trainers | Each trainer's bio, specialties and whether they take private sessions. |
 | Team | Owners only: who can open the dashboard, invites waiting to be accepted, and adding or removing people. |
 | PackPass › Review, Applications, Partners, Staff | Admins only: credit costs for new and repriced classes, partner applications, partners and trainers, staff accounts. |
 
 ## Waiting on keys
 
-- **Payouts.** "Set up payouts" explains that Stripe isn't open yet; earnings are recorded and held. With
-  Stripe Connect keys, the button starts onboarding and `partners.payout_status` tracks it.
 - **Uploading cover photos** shows a note for now; classes pick from the photo library in `public/photos`.

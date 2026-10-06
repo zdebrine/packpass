@@ -24,6 +24,10 @@ const COPY: Record<string, string> = {
   waitlist_closed: 'The waitlist for this session is closed.',
   already_waiting: 'Already on the waitlist for this session.',
   not_full: 'A spot just opened. Book it now.',
+  // Payments (stripe-checkout)
+  stripe_error: 'Payments aren\'t working right now. Nothing was charged. Try again in a minute.',
+  no_plan: 'You don\'t have a paid plan yet.',
+  bad_plan: 'Pick one of the plans.',
   // Supabase Auth
   already_registered: 'There\'s already an account with this email. Sign in, or use Forgot password if you never set one.',
   user_already_exists: 'There\'s already an account with this email. Sign in instead.',

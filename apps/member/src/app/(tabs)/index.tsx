@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import { catalog } from '@/data/catalog';
-import { monthSuggestions, PLAN, recommended } from '@/data/fixtures';
+import { monthSuggestions, recommended } from '@/data/fixtures';
 import { isComplete, stepIndex } from '@/data/passport';
 import { useGoals } from '@/lib/paths';
 import { AthleteCard, ClassCard } from '@/ds/cards';
@@ -20,7 +20,7 @@ import { monthDay, relativeDay, time, weekday } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
 import { monthHeader } from '@/lib/log';
 import { useDogStats, useMonthDone } from '@/lib/stats';
-import { useApp, useDog, useNotifications, useOriginLabel, useRules } from '@/store/app';
+import { useApp, useDog, useNotifications, useOriginLabel, usePlan, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 
@@ -30,6 +30,7 @@ export default function Today() {
   const top = useTop();
   const bookings = useApp((s) => s.bookings);
   const credits = useApp((s) => s.credits);
+  const plan = usePlan();
   const read = useApp((s) => s.readNotifications);
   const juno = useDog();
   const from = useOriginLabel();
@@ -212,20 +213,21 @@ export default function Today() {
 
           <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
             <Text variant="title" style={{ marginBottom: 14 }}>Credits</Text>
-            <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
+            <Press onPress={() => router.push('/plan')} accessibilityRole="button" accessibilityLabel={`${credits} of ${plan.credits} credits left. Plan and credits`}
+              style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
               <View>
                 <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
                   <Text variant="display2xl" num>{credits}</Text>
-                  <Text variant="heading" muted>{`of ${PLAN.credits}`}</Text>
+                  <Text variant="heading" muted>{`of ${plan.credits}`}</Text>
                 </View>
-                <Text variant="caption" muted style={{ marginTop: 6 }}>{`${credits} of ${PLAN.credits} credits left, resets ${monthHeader().resets}`}</Text>
+                <Text variant="caption" muted style={{ marginTop: 6 }}>{`${credits} of ${plan.credits} credits left, resets ${monthHeader().resets}`}</Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 4, alignItems: 'flex-end', height: 56 }}>
-                {Array.from({ length: PLAN.credits }, (_, i) => (
+                {Array.from({ length: Math.max(plan.credits, credits) }, (_, i) => (
                   <View key={i} style={{ width: 8, height: 56, borderRadius: 9999, backgroundColor: i < credits ? c.ink : c.surfaceSunken }} />
                 ))}
               </View>
-            </View>
+            </Press>
           </View>
         </View>
       </ScrollView>

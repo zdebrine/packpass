@@ -91,6 +91,15 @@ export async function submitWaitlist(email: string, zip: string, energy: string 
   if (error) throw new Error(error.message);
 }
 
+/** Stripe Checkout for the Founding Pack. Returns to this page with ?checkout=done (or cancel) and #get. */
+export async function foundingCheckout(email: string): Promise<string> {
+  if (!db) throw new Error('offline');
+  const back = `${window.location.origin}${window.location.pathname}#get`;
+  const { data, error } = await db.functions.invoke('stripe-checkout', { body: { action: 'founding', email, back } });
+  if (error || !data?.url) throw new Error('checkout');
+  return data.url as string;
+}
+
 export async function submitLead(type: string, name: string, business: string, email: string, zip: string) {
   if (!db) throw new Error('offline');
   const { error } = await db.rpc('submit_partner_lead', { p_type: type, p_name: name, p_business: business, p_email: email, p_zip: zip });

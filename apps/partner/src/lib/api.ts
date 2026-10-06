@@ -240,7 +240,7 @@ export const loadApplications = async () => check(await db.rpc('admin_applicatio
 export interface PartnerLead { id: string; business_type: string; name: string; business_name: string; email: string; zip: string; created_at: string; applied: boolean }
 /** The website's earnings-calculator form, last 90 days. */
 export const loadPartnerLeads = async () => check(await db.rpc('admin_partner_leads')) as PartnerLead[];
-export interface OwnerSignup { id: string; email: string; zip: string; energy: string | null; traits: string[]; plan: string | null; created_at: string; updated_at: string }
+export interface OwnerSignup { id: string; email: string; zip: string; energy: string | null; traits: string[]; plan: string | null; created_at: string; updated_at: string; founding_paid_at: string | null }
 /** The website's founding-pack signup on the owner page, every signup. */
 export const loadOwnerWaitlist = async () => check(await db.rpc('admin_owner_waitlist')) as OwnerSignup[];
 /** Approve returns the new partner's id. */
@@ -293,3 +293,17 @@ export const errorCopy = (e: unknown) => {
   if (/password should be|weak/i.test(m)) return 'Use at least 8 characters for the password.';
   return COPY[m] ?? (m || 'Something went wrong. Try again.');
 };
+
+// ---- Payouts (Stripe Connect, through the stripe-connect Edge Function) ----------------------------------
+
+/** 'onboard' returns Stripe's onboarding URL, 'dashboard' a sign-in link to the partner's Stripe dashboard,
+ * 'refresh' re-reads the account and returns the new payout status. */
+export async function stripeConnect(action: 'onboard' | 'refresh' | 'dashboard'): Promise<{ url?: string; status?: Partner['payout_status'] }> {
+  const back = `${window.location.origin}/earnings`;
+  const { data, error } = await db.functions.invoke('stripe-connect', { body: { action, back } });
+  if (error) {
+    const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
+    throw new Error(body?.error ?? 'stripe_error');
+  }
+  return data;
+}

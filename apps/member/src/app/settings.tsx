@@ -10,7 +10,7 @@ import { isLive } from '@/api/client';
 import { AccountSection } from '@/features/account/AccountSection';
 import { currentOrigin } from '@/lib/here';
 import { AREAS } from '@/lib/location';
-import { useApp, type Appearance, useDog, useOriginLabel } from '@/store/app';
+import { useApp, type Appearance, useDog, useOriginLabel, usePlan } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 
@@ -37,6 +37,8 @@ export default function Settings() {
   const { c } = useTheme();
   const s = useApp();
   const from = useOriginLabel();
+  const plan = usePlan();
+  const paid = s.membership.status === 'active' || s.membership.status === 'past_due';
   const [locating, setLocating] = useState<'idle' | 'busy' | 'denied'>('idle');
   const useMyLocation = async () => {
     setLocating('busy');
@@ -53,6 +55,15 @@ export default function Settings() {
         <Text variant="displayXl" style={{ marginTop: 20, marginBottom: 20 }} accessibilityRole="header">Settings</Text>
 
         <AccountSection />
+
+        <Text variant="title" style={{ marginBottom: 6 }}>Plan</Text>
+        <View style={{ marginBottom: 24 }}>
+          <Row
+            title={paid ? `${plan.name} · ${plan.price}/mo` : 'No paid plan yet'}
+            sub={`${s.credits} ${s.credits === 1 ? 'credit' : 'credits'} left`}
+            right={<Button size="sm" variant="quiet" fill={c.bg} onPress={() => router.push('/plan')}>{paid ? 'Manage' : 'Choose'}</Button>}
+          />
+        </View>
 
         <Text variant="title" style={{ marginBottom: 6 }}>Appearance</Text>
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>

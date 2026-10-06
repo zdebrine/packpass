@@ -59,3 +59,14 @@ content_path = "./supabase/templates/magic_link.html"
 [auth.email.template.email_change]
 subject = "Confirm your new email for PackPass"
 content_path = "./supabase/templates/email_change.html"
+
+# Stripe functions check their own callers: the webhook its Stripe signature, payouts the shared secret,
+# checkout the member's session itself (it also serves the app's return redirect, which has no session).
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.stripe-payouts]
+verify_jwt = false
+
+[functions.stripe-checkout]
+verify_jwt = false
