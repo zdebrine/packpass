@@ -508,6 +508,19 @@ select p.ok((select count(*) = 1 and bool_and(business_name = 'Ruiz Dog Sport' a
 select p.ok((select applied from public.admin_partner_leads() where email = 'maya@northsidebarn.co') is null, 'leads only list who submitted');
 reset role;
 
+-- Founding-pack signups from the owner page, for admins only.
+set role anon;
+select public.submit_owner_waitlist(' Jo@Example.com ', '60614', 'high', '{leash_reactive}', 'regular');
+select public.submit_owner_waitlist('jo@example.com', '60622', 'medium', '{}', null);
+select p.expect_error($$select * from public.admin_owner_waitlist()$$, 'permission denied');
+reset role;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.expect_error($$select * from public.admin_owner_waitlist()$$, 'not_admin');
+select p.as_user('00000000-0000-0000-0000-0000000000a6');
+select p.ok((select count(*) = 1 and bool_and(email = 'jo@example.com' and zip = '60622' and energy = 'medium' and plan is null and traits = '{}')
+             from public.admin_owner_waitlist()), 'admins see founding-pack signups, one per email, latest answers');
+reset role;
+
 -- ---- Trait catalog and drop-off classes (copy refresh, phase 1) ---------------------------------------
 set role anon;
 select p.ok((select count(*) from public.traits) = 16, 'anyone can read the trait catalog');
