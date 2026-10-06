@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
-import { errorCopy, saveTrainer, type Trainer } from '@/lib/api';
+import { errorCopy, removePartnerPhoto, saveTrainer, setTrainerPhoto, uploadPartnerPhoto, type Trainer } from '@/lib/api';
 import { usePartner } from '@/lib/partner';
-import { Avatar, Button, Chip, ErrorLine, Field, Row, Tag, Toggle } from '@/ui/kit';
+import { isUpload } from '@/lib/photos';
+import { Avatar, Button, Chip, ErrorLine, Field, Row, Tag, Toggle, photoUrl } from '@/ui/kit';
 
 const SPECS = ['Reactivity', 'Separation', 'Leash skills', 'Puppy foundations', 'Fitness and conditioning', 'Recall', 'Scent work', 'Herding', 'Behaviorist'];
 
@@ -67,10 +68,7 @@ function Profile({ t, teaches }: { t: Trainer; teaches: string[] }) {
     <>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start' }}>
         <div style={{ flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <Row gap={20} wrap={false}>
-            <Avatar name={t.name} size={112} />
-            <span className="pk-label pk-muted" style={{ textWrap: 'pretty' }}>Your photo shows on class pages and booking confirmations. Send a new one to PackPass to change it.</span>
-          </Row>
+          <TrainerPhoto t={t} />
           <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span className="pk-label" style={{ fontWeight: 600 }}>Bio</span>
             <textarea className="area" rows={4} value={bio} placeholder="How long you've trained, what you're known for, and what a session with you feels like." onChange={(e) => edit(setBio)(e.target.value)} />
@@ -98,7 +96,7 @@ function Profile({ t, teaches }: { t: Trainer; teaches: string[] }) {
         <aside style={{ flex: '1 1 300px', maxWidth: 420, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <span className="pk-wide pk-muted">How members see it</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 18, borderRadius: 28, background: 'var(--surface-raised)' }}>
-            <Avatar name={t.name} size={56} />
+            <Avatar name={t.name} size={56} photo={t.photo_url ? photoUrl(t.photo_url) : null} />
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
               <span className="pk-heading" style={{ fontWeight: 600 }}>{t.name}</span>
               {t.credential ? <span className="pk-caption pk-muted">{t.credential}</span> : null}
@@ -115,5 +113,38 @@ function Profile({ t, teaches }: { t: Trainer; teaches: string[] }) {
         <ErrorLine>{error}</ErrorLine>
       </Row>
     </>
+  );
+}
+
+/** The trainer's photo: upload a new one (cropped square in the browser); the previous upload is deleted. */
+function TrainerPhoto({ t }: { t: Trainer }) {
+  const { partner, reloadCatalog } = usePartner();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const upload = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy(true); setError(null);
+    let path: string | null = null;
+    try {
+      path = await uploadPartnerPhoto(partner.id, file, 'portrait');
+      await setTrainerPhoto(t.id, path);
+      await removePartnerPhoto(t.photo_url).catch(() => undefined);
+      await reloadCatalog();
+    } catch (e) {
+      if (path) await removePartnerPhoto(path).catch(() => undefined);
+      setError(errorCopy(e));
+    } finally { setBusy(false); if (input.current) input.current.value = ''; }
+  };
+  return (
+    <Row gap={20} wrap={false}>
+      <Avatar name={t.name} size={112} photo={t.photo_url ? photoUrl(t.photo_url) : null} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
+        <span className="pk-label pk-muted" style={{ textWrap: 'pretty' }}>Your photo shows on class pages and booking confirmations. A clear, friendly headshot works best.</span>
+        <Button size="sm" variant="quiet" disabled={busy} onClick={() => input.current?.click()}>{busy ? 'Uploading…' : isUpload(t.photo_url) ? 'Change photo' : 'Upload a photo'}</Button>
+        <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => upload(e.target.files?.[0])} />
+        <ErrorLine>{error}</ErrorLine>
+      </div>
+    </Row>
   );
 }

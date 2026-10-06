@@ -5,12 +5,14 @@ import { setCatalog } from '@/data/catalog';
 import { photoKey } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
-import type { Booking, ClassType, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, Partner, PhotoKey, PickedDoc, PlanKey, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
+import type { Booking, ClassType, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
 import type { OnboardingDraft, SocialStage } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
-import { db } from './client';
+import { db, partnerMediaUrl } from './client';
 
-const photo = (k: string | null | undefined, fallback: PhotoKey): PhotoKey => photoKey(k) ?? fallback;
+/** A stored photo: a library key, or a partner's upload (`<partner>/<file>` in the public partner-media bucket). */
+const photo = (k: string | null | undefined, fallback: PhotoKey): PhotoSource =>
+  k?.includes('/') ? { uri: partnerMediaUrl(k), cacheKey: k } : photoKey(k) ?? fallback;
 
 const cap = <T extends string>(s: string) => (s.charAt(0).toUpperCase() + s.slice(1)) as T;
 

@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import type { PhotoKey, PhotoSource } from '@/data/types';
+import type { PhotoSource } from '@/data/types';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radius } from '@/theme/tokens';
 import { Tag } from './controls';
@@ -15,7 +15,7 @@ const creditLabel = (n: number) => `${n} ${n === 1 ? 'credit' : 'credits'}`;
 
 export interface ClassCardProps {
   layout?: 'tile' | 'row';
-  image: PhotoKey;
+  image: PhotoSource;
   discipline?: string;
   premium?: boolean;
   /** Owners leave the dog with the trainer (tile layout; Book's rows show it as a pill). */

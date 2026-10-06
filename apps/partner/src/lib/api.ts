@@ -96,6 +96,47 @@ export const loadTrainers = async (partnerId: string) =>
   check(await db.from('trainers').select('*').eq('partner_id', partnerId).order('name')) as Trainer[];
 export const saveClass = async (id: string | null, fields: Record<string, unknown>) =>
   check(await db.rpc('partner_save_class', { p_id: id, p: fields })) as string;
+// ---- Photos (class covers, trainer photos) -------------------------------------------------------
+// Uploads go to the public partner-media bucket under the partner's folder and are stored on the row as that
+// path; library photos stay a bare key (src/lib/photos.ts tells them apart).
+
+const PHOTO_MAX_BYTES = 15 * 1024 * 1024;
+
+/** Centre-crops to `aspect` (width / height), scales the long side to at most `max` px and re-encodes as JPEG. */
+async function preparePhoto(file: File, aspect: number, max: number): Promise<Blob> {
+  const img = await createImageBitmap(file);
+  const sw = Math.min(img.width, img.height * aspect), sh = sw / aspect;
+  const scale = Math.min(1, max / Math.max(sw, sh));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(sw * scale); canvas.height = Math.round(sh * scale);
+  canvas.getContext('2d')!.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, canvas.width, canvas.height);
+  img.close();
+  return new Promise((ok, fail) => canvas.toBlob((b) => (b ? ok(b) : fail(new Error('bad_file'))), 'image/jpeg', 0.85));
+}
+
+/** Uploads a photo for this partner and returns its storage path. Covers are 4:5 like the class cards; trainer photos square. */
+export async function uploadPartnerPhoto(partnerId: string, file: File, shape: 'cover' | 'portrait') {
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error('bad_photo_file');
+  if (file.size > PHOTO_MAX_BYTES) throw new Error('photo_too_big');
+  const blob = await preparePhoto(file, shape === 'cover' ? 4 / 5 : 1, shape === 'cover' ? 1600 : 800);
+  const path = `${partnerId}/${shape}-${crypto.randomUUID()}.jpg`;
+  check(await db.storage.from('partner-media').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' }));
+  return path;
+}
+
+/** Deletes an uploaded photo that's no longer used. Library keys (no slash) are left alone. */
+export async function removePartnerPhoto(path: string | null | undefined) {
+  if (path?.includes('/')) await db.storage.from('partner-media').remove([path]);
+}
+
+export interface PartnerPhoto { kind: 'class' | 'trainer'; id: string; name: string; partner_name: string; path: string }
+export const loadPartnerPhotos = async () => check(await db.rpc('admin_partner_photos')) as PartnerPhoto[];
+export const setTrainerPhoto = async (id: string, photo: string) => { check(await db.rpc('partner_set_trainer_photo', { p_id: id, p_photo: photo })); };
+export const adminRemovePhoto = async (p: { classId?: string; trainerId?: string }, path: string | null) => {
+  check(await db.rpc('admin_remove_photo', { p_class: p.classId ?? null, p_trainer: p.trainerId ?? null }));
+  await removePartnerPhoto(path);
+};
+
 export const saveTrainer = async (id: string, bio: string, specialties: string[], privateSessions: boolean) => {
   check(await db.rpc('partner_save_trainer', { p_id: id, p_bio: bio, p_specialties: specialties, p_private: privateSessions }));
 };
@@ -284,6 +325,9 @@ const COPY: Record<string, string> = {
   needs_reason: 'Say why, so they can fix it.',
   too_big: 'That file is over 10 MB.',
   bad_file: 'Upload a PDF, JPG or PNG.',
+  bad_photo_file: 'Upload a JPG, PNG or WebP photo.',
+  photo_too_big: 'That photo is over 15 MB.',
+  bad_photo: 'That photo belongs to another partner.',
 };
 export const errorCopy = (e: unknown) => {
   const m = e instanceof Error ? e.message : String(e);

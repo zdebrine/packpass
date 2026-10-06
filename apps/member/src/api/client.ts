@@ -13,6 +13,9 @@ const key = process.env.EXPO_PUBLIC_SUPABASE_KEY;
  */
 export const isLive = !!url && !!key;
 
+/** Public URL of a partner's uploaded photo (class cover or trainer photo) in the partner-media bucket. */
+export const partnerMediaUrl = (path: string) => `${url}/storage/v1/object/public/partner-media/${path}`;
+
 export const supabase: SupabaseClient | null = isLive
   ? createClient(url!, key!, {
       auth: {

@@ -6,7 +6,6 @@ import { errorCopy, saveClass } from '@/lib/api';
 import { emptyForm, estimate, payloadOf, TYPES, type ClassForm } from '@/lib/classForm';
 import { usePartner } from '@/lib/partner';
 import { Button, ClassCard, Chip, ErrorLine, Field, Row, Tag, photoUrl } from '@/ui/kit';
-import { UploadNote } from './Classes';
 import { Clearance, Description, Discipline, DropOff, Duration, Energy, Group, Intensity, Name, PhotoGrid, Requirements, Social, typeLabel, type Patch } from './classParts';
 
 const STEPS: [string, string][] = [['Basics', 'Type, name, photo'], ['Format', 'Length, size, who leads'], ['Who it’s for', 'Fit and requirements'], ['Review', 'Send to PackPass']];
@@ -22,7 +21,6 @@ export function NewClass() {
   const [sentId, setSentId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [upload, setUpload] = useState(false);
 
   const group = f.type === 'class' ? f.group : 1;
   const needs = [
@@ -114,8 +112,7 @@ export function NewClass() {
                 <Name f={f} set={set} placeholder="Say what the dog does, like Scent Work I" />
                 <Discipline f={f} set={set} />
                 <Field label="Cover photo" note="Outdoor, in motion, one dog clearly in frame. Members see this first.">
-                  {upload ? <UploadNote /> : null}
-                  <PhotoGrid value={f.image} onPick={(image) => set({ image })} onUpload={() => setUpload(true)} />
+                  <PhotoGrid value={f.image} onPick={(image) => set({ image })} />
                 </Field>
               </>
             ) : step === 1 ? (

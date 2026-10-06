@@ -1,9 +1,12 @@
 // Field groups shared by the class editor (03 Classes) and the new-class steps (03b).
 import { Upload } from 'lucide-react';
+import { useRef, useState, type CSSProperties } from 'react';
 
-import type { SessionType } from '@/lib/api';
+import { errorCopy, uploadPartnerPhoto, type SessionType } from '@/lib/api';
+import { usePartner } from '@/lib/partner';
+import { isUpload } from '@/lib/photos';
 import { DISCIPLINES, ENERGY, PHOTOS, REQS, SOCIAL, TYPES, type ClassForm } from '@/lib/classForm';
-import { Chip, Field, IntensityBars, Row, Stepper, Toggle, photoUrl } from '@/ui/kit';
+import { Chip, ErrorLine, Field, IntensityBars, Row, Stepper, Toggle, photoUrl } from '@/ui/kit';
 
 export type Patch = (p: Partial<ClassForm>) => void;
 
@@ -99,23 +102,49 @@ export const TypeChips = ({ f, set }: { f: ClassForm; set: Patch }) => (
 );
 
 /**
- * The library of cover photos. Uploading your own photo needs PackPass to review it, so for now the
- * Upload tile explains that rather than opening a file picker.
+ * Cover photos: the partner's own upload (cropped to the card's 4:5 and resized in the browser) or one from the
+ * PackPass library. An upload on a new class is seen in PackPass review with the rest of the class.
  */
-export function PhotoGrid({ value, onPick, onUpload }: { value: string | null; onPick: (p: string) => void; onUpload?: () => void }) {
+export function PhotoGrid({ value, onPick }: { value: string | null; onPick: (p: string) => void }) {
+  const { partner } = usePartner();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mine, setMine] = useState<string | null>(isUpload(value) ? value : null);
+  const tile: CSSProperties = { aspectRatio: '4 / 5', padding: 0, border: 0, borderRadius: 20, overflow: 'hidden', cursor: 'pointer' };
+  const ring = (on: boolean) => (on ? '0 0 0 3px var(--bg),0 0 0 5px var(--ink)' : 'none');
+
+  const upload = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy(true); setError(null);
+    try {
+      const path = await uploadPartnerPhoto(partner.id, file, 'cover');
+      setMine(path);
+      onPick(path);
+    } catch (e) { setError(errorCopy(e)); } finally { setBusy(false); if (input.current) input.current.value = ''; }
+  };
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))', gap: 8 }}>
-      {onUpload ? (
-        <button type="button" onClick={onUpload} style={{ aspectRatio: '1', border: 0, borderRadius: 20, background: 'var(--surface-raised)', color: 'var(--ink)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
-          <Upload size={22} />Upload
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))', gap: 8 }}>
+        <button type="button" onClick={() => input.current?.click()} disabled={busy}
+          style={{ ...tile, background: 'var(--surface-raised)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
+          <Upload size={22} />{busy ? 'Uploading…' : 'Upload your own'}
         </button>
-      ) : null}
-      {PHOTOS.map((p) => (
-        <button key={p} type="button" aria-label={`Use the ${p.replace(/_/g, ' ')} photo`} aria-pressed={value === p} onClick={() => onPick(p)}
-          style={{ aspectRatio: '1', padding: 0, border: 0, borderRadius: 20, overflow: 'hidden', cursor: 'pointer', boxShadow: value === p ? '0 0 0 3px var(--bg),0 0 0 5px var(--ink)' : 'none' }}>
-          <img src={photoUrl(p)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-        </button>
-      ))}
+        {mine ? (
+          <button type="button" aria-label="Use your uploaded photo" aria-pressed={value === mine} onClick={() => onPick(mine)} style={{ ...tile, boxShadow: ring(value === mine) }}>
+            <img src={photoUrl(mine)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          </button>
+        ) : null}
+        {PHOTOS.map((p) => (
+          <button key={p} type="button" aria-label={`Use the ${p.replace(/_/g, ' ')} photo`} aria-pressed={value === p} onClick={() => onPick(p)} style={{ ...tile, boxShadow: ring(value === p) }}>
+            <img src={photoUrl(p)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          </button>
+        ))}
+      </div>
+      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => upload(e.target.files?.[0])} />
+      <span className="pk-caption pk-muted">JPG, PNG or WebP. Cropped to the card's shape from the centre.</span>
+      <ErrorLine>{error}</ErrorLine>
     </div>
   );
 }

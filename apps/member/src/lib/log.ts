@@ -2,7 +2,7 @@
 // works it out from the sessions the dog went to (my_log).
 import { activeDays, monthBalance, pastSessions } from '@/data/fixtures';
 import { milestones as sampleMilestones, RECHECK_QUOTE } from '@/data/passport';
-import type { LogEntry, PhotoKey } from '@/data/types';
+import type { LogEntry, PhotoKey, PhotoSource } from '@/data/types';
 import type { SocialStage } from '@/store/app';
 import { now as clock } from './clock';
 import { monthDay } from './dates';
@@ -19,7 +19,7 @@ const BALANCE_ROWS = [
 
 export interface LogMonth { name: string; days: number; firstWeekday: number; active: Record<number, number>; today: number | null }
 export interface LogSession {
-  key: string; title: string; date: string; trainer: string; note: string | null; img: PhotoKey;
+  key: string; title: string; date: string; trainer: string; note: string | null; img: PhotoSource;
   /** "Cleared · Social" / "Not yet · Herding" */
   assessment: string | null; cleared: boolean; href: string | null;
 }

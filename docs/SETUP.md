@@ -24,6 +24,7 @@ Edge Function secrets, EAS or Vercel.
 | Maps key | A real map instead of the drawn one | Google Maps or Mapbox key in the app config | Later |
 | Vercel project | Hosting the partner dashboard | `packpass-partner` → packpass-partner.vercel.app (Supabase values come from `apps/partner/.env`) | Done |
 | Vercel project for the website | Hosting the public site (`apps/web`) | New project, root `apps/web`, no env vars needed (`apps/web/.env` is public) | **To do** |
+| Support email | Shown on the website's /privacy, /terms and /support pages | `VITE_SUPPORT_EMAIL` on the `packpass-landing` Vercel project (defaults to support@packpass.app) | **To do** once the domain's mailbox exists |
 | App store links | The website's download buttons | `VITE_IOS_URL`, `VITE_ANDROID_URL` in `apps/web/.env` | Later, once listed |
 
 ## 1. Email through Resend (do this first)
@@ -88,8 +89,8 @@ Supabase's test sender: links instead of codes, a couple of emails an hour, and 
     In test mode the Stripe balance needs available funds first: pay a top-up with card `4000 0000 0000 0077`.
   - Founding Pack on the website: set `VITE_FOUNDING_PACK_CHECKOUT=true` (keep it off in production while Stripe is
     in test mode).
-  - Going live: swap both secrets for live ones, add a live-mode webhook endpoint, and stop the free monthly
-    grant for members without a plan (`grant_monthly_credits`) if launch pricing needs it.
+  - Going live: swap both secrets for live ones and add a live-mode webhook endpoint. Credits without a plan are
+    set in `credit_policy`: a 2-credit trial on sign-up and no free monthly grant (`migrations/…_launch_credits.sql`).
 - **Maps:** a Google Maps (or Mapbox) key for real maps on the class and booking screens.
 - **Dashboard address:** when you have a domain, add it to the `packpass-partner` Vercel project and use it as
   the Site URL (`SITE_URL=https://… node supabase/scripts/setup-auth.mjs`). Until then

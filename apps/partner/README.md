@@ -57,8 +57,11 @@ insert into public.packpass_admins (user_id) select id from auth.users where ema
 | Earnings | Credits redeemed by month and by class at the partner's rate, and a CSV statement. "Set up payouts" opens Stripe Connect onboarding (the `stripe-connect` function); `partners.payout_status` tracks it, and `stripe-payouts` pays finished months on the 1st. |
 | Trainers | Each trainer's bio, specialties and whether they take private sessions. |
 | Team | Owners only: who can open the dashboard, invites waiting to be accepted, and adding or removing people. |
-| PackPass › Review, Applications, Partners, Staff | Admins only: credit costs for new and repriced classes, partner applications, partners and trainers, staff accounts. |
+| PackPass › Review, Applications, Partners, Staff | Admins only: credit costs for new and repriced classes, uploaded partner photos (take down), partner applications, partners and trainers, staff accounts. |
+
+**Photos.** Class covers and trainer photos are the partner's own upload or one from the library in `public/photos`.
+Uploads are cropped (covers 4:5, trainers square) and resized to JPEG in the browser, then stored in the public
+`partner-media` bucket under `<partner id>/`; the row keeps that path (`src/lib/photos.ts` tells a path from a library key).
 
 ## Waiting on keys
 
-- **Uploading cover photos** shows a note for now; classes pick from the photo library in `public/photos`.

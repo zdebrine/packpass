@@ -6,4 +6,9 @@ const LEGACY: Record<string, string> = {
   tunnel: 'dogs_meeting_on_leash', wall: 'dog_chilling_with_owner_on_porch', weave: 'athletic_dog_catching_ball',
 };
 
-export const photoSrc = (key?: string | null) => `/photos/${LEGACY[key || ''] ?? (key || 'dog_and_owner_chilling')}.jpg`;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+
+/** A library key's file in public/photos, or a partner's upload (`<partner>/<file>` in the public partner-media bucket). */
+export const photoSrc = (key?: string | null) =>
+  key?.includes('/') && SUPABASE_URL ? `${SUPABASE_URL}/storage/v1/object/public/partner-media/${key}`
+    : `/photos/${LEGACY[key || ''] ?? (key || 'dog_and_owner_chilling')}.jpg`;

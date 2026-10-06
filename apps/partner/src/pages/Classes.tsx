@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { errorCopy, loadSessions, saveClass, type ClassType } from '@/lib/api';
+import { errorCopy, loadSessions, removePartnerPhoto, saveClass, type ClassType } from '@/lib/api';
 import { formOf, payloadOf, pricingChanged, type ClassForm } from '@/lib/classForm';
 import { useData, usePartner } from '@/lib/partner';
 import { credits } from '@/lib/sessions';
@@ -74,7 +74,6 @@ function Editor({ cls, partnerName, gym, trainers }: { cls: ClassType; partnerNa
   const [error, setError] = useState<string | null>(null);
   const [photos, setPhotos] = useState(false);
   const [preview, setPreview] = useState(false);
-  const [upload, setUpload] = useState(false);
   useEffect(() => setError(null), [f]);
 
   const dirty = JSON.stringify(f) !== JSON.stringify(saved);
@@ -87,7 +86,11 @@ function Editor({ cls, partnerName, gym, trainers }: { cls: ClassType; partnerNa
 
   const save = async () => {
     setBusy(true); setError(null);
-    try { await saveClass(cls.id, payloadOf(f)); await reloadCatalog(); setDone(true); } catch (e) { setError(errorCopy(e)); } finally { setBusy(false); }
+    try {
+      await saveClass(cls.id, payloadOf(f));
+      if (cls.image !== f.image) await removePartnerPhoto(cls.image).catch(() => undefined); // a replaced upload
+      await reloadCatalog(); setDone(true);
+    } catch (e) { setError(errorCopy(e)); } finally { setBusy(false); }
   };
 
   return (
@@ -145,8 +148,7 @@ function Editor({ cls, partnerName, gym, trainers }: { cls: ClassType; partnerNa
         <Modal eyebrow={cls.title} title="Cover photo" onClose={() => setPhotos(false)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <span className="pk-caption pk-muted">Outdoor, in motion, one dog clearly in frame. Members see this first.</span>
-            {upload ? <UploadNote /> : null}
-            <PhotoGrid value={f.image} onPick={(image) => { set({ image }); setPhotos(false); }} onUpload={() => setUpload(true)} />
+            <PhotoGrid value={f.image} onPick={(image) => { set({ image }); setPhotos(false); }} />
           </div>
         </Modal>
       ) : null}
@@ -159,9 +161,3 @@ function Editor({ cls, partnerName, gym, trainers }: { cls: ClassType; partnerNa
     </div>
   );
 }
-
-export const UploadNote = () => (
-  <div className="card" style={{ padding: '14px 18px' }}>
-    <span className="pk-caption">Your own photos are coming soon. PackPass checks each one before it goes on Book. Until then, pick one from the library, or send it to your PackPass contact and we'll add it for you.</span>
-  </div>
-);

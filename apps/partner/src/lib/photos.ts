@@ -9,4 +9,10 @@ const LEGACY: Record<string, string> = {
 /** The current key for a stored one, so a class saved with an old key still shows as picked. */
 export const photoKey = (key?: string | null) => (key ? LEGACY[key] ?? key : null);
 
-export const photoSrc = (key?: string | null) => `/photos/${photoKey(key) ?? 'dog_and_owner_chilling'}.jpg`;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+
+/** True for a partner's upload (`<partner>/<file>` in the public partner-media bucket), false for a library key. */
+export const isUpload = (key?: string | null) => !!key?.includes('/');
+
+export const photoSrc = (key?: string | null) =>
+  isUpload(key) ? `${SUPABASE_URL}/storage/v1/object/public/partner-media/${key}` : `/photos/${photoKey(key) ?? 'dog_and_owner_chilling'}.jpg`;
