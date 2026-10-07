@@ -40,7 +40,7 @@ export interface Trainer {
   id: string;
   name: string;
   credential: string;
-  photo: PhotoKey;
+  photo: PhotoSource;
   rating: number;
   /** Live mode: set by the partner on the dashboard. */
   partnerId?: string;
@@ -64,7 +64,7 @@ export interface ClassType {
   description: string;
   partnerId: string;
   trainerId: string;
-  image: PhotoKey;
+  image: PhotoSource;
   premium?: boolean;
   /** Clearance the dog needs before booking. */
   requires?: ClearanceType;
@@ -138,7 +138,7 @@ export interface LogEntry {
   durationMin: number;
   classId: string;
   title: string;
-  image: PhotoKey;
+  image: PhotoSource;
   balance: 'physical' | 'mental' | 'social';
   partner: string;
   trainer: string | null;

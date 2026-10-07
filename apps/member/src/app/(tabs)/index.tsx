@@ -20,7 +20,7 @@ import { monthDay, relativeDay, time, weekday } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
 import { monthHeader } from '@/lib/log';
 import { useDogStats, useMonthDone } from '@/lib/stats';
-import { useApp, useDog, useNotifications, useOriginLabel, usePlan, useRules } from '@/store/app';
+import { useAllowance, useApp, useDog, useNotifications, useOriginLabel, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 
@@ -30,7 +30,7 @@ export default function Today() {
   const top = useTop();
   const bookings = useApp((s) => s.bookings);
   const credits = useApp((s) => s.credits);
-  const plan = usePlan();
+  const allowance = useAllowance();
   const read = useApp((s) => s.readNotifications);
   const juno = useDog();
   const from = useOriginLabel();
@@ -213,17 +213,17 @@ export default function Today() {
 
           <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
             <Text variant="title" style={{ marginBottom: 14 }}>Credits</Text>
-            <Press onPress={() => router.push('/plan')} accessibilityRole="button" accessibilityLabel={`${credits} of ${plan.credits} credits left. Plan and credits`}
+            <Press onPress={() => router.push('/plan')} accessibilityRole="button" accessibilityLabel={`${allowance ? `${credits} of ${allowance}` : credits} credits left. Plan and credits`}
               style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
               <View>
                 <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
                   <Text variant="display2xl" num>{credits}</Text>
-                  <Text variant="heading" muted>{`of ${plan.credits}`}</Text>
+                  <Text variant="heading" muted>{allowance ? `of ${allowance}` : credits === 1 ? 'credit' : 'credits'}</Text>
                 </View>
-                <Text variant="caption" muted style={{ marginTop: 6 }}>{`${credits} of ${plan.credits} credits left, resets ${monthHeader().resets}`}</Text>
+                <Text variant="caption" muted style={{ marginTop: 6 }}>{allowance ? `${credits} of ${allowance} credits left, resets ${monthHeader().resets}` : 'No plan yet. Choose one for credits every month.'}</Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 4, alignItems: 'flex-end', height: 56 }}>
-                {Array.from({ length: Math.max(plan.credits, credits) }, (_, i) => (
+                {Array.from({ length: Math.max(allowance ?? credits, credits) }, (_, i) => (
                   <View key={i} style={{ width: 8, height: 56, borderRadius: 9999, backgroundColor: i < credits ? c.ink : c.surfaceSunken }} />
                 ))}
               </View>

@@ -14,6 +14,8 @@ SECRET=packpass-local-test-secret-0123456789abcdef
 
 DB=$DB SKIP_TESTS=1 "$repo/supabase/tests/run-local.sh"
 psql -q -d $DB -c "do \$\$ begin if not exists (select 1 from pg_roles where rolname = 'authenticator') then create role authenticator login noinherit; end if; end \$\$; grant anon, authenticated, service_role to authenticator;"
+# This flow was written for the pre-launch credits: 10 on sign-up (the launch default is a 2-credit trial).
+psql -q -d $DB -c "update credit_policy set signup_credits = 10, free_monthly = true"
 
 docker rm -f packpass-postgrest >/dev/null 2>&1 || true
 docker run -d --name packpass-postgrest --network host \

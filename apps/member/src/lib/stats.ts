@@ -3,7 +3,7 @@
 import { isLive } from '@/api/client';
 import { catalog } from '@/data/catalog';
 import { disciplineLevels, monthDone } from '@/data/fixtures';
-import type { LogEntry, PhotoKey } from '@/data/types';
+import type { LogEntry, PhotoSource } from '@/data/types';
 import { useApp, useDog } from '@/store/app';
 import { now as clock } from './clock';
 import { monthDay } from './dates';
@@ -64,7 +64,7 @@ export function useDogStats(): DogStats {
   return statsOf(log.filter((e) => e.dogId === dog.id));
 }
 
-export interface MonthItem { key: string; meta: string; title: string; photo: PhotoKey }
+export interface MonthItem { key: string; meta: string; title: string; photo: PhotoSource }
 
 /** Sessions done this month for Today's list, and the balance the month is shortest on. */
 export function useMonthDone(): { done: MonthItem[]; short: 'Physical' | 'Mental' | 'Social' | null } {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { errorCopy, loadReviewQueue, setClassReview, type ReviewClass } from '@/lib/api';
+import { adminRemovePhoto, errorCopy, loadPartnerPhotos, loadReviewQueue, setClassReview, type PartnerPhoto, type ReviewClass } from '@/lib/api';
 import { estimateFor } from '@/lib/classForm';
 import { useData } from '@/lib/partner';
 import { Button, ErrorLine, Row, Stepper, Tag, Toggle, photoUrl } from '@/ui/kit';
@@ -24,7 +24,37 @@ export function Review() {
       {data.length ? null : <Empty>Nothing waiting. New classes and price changes from partners show up here.</Empty>}
       {fresh.length ? <Section title={`New classes · ${fresh.length}`} rows={fresh} onDone={reload} /> : null}
       {repriced.length ? <Section title={`Pricing changed · ${repriced.length}`} rows={repriced} onDone={reload} /> : null}
+      <Photos />
     </div>
+  );
+}
+
+/** Photos partners uploaded that are in use. Take down puts the library's default photo back and deletes the file. */
+function Photos() {
+  const { data, reload } = useData(loadPartnerPhotos, []);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  if (!data?.length) return null;
+  const takeDown = async (p: PartnerPhoto) => {
+    setBusy(p.path); setError(null);
+    try { await adminRemovePhoto(p.kind === 'class' ? { classId: p.id } : { trainerId: p.id }, p.path); reload(); } catch (e) { setError(errorCopy(e)); } finally { setBusy(null); }
+  };
+  return (
+    <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <h2 className="pk-title" style={{ margin: 0 }}>{`Partner photos · ${data.length}`}</h2>
+      <span className="pk-label pk-muted">Covers and trainer photos partners uploaded. They show to members as soon as they're saved.</span>
+      <ErrorLine>{error}</ErrorLine>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
+        {data.map((p) => (
+          <div key={p.path} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12 }}>
+            <img src={photoUrl(p.path)} alt="" style={{ width: '100%', aspectRatio: p.kind === 'class' ? '4 / 5' : '1', borderRadius: 14, objectFit: 'cover' }} />
+            <span className="pk-label" style={{ fontWeight: 600 }}>{p.name}</span>
+            <span className="pk-caption pk-muted">{`${p.kind === 'class' ? 'Class cover' : 'Trainer'} · ${p.partner_name}`}</span>
+            <Button size="sm" variant="quiet" disabled={busy === p.path} onClick={() => takeDown(p)}>{busy === p.path ? 'Taking down…' : 'Take down'}</Button>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

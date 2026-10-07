@@ -9,7 +9,7 @@ import { Gradient, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { view } from '@/lib/booking';
 import { addMinutes, time } from '@/lib/dates';
-import { useApp, usePlan } from '@/store/app';
+import { useAllowance, useApp } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /** Where to meet at each partner. */
@@ -29,7 +29,7 @@ function CheckedIn() {
   const { booking: id } = useLocalSearchParams<{ booking?: string }>();
   const bookings = useApp((s) => s.bookings);
   const credits = useApp((s) => s.credits);
-  const plan = usePlan();
+  const allowance = useAllowance();
   const b = bookings.find((x) => x.id === id);
   const v = b ? view(b.sessionId) : undefined;
   const dog = dogs[b?.dogId ?? 'juno'];
@@ -40,7 +40,7 @@ function CheckedIn() {
     ['user-round', 'Trainer', v.trainer.name],
     ['map-pin', 'Meet at', MEET[v.partner.id] ?? 'Front gate'],
     ['clock', 'Ends', time(addMinutes(v.session.startsAt, v.cls.durationMin))],
-    ['ticket', 'Credits', `${b.credits} used · ${credits} of ${plan.credits} left this month`],
+    ['ticket', 'Credits', allowance ? `${b.credits} used · ${credits} of ${allowance} left this month` : `${b.credits} used · ${credits} left`],
   ];
 
   return (

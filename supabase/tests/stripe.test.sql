@@ -100,5 +100,25 @@ select t.ok(not exists (select 1 from payouts_due() where partner_id = 'ridgelin
 insert into partner_payouts (partner_id, month, credits, amount_cents) values ('ridgeline', '2025-01-01', 2, 1900);
 select t.ok(not exists (select 1 from payouts_due() where partner_id = 'ridgeline' and month = '2025-01-01'), 'a paid month is not due again');
 
+-- ---- Launch credit policy (credit_policy defaults) ---------------------------------------------
+reset role;
+update credit_policy set signup_credits = 2, free_monthly = false;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000a5c1', 'launch@dog.co');
+select t.ok((select credits_balance from profiles where id = '00000000-0000-0000-0000-00000000a5c1') = 2, 'a new member gets the 2-credit trial');
+select t.ok((select sum(delta) from credit_ledger where member_id = '00000000-0000-0000-0000-00000000a5c1') = 2, 'the trial is in the ledger');
+update profiles set credits_reset_on = current_date - 1 where id = '00000000-0000-0000-0000-00000000a5c1';
+select t.ok(public.grant_monthly_credits() = 0, 'no free monthly grant at launch');
+select t.ok((select (credits_balance, credits_reset_on > current_date) = (2, true) from profiles where id = '00000000-0000-0000-0000-00000000a5c1'),
+  'a member without a plan keeps their credits, and the reset date moves on');
+update credit_policy set signup_credits = 0;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000a5c2', 'notrial@dog.co');
+select t.ok((select credits_balance from profiles where id = '00000000-0000-0000-0000-00000000a5c2') = 0
+            and not exists (select 1 from credit_ledger where member_id = '00000000-0000-0000-0000-00000000a5c2'), 'no trial means no credits and no ledger row');
+set role authenticated;
+update credit_policy set signup_credits = 100;
+select t.ok(not exists (select 1 from credit_policy), 'members can neither see nor change the policy');
+reset role;
+select t.ok((select signup_credits from credit_policy) = 0, 'the policy is unchanged');
+
 reset role;
 drop schema t cascade;

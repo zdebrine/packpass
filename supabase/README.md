@@ -43,7 +43,12 @@ Schema, security rules and booking logic for the member app. It's deployed to th
   plan, a 2-credit top-up or the website's Founding Pack (and switches or cancels a plan); `stripe-webhook` grants
   credits when Stripe confirms the payment (once per event, `stripe_events`); `stripe-connect` onboards partners to
   Connect Express; `stripe-payouts` pays connected partners for finished months on the 1st (`partner_payouts`).
-  Members without a paid plan keep the free monthly grant. Setup: docs/SETUP.md › Stripe.
+  Setup: docs/SETUP.md › Stripe.
+- `migrations/…_launch_credits.sql` — `credit_policy` (one row): a new account gets `signup_credits` (2) once, and
+  members without a plan get a free monthly grant only if `free_monthly` is on (off at launch).
+- `migrations/…_partner_media.sql` — the public `partner-media` bucket for class covers and trainer photos
+  (`<partner id>/…`, staff write their own folder), a trigger that keeps a row's photo in its own partner's folder,
+  `partner_set_trainer_photo`, and `admin_partner_photos` / `admin_remove_photo` for taking one down.
 - `migrations/…_timetable_and_jobs.sql` — `timetable` (each class's weekly slots) and `extend_schedule`, which
   keeps four weeks of sessions bookable; pg_cron runs it daily with the holds, reminders and monthly-credit jobs.
 - `migrations/…_hardening.sql` — fixes from the Supabase advisors: internal functions aren't callable over the

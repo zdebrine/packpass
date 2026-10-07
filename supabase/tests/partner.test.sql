@@ -554,4 +554,37 @@ reset role;
 select p.ok((select not drop_off from class_types where id = (select a from p.drop)), 'turning a class into a private clears drop-off');
 select p.expect_error($$update class_types set drop_off = true where id = 'herding-assessment'$$, 'class_types_drop_off_classes_only');
 
+-- ---- Partner photo uploads --------------------------------------------------------------------------
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000c0b1', 'media@ridgeline.co');
+select public.link_partner_staff('media@ridgeline.co', 'ridgeline', 'owner', null);
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-00000000c0b1');
+insert into storage.objects (bucket_id, name) values ('partner-media', 'ridgeline/cover.jpg');
+select p.ok(exists (select 1 from storage.objects where name = 'ridgeline/cover.jpg'), 'staff upload to their own partner folder');
+select p.expect_error($$insert into storage.objects (bucket_id, name) values ('partner-media', 'eastside/cover.jpg')$$, 'row-level security');
+select public.partner_save_class('herding-fundamentals', (select to_jsonb(c) - 'image' || '{"image":"ridgeline/cover.jpg","clearance":""}' from class_types c where id = 'herding-fundamentals'));
+reset role;
+select p.ok((select image from class_types where id = 'herding-fundamentals') = 'ridgeline/cover.jpg', 'a class cover can be an upload');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-00000000c0b1');
+select p.expect_error($$select public.partner_save_class('herding-fundamentals', (select to_jsonb(c) - 'image' || '{"image":"eastside/cover.jpg","clearance":""}' from class_types c where id = 'herding-fundamentals'))$$, 'bad_photo');
+select public.partner_set_trainer_photo('maren', 'ridgeline/maren.jpg');
+select p.expect_error($$select public.partner_set_trainer_photo('maren', 'eastside/maren.jpg')$$, 'bad_photo');
+select p.expect_error($$select public.partner_set_trainer_photo('maren', 'ridgeline/../eastside/x.jpg')$$, 'bad_photo');
+select p.expect_error($$select public.partner_set_trainer_photo('sam', 'ridgeline/sam.jpg')$$, 'not_found');
+select p.expect_error($$select public.admin_remove_photo('herding-fundamentals')$$, 'not_admin');
+select p.expect_error($$select * from public.admin_partner_photos()$$, 'not_admin');
+delete from storage.objects where name = 'ridgeline/cover.jpg';
+reset role;
+select p.ok((select photo_url from trainers where id = 'maren') = 'ridgeline/maren.jpg', 'staff set a trainer photo');
+select p.ok(not exists (select 1 from storage.objects where name = 'ridgeline/cover.jpg'), 'staff delete their own files');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a6');
+select p.ok((select count(*) = 1 from public.admin_partner_photos() where kind = 'trainer' and id = 'maren'), 'admins see uploaded photos in use');
+select public.admin_remove_photo('herding-fundamentals', 'maren');
+reset role;
+select p.ok((select image is null from class_types where id = 'herding-fundamentals') and (select photo_url is null from trainers where id = 'maren'), 'an admin takes photos down');
+select p.expect_error($$update trainers set photo_url = 'eastside/x.jpg' where id = 'maren'$$, 'bad_photo');
+
 drop schema p cascade;

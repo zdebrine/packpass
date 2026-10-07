@@ -2,7 +2,7 @@
 // the Social path, so they're derived from app state instead of being fixed fixtures.
 
 import type { SocialStage } from '@/store/app';
-import type { ClearanceStatus, ClearanceType, PhotoKey } from './types';
+import type { ClearanceStatus, ClearanceType, PhotoKey, PhotoSource } from './types';
 
 export type IconName =
   | 'users' | 'trees' | 'zap' | 'fence' | 'trophy' | 'check' | 'arrow-right' | 'lock' | 'shield' | 'shield-check'
@@ -15,7 +15,7 @@ export interface Clearance {
   eyebrow: string;
   sub: string;
   facts: [string, string][];
-  unlocks: { icon: IconName; label: string; ex: string; photo: PhotoKey }[];
+  unlocks: { icon: IconName; label: string; ex: string; photo: PhotoSource }[];
   assessor?: string;
   strengths?: string[];
   working?: string[];
@@ -157,7 +157,7 @@ export interface PathTrainer {
   name: string;
   meta: string;
   tags: string[];
-  photo: PhotoKey;
+  photo: PhotoSource;
   /** Class to book with this trainer, if they're on PackPass. */
   classId?: string;
 }

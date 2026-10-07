@@ -1,5 +1,6 @@
 // After `vite build` and the SSR build, render each route into its HTML file so the copy is in the page
-// before any script runs. `/` goes into dist/index.html and `/partners` into dist/partners/index.html.
+// before any script runs. `/` goes into dist/index.html and `/partners` into dist/partners/index.html
+// (likewise /privacy, /terms and /support).
 // The copy comes from Sanity (src/content/sanity.ts), read once here; a publish in Sanity triggers a rebuild.
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -30,6 +31,9 @@ const share = content.site.shareImage.src;
 const PAGES = [
   { url: '/', file: 'index.html', title: content.site.ownerTitle },
   { url: '/partners', file: 'partners/index.html', title: content.site.partnerTitle },
+  { url: '/privacy', file: 'privacy/index.html', title: 'Privacy policy · PackPass' },
+  { url: '/terms', file: 'terms/index.html', title: 'Membership terms · PackPass' },
+  { url: '/support', file: 'support/index.html', title: 'Support · PackPass' },
 ];
 
 for (const { url, file, title } of PAGES) {

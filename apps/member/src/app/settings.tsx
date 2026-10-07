@@ -10,6 +10,7 @@ import { isLive } from '@/api/client';
 import { AccountSection } from '@/features/account/AccountSection';
 import { currentOrigin } from '@/lib/here';
 import { AREAS } from '@/lib/location';
+import { openSite } from '@/lib/site';
 import { useApp, type Appearance, useDog, useOriginLabel, usePlan } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -82,6 +83,13 @@ export default function Settings() {
         {locating === 'denied' ? (
           <Text variant="caption" muted style={{ marginBottom: 24 }}>Location is off for PackPass. Pick an area, or allow location in your settings.</Text>
         ) : null}
+
+        <Text variant="title" style={{ marginBottom: 6 }}>Help</Text>
+        <View style={{ gap: 8, marginBottom: 24 }}>
+          {([['Support', 'Questions about a booking, your plan or your account', '/support'], ['Membership terms', 'Plans, credits, cancelling and the waiver', '/terms'], ['Privacy policy', 'What we collect and how to delete it', '/privacy']] as const).map(([title, sub, path]) => (
+            <Row key={path} title={title} sub={sub} right={<Button size="sm" variant="quiet" fill={c.bg} onPress={() => openSite(path)}>Open</Button>} />
+          ))}
+        </View>
 
         {isLive ? null : (<>
         <Text variant="title">Preview states</Text>
