@@ -22,7 +22,7 @@
       "package": "com.packpass.member",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0e0f0e"
+        "backgroundColor": "#fefff0"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
