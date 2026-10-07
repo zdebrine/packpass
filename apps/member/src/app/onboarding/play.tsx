@@ -56,7 +56,7 @@ function PlayStyle() {
         </FieldGroup>
       </Body>
       <Footer>
-        <Button block onPress={() => router.push('/onboarding/traits')}>Continue</Button>
+        <Button block disabled={!d.social} onPress={() => router.push('/onboarding/traits')}>Continue</Button>
       </Footer>
     </Screen>
   );

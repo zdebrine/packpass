@@ -8,7 +8,6 @@ import { Text } from '@/ds/Text';
 import { BackButton, Body, Intro } from '@/features/onboarding/parts';
 import { isLive } from '@/api/client';
 import { errorCopy } from '@/api/errors';
-import { comingWithAccounts } from '@/lib/notice';
 import { openSite } from '@/lib/site';
 import { useApp } from '@/store/app';
 
@@ -31,11 +30,16 @@ function SignUp() {
       <View style={{ paddingTop: 6, paddingHorizontal: 20 }}><BackButton /></View>
       <Body top={20} gap={18}>
         <Intro eyebrow="Join PackPass" title="Create your account." />
-        <View style={{ gap: 8 }}>
-          <Button block onPress={() => (isLive ? comingWithAccounts('Sign up with Apple') : router.push('/onboarding/dog'))}>Continue with Apple</Button>
-          <Button variant="quiet" block onPress={() => (isLive ? comingWithAccounts('Sign up with Google') : router.push('/onboarding/dog'))}>Continue with Google</Button>
-        </View>
-        <Text variant="caption" muted center style={{ marginTop: 4 }}>Or use your email</Text>
+        {isLive ? null : (
+          // Sample data only: Apple and Google sign-in aren't built for live accounts yet (see sign-in.tsx).
+          <>
+            <View style={{ gap: 8 }}>
+              <Button block onPress={() => router.push('/onboarding/dog')}>Continue with Apple</Button>
+              <Button variant="quiet" block onPress={() => router.push('/onboarding/dog')}>Continue with Google</Button>
+            </View>
+            <Text variant="caption" muted center style={{ marginTop: 4 }}>Or use your email</Text>
+          </>
+        )}
         <Field label="Your name" value={draft.ownerName} onChangeText={(ownerName) => update({ ownerName })} autoComplete="name" textContentType="name" />
         <Field label="Email" value={draft.email} onChangeText={(email) => update({ email })} autoComplete="email" textContentType="emailAddress" keyboardType="email-address" autoCapitalize="none" />
         <View style={{ gap: 8 }}>

@@ -50,6 +50,27 @@ vaccines screen (Dog tab › Health and care › Update).
 sessions (spots reserved, no credits; stored on the server in live mode). Today's "Rest of Juno's month" card
 books them once she passes (Settings › Preview states › Pass re-check).
 
+## Store builds
+
+`eas.json` has three profiles. Builds use the committed `.env`, so every store build runs on the live PackPass
+project; sample data is for `npx expo start` with an empty `.env.local` only.
+
+- `development`: an iOS simulator build and an Android APK, for trying native features (camera, push, calendar).
+- `preview`: an internal build for real phones (registered iPhones, or an APK to sideload).
+- `production`: App Store and Play Store. Build numbers count up on their own (`appVersionSource: remote`).
+
+```sh
+npx eas-cli login
+npx eas-cli build --profile production --platform all
+npx eas-cli submit --profile production --platform ios      # TestFlight
+npx eas-cli submit --profile production --platform android  # Play internal testing, as a draft
+```
+
+The first build asks to create the EAS project and the Apple and Google signing credentials; let EAS manage them.
+On live builds the Apple and Google sign-in buttons and the Book map are hidden until they are built for real
+accounts; members sign in with email. Settings › Plan and credits opens Stripe's billing portal for the card on
+file and receipts (plans themselves are changed in the app).
+
 ## Layout
 
 - `src/app` routes (Expo Router), `src/ds` design system components, `src/theme` tokens,

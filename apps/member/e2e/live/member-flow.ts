@@ -47,6 +47,11 @@ const S = () => useApp.getState();
   await S().saveVaccines([{ type: 'Rabies', expires: iso }, { type: 'DHPP', expires: iso }, { type: 'Bordetella', expires: iso }], record('Clinic certificate.pdf'));
   // A photo picked in 01e (a JPEG data URI from pickDogPhoto) uploads when the dog is saved.
   const jpeg = (tag: string) => `data:image/jpeg;base64,${Buffer.from(`\xff\xd8 fake jpeg ${tag}`).toString('base64')}`;
+  // Live accounts start with a blank draft, so fill in onboarding (01e to 01h) the way an owner would.
+  S().updateDraft({
+    dogName: 'Juno', sex: 'Female', breed: 'Border Collie', birthMonth: 2, birthYear: 2023, weight: 38,
+    fixed: true, energy: 'working', social: 'Loves dogs', interests: ['Herding', 'Sprint', 'Scent'], traits: ['pulls', 'nervous_dogs'],
+  });
   S().updateDraft({ photo: { uri: jpeg('first') } });
   await S().finishOnboarding();
   ok(S().onboarded && S().dogs.length === 1 && S().dogs[0].name === 'Juno', 'onboarding saves the dog');

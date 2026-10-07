@@ -34,6 +34,18 @@ export async function pay(what: { plan: PlanKey } | 'credits', path: string): Pr
   return r.type === 'success' && r.url.includes('checkout=done') ? 'done' : 'cancel';
 }
 
+/**
+ * Opens Stripe's billing portal (card on file, receipts, billing email) and resolves when the member is back.
+ * On the web the page goes to Stripe and comes back with ?checkout=portal.
+ */
+export async function manageBilling(path: string) {
+  const url = await checkout({ action: 'portal', back: backTo(path) });
+  if (!url) return;
+  if (Platform.OS === 'web') { window.location.assign(url); return; }
+  await WebBrowser.openAuthSessionAsync(url, backTo(path));
+  await useApp.getState().refresh().catch(() => {});
+}
+
 /** After a payment: reloads until the webhook's credits or plan show up (a few seconds at most). */
 export async function settle() {
   const before = JSON.stringify([useApp.getState().credits, useApp.getState().membership]);

@@ -10,7 +10,7 @@ import type { PlanKey } from '@/data/types';
 import { Button, Tag } from '@/ds/controls';
 import { IconButton, Screen } from '@/ds/layout';
 import { Text } from '@/ds/Text';
-import { pay, settle } from '@/lib/checkout';
+import { manageBilling, pay, settle } from '@/lib/checkout';
 import { comingWithAccounts } from '@/lib/notice';
 import { useApp, usePlan } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -37,6 +37,7 @@ export default function PlanScreen() {
   useEffect(() => {
     if (params.checkout === 'done') thanks();
     else if (params.checkout === 'cancel') setNote({ ok: false, text: 'Checkout closed. Nothing was charged.' });
+    else if (params.checkout === 'portal') useApp.getState().refresh().catch(() => {});
   }, [params.checkout]);
 
   const run = async (key: string, fn: () => Promise<void>) => {
@@ -50,6 +51,7 @@ export default function PlanScreen() {
     if (r === 'switched') { await useApp.getState().refresh(); setNote({ ok: true, text: `You'll move to ${planOf(key).name} on ${onDay(m.renewsOn)}, with its credits.` }); }
   });
   const topUp = () => run('credits', async () => { if ((await pay('credits', '/plan')) === 'done') thanks(); });
+  const billing = () => run('billing', () => manageBilling('/plan'));
   const setCancel = (cancel: boolean) => run('cancel', async () => {
     await checkout({ action: cancel ? 'cancel' : 'resume' });
     await useApp.getState().refresh();
@@ -112,7 +114,10 @@ export default function PlanScreen() {
         </View>
 
         {paid ? (
-          <View style={{ marginTop: 24 }}>
+          <View style={{ marginTop: 24, gap: 8 }}>
+            <Button block variant="quiet" disabled={!!busy} onPress={billing}>
+              {busy === 'billing' ? 'Opening…' : m.status === 'past_due' ? 'Update your card' : 'Card and receipts'}
+            </Button>
             <Button block variant="quiet" disabled={!!busy} onPress={() => setCancel(!m.cancels)}>
               {busy === 'cancel' ? 'Saving…' : m.cancels ? 'Keep my plan' : 'Cancel plan'}
             </Button>

@@ -2,6 +2,7 @@
 //   member app (signed in): { action: 'plan', plan, back } subscribe, or switch plans from the next renewal
 //                           { action: 'credits', back }      a 2-credit top-up
 //                           { action: 'cancel' | 'resume' }  end the plan at the period end, or keep it
+//                           { action: 'portal', back }       Stripe's billing portal: card and receipts
 //   website (signed out):   { action: 'founding', email, back }  the Founding Pack (Starter, 2 bonus credits)
 // `back` is where Checkout returns: an https page, or the app's own scheme (packpass://, exp://), which goes
 // through a GET on this function because Stripe only redirects to web addresses.
@@ -11,13 +12,36 @@ import { admin, caller, cors, isPlan, json, planPrice, stripe, syncSubscription,
 const SELF = `${Deno.env.get('SUPABASE_URL')}/functions/v1/stripe-checkout`;
 const APP_SCHEMES = /^(packpass|exps?):\/\//;
 
-function returnUrl(back: unknown, outcome: 'done' | 'cancel'): string {
+function returnUrl(back: unknown, outcome: 'done' | 'cancel' | 'portal'): string {
   if (typeof back !== 'string') throw new Error('bad_back');
   const [base, hash] = back.split('#');
   const url = `${base}${base.includes('?') ? '&' : '?'}checkout=${outcome}${hash === undefined ? '' : `#${hash}`}`;
   if (/^https?:\/\//.test(back)) return url;
   if (APP_SCHEMES.test(back)) return `${SELF}?back=${encodeURIComponent(url)}`;
   throw new Error('bad_back');
+}
+
+/**
+ * The billing portal is for the card on file and past receipts only: plans are chosen, switched and cancelled in
+ * the app, which keeps credits and renewal dates in step. Created on first use, found again by its metadata.
+ */
+async function portalConfiguration(): Promise<string> {
+  const found = await stripe.billingPortal.configurations.list({ active: true, limit: 100 });
+  const ours = found.data.find((c) => c.metadata?.packpass === 'member');
+  if (ours) return ours.id;
+  const site = Deno.env.get('SITE_URL') ?? 'https://packpass-landing.vercel.app';
+  const created = await stripe.billingPortal.configurations.create({
+    business_profile: { headline: 'PackPass membership', privacy_policy_url: `${site}/privacy`, terms_of_service_url: `${site}/terms` },
+    features: {
+      payment_method_update: { enabled: true },
+      invoice_history: { enabled: true },
+      customer_update: { enabled: true, allowed_updates: ['email', 'address'] },
+      subscription_cancel: { enabled: false },
+      subscription_update: { enabled: false },
+    },
+    metadata: { packpass: 'member' },
+  });
+  return created.id;
 }
 
 async function customerFor(userId: string, email: string | undefined): Promise<{ customer: string; profile: Record<string, unknown> }> {
@@ -87,6 +111,13 @@ Deno.serve(async (req) => {
         line_items: [{ price, quantity: 1 }],
         subscription_data: { metadata: { member_id: user.id, plan } },
         success_url: returnUrl(body.back, 'done'), cancel_url: returnUrl(body.back, 'cancel'),
+      });
+      return json({ url: session.url });
+    }
+
+    if (action === 'portal') {
+      const session = await stripe.billingPortal.sessions.create({
+        customer, configuration: await portalConfiguration(), return_url: returnUrl(body.back, 'portal'),
       });
       return json({ url: session.url });
     }
