@@ -84,7 +84,8 @@
         {
           "locationWhenInUsePermission": "PackPass uses your location to show how far each class is from you."
         }
-      ]
+      ],
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true

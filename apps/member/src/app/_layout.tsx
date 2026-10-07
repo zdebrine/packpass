@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { isLive, supabase } from '@/api/client';
 import { setLiveClock } from '@/lib/clock';
+import { identify, wrap } from '@/lib/monitoring';
 import { usePush } from '@/lib/push';
 import { useApp } from '@/store/app';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
@@ -37,7 +38,7 @@ function WebFrame({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded] = useFonts({
     Geist_400Regular,
     Geist_500Medium,
@@ -57,7 +58,8 @@ export default function RootLayout() {
     if (!supabase) return;
     const refresh = () => useApp.getState().refresh().catch(() => useApp.setState({ ready: true }));
     refresh();
-    const { data } = supabase.auth.onAuthStateChange((event) => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      identify(session?.user.id ?? null);
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') refresh();
     });
     return () => data.subscription.unsubscribe();
@@ -88,3 +90,5 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+export default wrap(RootLayout);
