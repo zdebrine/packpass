@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
+import { isLive } from '@/api/client';
 import { catalog } from '@/data/catalog';
 import type { Category, SessionType } from '@/data/types';
 import { Chip, Tag } from '@/ds/controls';
@@ -21,6 +22,9 @@ import { useTheme } from '@/theme/ThemeProvider';
 const CATS: Category[] = ['Sport', 'Scent', 'Play', 'Skills'];
 const TYPES: SessionType[] = ['Class', 'Private', 'Assessment'];
 const HERO_CLASS = 'herding-livestock';
+// The map is a drawn sketch with pins placed for the five sample partners, so it only shows on sample data.
+// Live members get the list until a real map (react-native-maps and partner coordinates) is built.
+const MAP = !isLive;
 
 function Segmented({ value, onChange, float }: { value: 'List' | 'Map'; onChange: (v: 'List' | 'Map') => void; float?: boolean }) {
   const { c } = useTheme();
@@ -81,7 +85,7 @@ export default function Book() {
     return m;
   }, [day]);
 
-  if (mode === 'Map') {
+  if (MAP && mode === 'Map') {
     const p = catalog.partners[partnerId] ?? Object.values(catalog.partners)[0];
     const here = byPartner[partnerId] ?? [];
     const PINS: { id: string; left: number; top: number; label: (n: number) => string }[] = [
@@ -145,7 +149,7 @@ export default function Book() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 14, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
         <View style={{ paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text variant="displayXl" accessibilityRole="header">Book</Text>
-          <Segmented value="List" onChange={setMode} />
+          {MAP ? <Segmented value="List" onChange={setMode} /> : null}
         </View>
         <View style={{ paddingHorizontal: 20, marginTop: 18 }}>
           <Field value={query} onChangeText={setQuery} placeholder="Search classes, trainers, places" left={<Icon name="search" color={c.inkMuted} />} returnKeyType="search" />

@@ -13,6 +13,9 @@
       "bundleIdentifier": "com.packpass.member",
       "infoPlist": {
         "NSCameraUsageDescription": "PackPass uses the camera to scan the check-in code at a partner's entrance."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {

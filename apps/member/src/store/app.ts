@@ -50,11 +50,11 @@ const LEGACY_TRAITS: Record<string, string> = {
 };
 const legacyTraitId = (t: string) => LEGACY_TRAITS[t] ?? t;
 
-const DRAFT: OnboardingDraft = {
+const SAMPLE_DRAFT: OnboardingDraft = {
   ownerName: 'Alex Kim',
   email: 'alex@kim.co',
   dogName: 'Juno',
-  photo: isLive ? null : 'juno',
+  photo: 'juno',
   sex: 'Female',
   breed: 'Border Collie',
   mixed: false,
@@ -69,6 +69,12 @@ const DRAFT: OnboardingDraft = {
   area: 'Austin · South',
   traits: ['pulls', 'nervous_dogs'],
 };
+// Live accounts start blank: nothing about the sample member or Juno is filled in for a real owner. Birthday,
+// weight and energy keep a starting value for their pickers; "With other dogs" is left for the owner to choose,
+// since it decides which group classes fit.
+const DRAFT: OnboardingDraft = isLive
+  ? { ...SAMPLE_DRAFT, ownerName: '', email: '', dogName: '', photo: null, breed: '', fixed: false, energy: 'medium', social: '', interests: [], traits: [] }
+  : SAMPLE_DRAFT;
 
 interface Demo {
   social: SocialStage;

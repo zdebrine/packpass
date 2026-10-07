@@ -9,7 +9,6 @@ import { Text } from '@/ds/Text';
 import { isLive } from '@/api/client';
 import { errorCopy } from '@/api/errors';
 import { resendCode } from '@/api/live';
-import { comingWithAccounts } from '@/lib/notice';
 import { BackButton, Body, Intro } from '@/features/onboarding/parts';
 import { useApp } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -21,6 +20,10 @@ function TextLink({ children, onPress }: { children: string; onPress: () => void
     </Press>
   );
 }
+
+// Apple and Google sign-in aren't built for live accounts yet, so the buttons only show on sample data, where
+// they sign in as the sample member. Email and password is the only way in on a store build.
+const SOCIAL = !isLive;
 
 /** 01c Sign in. Live: Supabase email and password. Sample data: any email and a password of 8 or more characters. */
 function SignIn() {
@@ -52,7 +55,6 @@ function SignIn() {
     }
   };
   const social = async () => {
-    if (isLive) return comingWithAccounts('Sign in with Apple or Google');
     await signIn('alex@kim.co', 'sample-password');
     router.replace('/');
   };
@@ -71,11 +73,15 @@ function SignIn() {
         ) : null}
         <TextLink onPress={() => router.push('/reset')}>Forgot password</TextLink>
         <Button block disabled={busy} onPress={submit}>{busy ? 'Signing in…' : 'Sign in'}</Button>
-        <Text variant="caption" muted center style={{ marginTop: 6 }}>Or</Text>
-        <View style={{ gap: 8 }}>
-          <Button variant="quiet" block onPress={social}>Continue with Apple</Button>
-          <Button variant="quiet" block onPress={social}>Continue with Google</Button>
-        </View>
+        {SOCIAL ? (
+          <>
+            <Text variant="caption" muted center style={{ marginTop: 6 }}>Or</Text>
+            <View style={{ gap: 8 }}>
+              <Button variant="quiet" block onPress={social}>Continue with Apple</Button>
+              <Button variant="quiet" block onPress={social}>Continue with Google</Button>
+            </View>
+          </>
+        ) : null}
       </Body>
       <View style={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: bottom, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
         <Text variant="label" muted>New to PackPass? </Text>

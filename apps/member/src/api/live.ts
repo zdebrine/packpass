@@ -241,6 +241,7 @@ export async function startPath(dogId: string, pathId: string) {
 export type CheckoutRequest =
   | { action: 'plan'; plan: PlanKey; back: string }
   | { action: 'credits'; back: string }
+  | { action: 'portal'; back: string }
   | { action: 'cancel' | 'resume' };
 
 /** Starts a payment. Returns Stripe Checkout's URL, or nothing when the change needed no payment (switching plans). */
