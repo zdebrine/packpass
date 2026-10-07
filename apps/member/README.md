@@ -71,6 +71,14 @@ On live builds the Apple and Google sign-in buttons and the Book map are hidden 
 accounts; members sign in with email. Settings › Plan and credits opens Stripe's billing portal for the card on
 file and receipts (plans themselves are changed in the app).
 
+The icon, Android adaptive icon, splash mark and favicon in `assets/` are made from the PackPass paw in
+`assets/brand/app-icon.png` by `python3 scripts/make-icons.py`; replace that file and rerun to change them.
+
+Crash reports go to Sentry once `EXPO_PUBLIC_SENTRY_DSN` is set in `.env` (empty means off; reports carry the
+account id only). Source map upload is off in `eas.json` (`SENTRY_DISABLE_AUTO_UPLOAD`); to turn it on, add the
+Sentry organization and project to the `@sentry/react-native` plugin in `app.json`, put `SENTRY_AUTH_TOKEN` in
+the EAS project's secrets, and remove that line.
+
 ## Layout
 
 - `src/app` routes (Expo Router), `src/ds` design system components, `src/theme` tokens,
