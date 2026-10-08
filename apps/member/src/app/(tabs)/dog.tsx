@@ -113,9 +113,13 @@ function Section({ title, right, children }: { title: string; right?: React.Reac
   );
 }
 
+const STAGES = ['Puppy', 'Prime', 'Senior'];
+
 /** 08 Dog profile · Passport */
 export default function DogProfile() {
   const juno = useDog();
+  // Under a year old reads 'Puppy' as the age with no stage; no birthday means no stage to show.
+  const stageAt = juno.age === 'Puppy' ? 0 : STAGES.indexOf(juno.stage);
   const { c } = useTheme();
   const draftTraits = useApp((s) => s.draft.traits);
   useTraits(); // re-render with the catalog's labels once it loads
@@ -239,28 +243,35 @@ export default function DogProfile() {
               );
             })}
           </View>
-          <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 14, marginTop: 8 }}>
-            {[['Allergies', 'Chicken'], ['Medication', 'None'], ['Triggers', 'Nervous around men in hats']].map(([k, v]) => (
-              <View key={k}>
-                <Text variant="caption" muted>{k}</Text>
-                <Text variant="label" weight="600">{v}</Text>
+          {/* Care notes are sample content: members can't enter them yet, so live builds leave them out. */}
+          {isLive ? null : (
+            <>
+              <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 14, marginTop: 8 }}>
+                {[['Allergies', 'Chicken'], ['Medication', 'None'], ['Triggers', 'Nervous around men in hats']].map(([k, v]) => (
+                  <View key={k}>
+                    <Text variant="caption" muted>{k}</Text>
+                    <Text variant="label" weight="600">{v}</Text>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
-          <Text variant="caption" muted style={{ marginTop: 10, marginHorizontal: 4 }}>Vet: Cedar Animal Clinic · (555) 014-2290</Text>
+              <Text variant="caption" muted style={{ marginTop: 10, marginHorizontal: 4 }}>Vet: Cedar Animal Clinic · (555) 014-2290</Text>
+            </>
+          )}
         </Section>
 
-        <Section title="Life stage">
-          <View style={{ flexDirection: 'row', gap: 4 }}>
-            {[['Puppy', true, false], ['Prime · now', true, true], ['Senior', false, false]].map(([l, on, now]) => (
-              <View key={l as string} style={{ flex: 1 }}>
-                <View style={{ height: 6, borderRadius: 9999, backgroundColor: on ? c.ink : c.surfaceSunken }} />
-                <Text variant="caption" muted={!now} weight={now ? '600' : undefined} style={{ marginTop: 8 }}>{l as string}</Text>
-              </View>
-            ))}
-          </View>
-          <Text variant="label" muted style={{ marginTop: 12 }}>Senior starts around age 8. Programming shifts to swim, scent work and slow walks.</Text>
-        </Section>
+        {stageAt >= 0 ? (
+          <Section title="Life stage">
+            <View style={{ flexDirection: 'row', gap: 4 }}>
+              {STAGES.map((l, i) => (
+                <View key={l} style={{ flex: 1 }}>
+                  <View style={{ height: 6, borderRadius: 9999, backgroundColor: i <= stageAt ? c.ink : c.surfaceSunken }} />
+                  <Text variant="caption" muted={i !== stageAt} weight={i === stageAt ? '600' : undefined} style={{ marginTop: 8 }}>{i === stageAt ? `${l} · now` : l}</Text>
+                </View>
+              ))}
+            </View>
+            <Text variant="label" muted style={{ marginTop: 12 }}>Senior starts around age 8. Programming shifts to swim, scent work and slow walks.</Text>
+          </Section>
+        ) : null}
 
         <View style={{ marginTop: 32, paddingHorizontal: 20, gap: 10 }}>
           <Button block onPress={() => Share.share({ message: `${juno.name}'s PackPass Passport: clearances, vaccines and care notes.` }).catch(() => {})}>Share Passport with a partner</Button>

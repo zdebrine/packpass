@@ -132,7 +132,13 @@ Expo with `--clear` (Metro caches env values).
   reaching another's data, and each dashboard function). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
   PostgREST, with a stand-in for Supabase Auth and Storage: 93 checks, from sign-up with a dog photo and vet record to a password reset, account settings and deleting the account.
-- Both run on every pull request and push to `main` in GitHub Actions (`.github/workflows/ci.yml`), next to
+- `e2e/run.sh` — screen tests (Playwright, Chromium): builds the member app for web, the partner dashboard and
+  the website against that same local stack and clicks through them. A new member signs up, onboards a dog, adds
+  vaccines, books and cancels; a returning member signs in; a partner checks a dog in and uploads a trainer photo;
+  the website's founding pack and partner lead forms save. Any request to the live project or Stripe fails the test.
+  Locally: `PGHOST=… PGPORT=… PGUSER=postgres e2e/run.sh` (PostgREST from Docker, or set `POSTGREST_BIN`; set
+  `PW_CHROMIUM` to use a Chromium you already have).
+- All three run on every pull request and push to `main` in GitHub Actions (`.github/workflows/ci.yml`), next to
   typecheck, lint and a build of each app. CI uses a throwaway Postgres in the runner, never the hosted project.
 
 ## The hosted project
