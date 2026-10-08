@@ -1,5 +1,5 @@
 # Runs on every pull request and on main. Nothing here touches the live Supabase project, Stripe or email:
-# the database tests and the member flow run against a throwaway Postgres in the runner.
+# the database tests, the member flow and the screen tests (e2e/) run against a throwaway Postgres in the runner.
 name: CI
 
 on:
@@ -76,3 +76,53 @@ jobs:
         working-directory: apps/member
       - name: Member flow (the app's store and API code against PostgREST)
         run: apps/member/e2e/live/run.sh
+
+  screens:
+    name: Screen tests (member app, partner dashboard, website)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install psql
+        run: sudo apt-get update -q && sudo apt-get install -yq postgresql-client
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            apps/member/package-lock.json
+            apps/partner/package-lock.json
+            apps/web/package-lock.json
+            e2e/package-lock.json
+      - run: npm ci
+        working-directory: apps/member
+      - run: npm ci
+        working-directory: apps/partner
+      - run: npm ci
+        working-directory: apps/web
+      - run: npm ci && npx playwright install --with-deps chromium
+        working-directory: e2e
+      - name: Build the three apps against a local database and click through them
+        run: e2e/run.sh
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: screen-test-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+            e2e/*.log
+            e2e/.out/*.log
+          retention-days: 7

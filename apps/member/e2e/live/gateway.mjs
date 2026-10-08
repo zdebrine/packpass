@@ -82,6 +82,17 @@ async function storage(req, res, p, url) {
 
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
+  // The browser screen tests (e2e/) call this from other local ports, as the apps call Supabase.
+  res.setHeader('access-control-allow-origin', '*');
+  res.setHeader('access-control-expose-headers', 'content-range, content-profile');
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'access-control-allow-methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
+      'access-control-allow-headers': req.headers['access-control-request-headers'] || '*',
+      'access-control-max-age': '600',
+    });
+    return res.end();
+  }
   if (url.pathname.startsWith('/rest/v1')) {
     const target = 'http://127.0.0.1:3011' + url.pathname.slice('/rest/v1'.length) + url.search;
     const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await new Promise((r) => { const ch = []; req.on('data', (c) => ch.push(c)); req.on('end', () => r(Buffer.concat(ch))); });
