@@ -14,7 +14,7 @@ import { Glass, HeroScrim, Photo, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { MapSketch } from '@/features/MapSketch';
 import { HeldPlan } from '@/features/today/HeldPlan';
-import { activeBookings, bookError, bookingFor, credits as creditsLabel, nextSession, timeLabel } from '@/lib/booking';
+import { activeBookings, bookError, bookingFor, checkInClosesAt, credits as creditsLabel, nextSession, timeLabel } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { monthDay, relativeDay, time, weekday } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
@@ -38,7 +38,7 @@ export default function Today() {
   const notes = useNotifications();
   const canBook = (id: string) => !bookError(id, juno.id, rules);
 
-  const upcoming = activeBookings(bookings).filter((x) => x.booking.status === 'booked' && x.v.session.startsAt >= now());
+  const upcoming = activeBookings(bookings).filter((x) => x.booking.status === 'booked' && checkInClosesAt(x.v.session.startsAt) >= now());
   const upNext = upcoming[0];
   const unread = notes.some((n) => n.isNew && !read.includes(n.id));
   const goal = useGoals().goals.find((g) => !isComplete(g));

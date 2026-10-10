@@ -130,6 +130,11 @@ export const activeBookings = (bookings: Booking[]) =>
 export const bookingFor = (bookings: Booking[], sessionId: string) =>
   bookings.find((b) => b.sessionId === sessionId && b.status !== 'cancelled');
 
+/** Check-in closes this many minutes after the start (check_in); after that a booking nobody checked in is missed. */
+export const CHECK_IN_CLOSES_MIN = 15;
+/** When check-in closes for a session starting at `startsAt`. */
+export const checkInClosesAt = (startsAt: Date) => new Date(startsAt.getTime() + CHECK_IN_CLOSES_MIN * 60_000);
+
 /** Credits a cancellation gives back: all of them until 12 hours before the start, none after (cancel_booking). */
 export const cancelRefund = (startsAt: Date, credits: number, at = now()) =>
   startsAt.getTime() - at.getTime() >= 12 * 3_600_000 ? credits : 0;

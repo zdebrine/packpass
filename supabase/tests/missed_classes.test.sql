@@ -59,5 +59,27 @@ update bookings set status = 'checked_in', checked_in_at = now() where id = (sel
 select m.ok(not exists (select 1 from notifications where kind = 'class_missed' and member_id = '00000000-0000-0000-0000-0000000000d1'),
             'checking in afterwards takes the notification back');
 
+-- Check-in closes 15 minutes after the start (…_check_in_closes.sql).
+create table m.code as select b.id booking, s.id session, s.check_in_code code
+from bookings b join sessions s on s.id = b.session_id where b.id = (select id from m.b where k = 'just_ended');
+grant select on m.code to authenticated;
+update sessions set starts_at = now() - interval '20 minutes' where id = (select session from m.code);
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d1', false);
+do $$ begin
+  perform public.check_in((select booking from m.code), (select code from m.code));
+  raise exception 'FAILED: checked in 20 minutes after the start';
+exception when others then
+  if sqlerrm <> 'too_late' then raise; end if;
+  raise notice 'ok: check-in is closed 20 minutes after the start';
+end $$;
+reset role;
+update sessions set starts_at = now() - interval '10 minutes' where id = (select session from m.code);
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d1', false);
+select public.check_in((select booking from m.code), (select code from m.code));
+select m.ok((select status from bookings where id = (select booking from m.code)) = 'checked_in', 'and open 10 minutes after');
+reset role;
+
 drop schema m cascade;
 delete from auth.users where id = '00000000-0000-0000-0000-0000000000d1';

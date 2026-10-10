@@ -69,6 +69,8 @@ Schema, security rules and booking logic for the member app. It's deployed to th
 - `migrations/…_missed_classes.sql` — `mark_no_shows` (hourly by pg_cron, `mark-no-shows`) turns a booking nobody
   checked in or cancelled into a no-show two hours after the session ends and tells the owner (the app's Missed
   class screen). Checking the dog in afterwards undoes it; `my_log` lists missed classes, marked `missed`.
+- `migrations/…_check_in_closes.sql` — member check-in (`check_in`) closes 15 minutes after the start instead of at
+  the end; partners can still check a dog in from the roster.
 - `migrations/…_path_progress.sql` — training path progress. Checking a dog in to its current step's class (QR
   scan or the partner's roster) completes the step, records the date in `dog_path_steps` and tells the owner; a
   session note counts as a check-in. Assessment steps only finish with a pass. `my_paths(dog)` lists every path

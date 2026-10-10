@@ -17,7 +17,7 @@ const COPY: Record<string, string> = {
   wrong_code: 'That code doesn\'t match this session. Check the sign at the entrance.',
   wrong_session: 'That code is for a different session.',
   too_early: 'Check-in opens an hour before the start.',
-  too_late: 'This session has ended.',
+  too_late: 'Check-in closed 15 minutes after the start.',
   not_booked: 'There\'s no booking to check in to.',
   too_soon: 'Spots can only be held until the day before a session.',
   weak_password: 'Use at least 8 characters.',

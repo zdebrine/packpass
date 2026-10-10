@@ -14,7 +14,7 @@ import { IconButton, Screen, useTop, themed } from '@/ds/layout';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { QrArt } from '@/features/QrArt';
-import { activeBookings } from '@/lib/booking';
+import { activeBookings, checkInClosesAt } from '@/lib/booking';
 import { startsCopy } from '@/lib/dates';
 import { useApp } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -50,7 +50,7 @@ function Scan() {
   const handled = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
-  const upcoming = activeBookings(bookings).filter((x) => x.booking.status === 'booked' && x.v.session.startsAt >= now());
+  const upcoming = activeBookings(bookings).filter((x) => x.booking.status === 'booked' && checkInClosesAt(x.v.session.startsAt) >= now());
   const target = upcoming.find((x) => x.booking.id === bookingId) ?? upcoming[0];
 
   useEffect(() => {
