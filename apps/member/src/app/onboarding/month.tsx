@@ -162,7 +162,7 @@ function Month() {
                   <Text variant="caption" muted>{`${r.v.partner.name} · ${creditsLabel(r.v.cls.credits)}`}</Text>
                   {payoff(r.v.cls.discipline) ? <Text variant="caption" muted>{`"${payoff(r.v.cls.discipline)}"`}</Text> : null}
                   {r.block ? (
-                    <View style={{ flexDirection: 'row', marginTop: 6 }}><Pill tone="muted" icon={r.block === 'vaccines' ? 'syringe' : 'shield'}>{SHORT[r.block] ? SHORT[r.block].charAt(0).toUpperCase() + SHORT[r.block].slice(1) : r.block}</Pill></View>
+                    <View style={{ flexDirection: 'row', marginTop: 6 }}><Pill tone="muted" icon={r.block === 'vaccines' || r.block === 'records_denied' ? 'syringe' : 'shield'}>{SHORT[r.block] ? SHORT[r.block].charAt(0).toUpperCase() + SHORT[r.block].slice(1) : r.block}</Pill></View>
                   ) : r.after ? (
                     <View style={{ flexDirection: 'row', marginTop: 6 }}><Pill tone="muted" icon="lock">Opens after the assessment</Pill></View>
                   ) : r.v.cls.grants === 'social' ? (

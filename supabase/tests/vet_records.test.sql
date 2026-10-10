@@ -55,6 +55,7 @@ select v.as_user('00000000-0000-0000-0000-0000000000c1');
 select v.ok((select status = 'denied' and reason like 'The rabies date%' from vet_record_reviews), 'the member sees the denial and why');
 select v.ok((select kind = 'records_denied' and href = '/onboarding/records-denied' from notifications where kind like 'records_%'), 'and gets a notification');
 select v.ok(not (select bool_or(verified) from vaccinations), 'denied vaccines stay unchecked');
+select v.expect_error($$select public.book_session((select id from sessions where class_id = 'calm-private' and starts_at > now() + interval '1 day' order by starts_at limit 1), (select pip from v.ids))$$, 'records_denied');
 
 select v.as_user('00000000-0000-0000-0000-0000000000c2');
 select v.ok(not exists (select 1 from vet_record_reviews), 'other members can''t see the review');
@@ -63,6 +64,7 @@ select v.ok(not exists (select 1 from vet_record_reviews), 'other members can''t
 select v.as_user('00000000-0000-0000-0000-0000000000c1');
 update vaccinations set document_path = '00000000-0000-0000-0000-0000000000c1/' || (select pip from v.ids) || '/1760000100000-new.pdf';
 select v.ok(not exists (select 1 from vet_record_reviews), 'a new upload clears the denial');
+select v.ok(public.booking_block((select pip from v.ids), (select id from sessions where class_id = 'calm-private' and starts_at > now() + interval '1 day' order by starts_at limit 1)) is null, 'and the dog can book again');
 select v.as_user('00000000-0000-0000-0000-0000000000c9');
 select v.ok((select status = 'pending' from public.admin_vet_records() where dog_id = (select pip from v.ids)), 'and it waits for review again');
 select public.admin_decide_vet_record((select pip from v.ids), true);

@@ -246,13 +246,14 @@ function localIso(d: Date) {
 }
 
 /** The booking rules' view of the store (see src/lib/booking.ts). */
-export function ruleContext(s: Pick<AppState, 'social' | 'socialExpired' | 'activePaths' | 'herdingAt' | 'vaccines' | 'credits' | 'bookings'>): RuleContext {
+export function ruleContext(s: Pick<AppState, 'social' | 'socialExpired' | 'activePaths' | 'herdingAt' | 'vaccines' | 'vaccineRecord' | 'credits' | 'bookings'>): RuleContext {
   const first = s.vaccines.length >= 3 ? s.vaccines.map((v) => v.expires).sort()[0] : null;
   const [y, m, d] = (first ?? '').split('-').map(Number);
   return {
     hasSocial: s.social !== 'working' && !s.socialExpired,
     herdingAt: s.herdingAt,
     pathClasses: s.activePaths.flatMap((p) => PATH_CLASSES[p]),
+    recordsDenied: s.vaccineRecord?.review?.status === 'denied',
     vaccinesUntil: first ? new Date(y, m - 1, d) : null,
     credits: s.credits,
     bookings: s.bookings,
