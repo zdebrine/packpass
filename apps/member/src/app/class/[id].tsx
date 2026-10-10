@@ -11,7 +11,7 @@ import { Photo, PhotoFill, Gradient } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { WaitlistActions } from '@/features/book/Waitlist';
 import { MapSketch } from '@/features/MapSketch';
-import { assessmentFor, bookingFor, cancelRefund, credits as creditsLabel, eligibility, view } from '@/lib/booking';
+import { assessmentFor, bookingFor, cancelRefund, checkInClosesAt, credits as creditsLabel, eligibility, view } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { cancelCopy, dayTime, monthDay } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
@@ -227,7 +227,9 @@ export default function ClassDetail() {
               <Button block variant="quiet" disabled>Checked in</Button>
             ) : (
               <>
-                <Button block onPress={() => router.push(`/check-in/scan?booking=${booking.id}`)}>Check in</Button>
+                {checkInClosesAt(session.startsAt) < now()
+                  ? <Button block variant="quiet" disabled>Check-in closed</Button>
+                  : <Button block onPress={() => router.push(`/check-in/scan?booking=${booking.id}`)}>Check in</Button>}
                 {started ? null : (
                   <Press onPress={() => { setNotice(null); setConfirming(true); }} scale={false} accessibilityRole="button" style={{ alignSelf: 'center', paddingVertical: 4 }}>
                     <Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Cancel booking</Text>

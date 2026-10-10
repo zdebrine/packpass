@@ -8,7 +8,7 @@ import { Icon, type IconName } from '@/ds/Icon';
 import { Badge, IconButton, Screen, themed, useBottom, useTop } from '@/ds/layout';
 import { Gradient, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
-import { credits as creditsLabel } from '@/lib/booking';
+import { checkInClosesAt, credits as creditsLabel } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { addMinutes, dayOffset, monthDay, time, weekday } from '@/lib/dates';
 import { openSite } from '@/lib/site';
@@ -60,8 +60,8 @@ function MissedClass() {
   const e = found ?? (!isLive && id === 'sample' ? sampleMissed(dog.id) : null);
   if (!e) return <Redirect href="/" />;
 
-  // Check-in closes when the class ends (check_in); free cancellation 12 hours before it starts (cancel_booking).
-  const checkInClosed = addMinutes(e.startsAt, e.durationMin);
+  // Check-in closes 15 minutes after the start (check_in); free cancellation 12 hours before it (cancel_booking).
+  const checkInClosed = checkInClosesAt(e.startsAt);
   const windowClosed = addMinutes(e.startsAt, -12 * 60);
   const done = (to?: '/book') => {
     see(e.bookingId);
