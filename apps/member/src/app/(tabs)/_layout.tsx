@@ -7,7 +7,7 @@ import { useBottom } from '@/ds/layout';
 import { Press } from '@/ds/Press';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
-import { useApp, useDog } from '@/store/app';
+import { useApp, useDog, useUnseenRecordDenial } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const TABS: { name: string; label: string; icon?: IconName }[] = [
@@ -59,7 +59,10 @@ function TabBar({ state, navigation }: BottomTabBarProps) {
 
 export default function TabsLayout() {
   const onboarded = useApp((s) => s.onboarded);
+  const denied = useUnseenRecordDenial();
   if (!onboarded) return <Redirect href="/welcome" />;
+  // PackPass denied the vet record: show why before anything else, once per denial.
+  if (denied) return <Redirect href="/onboarding/records-denied" />;
   return (
     <Tabs tabBar={(p) => <TabBar {...p} />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index" />

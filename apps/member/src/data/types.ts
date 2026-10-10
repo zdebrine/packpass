@@ -167,6 +167,8 @@ export interface PickedDoc {
 export interface VaccineRecord {
   name: string;
   verified: boolean;
+  /** PackPass's decision on this record; none while it waits for review. */
+  review?: { status: 'approved' | 'denied'; reason: string | null; decidedAt: string };
 }
 
 export type ClearanceStatus = 'cleared' | 'expired' | 'working' | 'needs';
