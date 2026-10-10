@@ -205,7 +205,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     vaccines: vax.map((v) => ({ type: ({ rabies: 'Rabies', dhpp: 'DHPP', bordetella: 'Bordetella' } as const)[v.type as 'rabies'], expires: v.expires_on })),
     notifications: notes.map((n): Notif => ({
       id: n.id,
-      icon: n.kind === 'records_denied' ? 'shield-alert' : n.kind === 'path_step' ? 'check' : n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : n.kind === 'waitlist_booked' ? 'calendar-check' : n.kind.startsWith('waitlist') || n.kind.startsWith('hold') ? 'clock' : 'message-square',
+      icon: n.kind === 'records_denied' ? 'shield-alert' : n.kind === 'class_missed' ? 'calendar-x' : n.kind === 'path_step' ? 'check' : n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : n.kind === 'waitlist_booked' ? 'calendar-check' : n.kind.startsWith('waitlist') || n.kind.startsWith('hold') ? 'clock' : 'message-square',
       tone: n.kind === 'clearance_earned' ? 'clr' : n.kind === 'path_step' ? 'path' : 'n',
       title: n.title, body: n.body, time: relTime(n.created_at),
       cat: cap(n.category), isNew: Date.now() - new Date(n.created_at).getTime() < 3 * 86_400_000 || !n.read_at,
@@ -302,7 +302,7 @@ export async function loadLog(): Promise<LogEntry[]> {
   return rows.map((r) => ({
     bookingId: r.booking_id, dogId: r.dog_id, startsAt: new Date(r.starts_at), durationMin: r.duration_min, classId: r.class_id,
     title: r.title, image: photo(r.image, 'dog_and_owner_chilling'), balance: r.balance, partner: r.partner_name, trainer: r.trainer_name,
-    note: r.note, skills: r.skills ?? [], noteBy: r.note_by,
+    note: r.note, skills: r.skills ?? [], noteBy: r.note_by, missed: !!r.missed, credits: r.credits ?? 0,
     assessment: r.outcome
       ? { type: r.assessed, outcome: r.outcome, quote: r.quote, strengths: r.strengths ?? [], workingOn: r.working_on ?? [], assessor: r.assessor }
       : null,

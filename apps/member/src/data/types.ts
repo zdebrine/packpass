@@ -154,6 +154,9 @@ export interface LogEntry {
     workingOn: string[];
     assessor: string;
   } | null;
+  /** Nobody checked the dog in or cancelled in time, so the credits were used (a no-show). */
+  missed: boolean;
+  credits: number;
 }
 
 /** A picked vet record, ready to show and upload: a data URI with its original name and type. */
