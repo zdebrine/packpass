@@ -14,7 +14,7 @@ import { Text } from '@/ds/Text';
 import { bookError, credits as creditsLabel, sessionOn } from '@/lib/booking';
 import { time, weekday } from '@/lib/dates';
 import { enablePush } from '@/lib/push';
-import { useApp, usePlan, useRules } from '@/store/app';
+import { activeDogId, useApp, usePlan, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const TARGET = { Physical: 2, Mental: 2, Social: 2 };
@@ -38,6 +38,8 @@ function Month() {
   const finish = useApp((s) => s.finishOnboarding);
   const bookMany = useApp((s) => s.bookMany);
   const holdSessions = useApp((s) => s.holdSessions);
+  const adding = useApp((s) => s.addingDog);
+  const balance0 = useApp((s) => s.credits);
   const rules = useRules();
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<Result[] | null>(null);
@@ -61,7 +63,8 @@ function Month() {
   });
   const planned = rows.filter((r) => r.v);
   const used = planned.reduce((n, r) => n + r.v!.cls.credits, 0);
-  const left = tier.credits - used;
+  // Another dog's month comes out of what the account has left this month, not a fresh plan's worth.
+  const left = (adding ? balance0 : tier.credits) - used;
   const balance = (Object.keys(TARGET) as (keyof typeof TARGET)[]).map((k) => ({
     label: k,
     pct: planned.filter((r) => r.v!.cls.balance === k).length / TARGET[k],
@@ -80,7 +83,8 @@ function Month() {
     try {
       await finish();
       if (!book) return router.replace('/');
-      const dogId = useApp.getState().dogs[0]?.id;
+      // The dog just saved (finishOnboarding makes it the one showing).
+      const dogId = activeDogId(useApp.getState())!;
       // Book what's open now, hold what waits on the assessment, and report the rest with their reason.
       const now = planned.filter((r) => !r.after && !r.block);
       const later = planned.filter((r) => r.after);
@@ -177,7 +181,7 @@ function Month() {
 
         <View style={{ gap: 10, marginTop: 16, padding: 16, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-            <Text variant="label" weight="600">{`${used} of ${tier.credits} credits on ${tier.name}`}</Text>
+            <Text variant="label" weight="600">{adding ? `${used} of the ${balance0} credits left this month` : `${used} of ${tier.credits} credits on ${tier.name}`}</Text>
             <Text variant="caption" muted>{`${left} ${left === 1 ? 'credit' : 'credits'} left for anything`}</Text>
           </View>
           {balance.map((b) => (

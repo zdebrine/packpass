@@ -27,7 +27,11 @@ const iso = (y: number, m: number) => `${y}-${String(m + 1).padStart(2, '0')}-${
  */
 export default function Vaccines() {
   const { c } = useTheme();
-  const dog = useDog();
+  const active = useDog();
+  // Adding another dog: the dates and record are for the new dog, saved with it at the end of onboarding.
+  const adding = useApp((s) => s.addingDog);
+  const draftName = useApp((s) => s.draft.dogName.trim());
+  const dog = adding ? { ...active, name: draftName || 'Your dog' } : active;
   const saved = useApp((s) => s.vaccines);
   const record = useApp((s) => s.vaccineRecord);
   const [doc, setDoc] = useState<PickedDoc | null>(null);

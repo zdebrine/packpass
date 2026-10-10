@@ -2,7 +2,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { isLive } from '@/api/client';
 import { errorCopy } from '@/api/errors';
 
 import { TRAIT_GROUP_LABELS, TRAIT_SPECIAL } from '@/data/fixtures';
@@ -26,9 +25,9 @@ function Traits() {
   const saveTraits = useApp((s) => s.saveTraits);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Editing from the Passport starts from what's saved on the dog (live mode), not an old draft.
+  // Editing from the Passport starts from what's saved on the dog that's showing, not an old draft.
   useEffect(() => {
-    if (edit && isLive && dog.traits) updateDraft({ traits: dog.traits });
+    if (edit && dog.traits) updateDraft({ traits: dog.traits });
   }, [edit, dog.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const save = async () => {
     setBusy(true); setError(null);

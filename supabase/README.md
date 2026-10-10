@@ -69,6 +69,10 @@ Schema, security rules and booking logic for the member app. It's deployed to th
 - `migrations/…_missed_classes.sql` — `mark_no_shows` (hourly by pg_cron, `mark-no-shows`) turns a booking nobody
   checked in or cancelled into a no-show two hours after the session ends and tells the owner (the app's Missed
   class screen). Checking the dog in afterwards undoes it; `my_log` lists missed classes, marked `missed`.
+- `migrations/…_multi_dog.sql` — more than one dog per member (docs/MULTI_DOG_SPEC.md). The tables were already
+  per dog; this adds the dog to the links in notifications that open one dog's screen (`dog_href`, `?dog=<id>`):
+  Clearance earned, held spots released, an assessment's "not yet", a path step, and vet record decisions.
+  Undoing a check-in takes back a path-step notification with or without the dog in its link.
 - `migrations/…_check_in_closes.sql` — member check-in (`check_in`) closes 15 minutes after the start instead of at
   the end; partners can still check a dog in from the roster.
 - `migrations/…_path_progress.sql` — training path progress. Checking a dog in to its current step's class (QR
@@ -133,13 +137,14 @@ Expo with `--clear` (Metro caches env values).
 
 - `supabase/tests/run-local.sh` — applies everything to a scratch database on plain Postgres (with a small
   shim for `auth` and `storage`) and runs `booking.test.sql` (104 checks: each rule, credits, holds, reminders,
-  the waitlist, RLS and storage policies) and `partner.test.sql` (168 checks: staff access, teams and invites, one partner never
-  reaching another's data, and each dashboard function). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
+  the waitlist, RLS and storage policies) `partner.test.sql` (168 checks: staff access, teams and invites, one partner never
+  reaching another's data, and each dashboard function) and `multi_dog.test.sql` (one owner, two dogs: each books
+  on its own records from the shared credits, holds and the waitlist per dog, links that name the dog). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
-  PostgREST, with a stand-in for Supabase Auth and Storage: 93 checks, from sign-up with a dog photo and vet record to a password reset, account settings and deleting the account.
+  PostgREST, with a stand-in for Supabase Auth and Storage: 117 checks, from sign-up with a dog photo and vet record to adding a second dog, a password reset, account settings and deleting the account.
 - `e2e/run.sh` — screen tests (Playwright, Chromium): builds the member app for web, the partner dashboard and
   the website against that same local stack and clicks through them. A new member signs up, onboards a dog, adds
-  vaccines, books and cancels; a returning member signs in; a partner checks a dog in and uploads a trainer photo;
+  vaccines, books and cancels; a returning member signs in; a member adds a second dog and switches between them; a partner checks a dog in and uploads a trainer photo;
   the website's founding pack and partner lead forms save. Any request to the live project or Stripe fails the test.
   Locally: `PGHOST=… PGPORT=… PGUSER=postgres e2e/run.sh` (PostgREST from Docker, or set `POSTGREST_BIN`; set
   `PW_CHROMIUM` to use a Chromium you already have).

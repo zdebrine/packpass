@@ -247,6 +247,12 @@ export const JUNO_VACCINES = [
   { type: 'DHPP', expires: new Date(2027, 0, 31) },
   { type: 'Bordetella', expires: new Date(2026, 9, 14) },
 ];
+/** Otis's, all current (sample mode's second dog). */
+export const OTIS_VACCINES = [
+  { type: 'Rabies', expires: new Date(2028, 5, 30) },
+  { type: 'DHPP', expires: new Date(2027, 5, 30) },
+  { type: 'Bordetella', expires: new Date(2027, 2, 31) },
+] as const;
 
 // ---- Today ---------------------------------------------------------------------------------
 

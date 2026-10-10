@@ -65,8 +65,9 @@ export function useGoals(): { goals: Goal[]; available: Goal[] } {
   const paths = useApp((s) => s.paths);
   const log = useApp((s) => s.log);
   const dog = useDog();
-  if (!isLive || !paths) return { goals: sampleGoals(social), available: [] };
-  const all = paths.map((p) => liveGoal(p, dog.name, log ?? []));
+  // Sample mode's paths are the designs' Juno; another sample dog hasn't started any.
+  if (!isLive || !paths) return dog.id === 'juno' ? { goals: sampleGoals(social), available: [] } : { goals: [], available: [] };
+  const all = paths.map((p) => liveGoal(p, dog.name, (log ?? []).filter((e) => e.dogId === dog.id)));
   return { goals: all.filter((g) => g.started), available: all.filter((g) => !g.started) };
 }
 

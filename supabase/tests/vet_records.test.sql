@@ -53,7 +53,7 @@ select v.ok((select status = 'denied' from public.admin_vet_records() where dog_
 
 select v.as_user('00000000-0000-0000-0000-0000000000c1');
 select v.ok((select status = 'denied' and reason like 'The rabies date%' from vet_record_reviews), 'the member sees the denial and why');
-select v.ok((select kind = 'records_denied' and href = '/onboarding/records-denied' from notifications where kind like 'records_%'), 'and gets a notification');
+select v.ok((select kind = 'records_denied' and href = '/onboarding/records-denied?dog=' || (select pip from v.ids) from notifications where kind like 'records_%'), 'and gets a notification');
 select v.ok(not (select bool_or(verified) from vaccinations), 'denied vaccines stay unchecked');
 select v.expect_error($$select public.book_session((select id from sessions where class_id = 'calm-private' and starts_at > now() + interval '1 day' order by starts_at limit 1), (select pip from v.ids))$$, 'records_denied');
 
