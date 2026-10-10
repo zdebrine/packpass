@@ -109,3 +109,54 @@ test('a returning member signs in and finds plans, terms and sign out', async ({
   await ui.text('Sign out').click();
   await expect(page.getByText('CREATE ACCOUNT')).toBeVisible();
 });
+
+test('a member adds a second dog from the Dog tab and switches between them', async ({ page }) => {
+  const ui = visible(page);
+  const email = `two-dogs-${Date.now()}@example.com`;
+  const id = await account(email, 'goodpass123');
+  sql(`insert into dogs (owner_id, name, breed, birth_year, energy, sociability, area) values ('${id}', 'Juno', 'Border Collie', 2023, 'working', 'loves_dogs', 'Mueller')`);
+  const dogs = () => sql(`select string_agg(name || ':' || coalesce(area, ''), ',' order by created_at) from dogs where owner_id = '${id}'`);
+
+  await page.goto('/');
+  await page.getByText('I already have an account').click();
+  await ui.boxes().nth(0).fill(email);
+  await ui.boxes().nth(1).fill('goodpass123');
+  await ui.button('Sign in').click();
+  await expect(ui.text('Juno is due for a hard day.')).toBeVisible();
+
+  // Backing out of step 1 saves nothing.
+  await page.goto('/dog');
+  await ui.button('Add a dog').click();
+  await expect(ui.text('Step 1 of 5 · Another dog')).toBeVisible();
+  await ui.button('Back').click();
+  await expect(ui.button('Add a dog')).toBeVisible();
+  expect(dogs()).toBe('Juno:Mueller');
+
+  // The same five steps as onboarding, for Otis.
+  await ui.button('Add a dog').click();
+  await ui.boxes().first().fill('Otis');
+  await ui.button('Male').click();
+  await ui.button('Continue').click();
+  await expect(ui.text("Otis's details.")).toBeVisible();
+  await ui.boxes().first().fill('Labrador');
+  await ui.button('Continue').click();
+  for (const pick of ['Loves dogs', 'Scent']) await ui.button(pick).click();
+  await ui.button('Continue').click();
+  await expect(ui.text('Tell us about Otis.')).toBeVisible();
+  await ui.button('Continue').click();
+  await expect(ui.text('Otis is on the roster.')).toBeVisible();
+  await ui.button("See Otis's month").click();
+  await expect(ui.text("Otis's month.")).toBeVisible();
+  await ui.button('Skip for now').click();
+
+  // Otis is saved next to Juno, in the same area, and the app now shows him.
+  await expect(ui.text('Otis is due for a hard day.')).toBeVisible();
+  expect(dogs()).toBe('Juno:Mueller,Otis:Mueller');
+
+  // The Dog tab's switcher goes back to Juno, and Today follows.
+  await page.goto('/dog');
+  await ui.button('Juno').click();
+  await expect(page.getByRole('button', { name: "Juno's Athlete Card. Tap to see discipline levels." })).toBeVisible();
+  await page.goto('/');
+  await expect(ui.text('Juno is due for a hard day.')).toBeVisible();
+});

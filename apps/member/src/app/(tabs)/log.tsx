@@ -20,7 +20,11 @@ export default function Log() {
   const social = useApp((s) => s.social);
   const entries = useApp((s) => s.log);
   const missed = useApp((s) => s.missed);
-  const view = useMemo(() => (isLive && entries ? liveLog(entries, missed, juno.id, juno.name, social) : sampleLog(juno.name, social)), [entries, missed, juno.id, juno.name, social]);
+  // Sample mode's log is the designs' Juno; another sample dog's is empty until it books.
+  const view = useMemo(
+    () => (isLive && entries ? liveLog(entries, missed, juno.id, juno.name, social) : juno.id === 'juno' ? sampleLog(juno.name, social) : liveLog([], [], juno.id, juno.name, social)),
+    [entries, missed, juno.id, juno.name, social],
+  );
   const [m, setM] = useState(1);
   const month = view.months[m];
   const shade = [c.bg, `${c.turf}4d`, `${c.turf}a6`, c.turf];

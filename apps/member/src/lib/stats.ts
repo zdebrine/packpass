@@ -59,6 +59,8 @@ export function useDogStats(): DogStats {
   const dog = useDog();
   const log = useApp((s) => s.log);
   if (!isLive || !log) {
+    // The designs' numbers are Juno's; another sample dog starts from nothing.
+    if (dog.id !== 'juno') return statsOf([]);
     return { sessions: 42, hours: 38, streak: 9, disciplines: 5, levels: disciplineLevels, levelsTitle: 'Five disciplines.' };
   }
   return statsOf(log.filter((e) => e.dogId === dog.id));
@@ -71,6 +73,7 @@ export function useMonthDone(): { done: MonthItem[]; short: 'Physical' | 'Mental
   const dog = useDog();
   const log = useApp((s) => s.log);
   if (!isLive || !log) {
+    if (dog.id !== 'juno') return { done: [], short: null };
     return { done: monthDone.map((m) => ({ key: m.title, meta: m.meta, title: m.title, photo: m.photo })), short: null };
   }
   const at = clock();

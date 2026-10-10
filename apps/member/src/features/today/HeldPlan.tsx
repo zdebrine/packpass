@@ -10,7 +10,7 @@ import { Text } from '@/ds/Text';
 import { credits as creditsLabel, view } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { addMinutes, dayTimeInline, monthDay, time, weekday } from '@/lib/dates';
-import { useApp, useDog, useRules } from '@/store/app';
+import { recordOf, useApp, useRulesFor } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /** A hold gives its spot back 24 hours before the session (held_spots.expires_at). */
@@ -21,11 +21,11 @@ const releaseOf = (startsAt: Date) => addMinutes(startsAt, -24 * 60);
  * reserves the spot (held_spots on the server) until a day before the session. One tap books them.
  * Within a day of the first release it says so (the server sends the same reminder as a notification).
  */
-export function HeldPlan() {
+export function HeldPlan({ dogId }: { dogId: string }) {
   const { c } = useTheme();
-  const dog = useDog();
-  const { hasSocial } = useRules();
-  const pending = useApp((s) => s.pendingPlan);
+  const dog = useApp((s) => s.dogs.find((d) => d.id === dogId));
+  const { hasSocial } = useRulesFor(dogId);
+  const pending = useApp((s) => recordOf(s, dogId).pendingPlan);
   const bookHeld = useApp((s) => s.bookHeld);
   const releaseHolds = useApp((s) => s.releaseHolds);
   const [busy, setBusy] = useState(false);
@@ -35,7 +35,7 @@ export function HeldPlan() {
     .map((id) => view(id))
     .filter((v): v is NonNullable<typeof v> => !!v && releaseOf(v.session.startsAt) > now())
     .sort((a, b) => a.session.startsAt.getTime() - b.session.startsAt.getTime());
-  if (!rows.length && !result) return null;
+  if (!dog || (!rows.length && !result)) return null;
   const first = rows[0];
   const soon = first && releaseOf(first.session.startsAt).getTime() - now().getTime() <= 24 * 3_600_000 ? first : null;
 

@@ -4,7 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { isLive } from '@/api/client';
 import * as live from '@/api/live';
-import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, TRAIT_SPECIAL, type Energy } from '@/data/fixtures';
+import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, OTIS_VACCINES, TRAIT_SPECIAL, type Energy } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
 import { planOf } from '@/data/plans';
 import type { Booking, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, VaccineRecord, WaitEntry } from '@/data/types';
@@ -69,12 +69,15 @@ const SAMPLE_DRAFT: OnboardingDraft = {
   area: 'Austin · South',
   traits: ['pulls', 'nervous_dogs'],
 };
-// Live accounts start blank: nothing about the sample member or Juno is filled in for a real owner. Birthday,
-// weight and energy keep a starting value for their pickers; "With other dogs" is left for the owner to choose,
-// since it decides which group classes fit.
-const DRAFT: OnboardingDraft = isLive
-  ? { ...SAMPLE_DRAFT, ownerName: '', email: '', dogName: '', photo: null, breed: '', fixed: false, energy: 'medium', social: '', interests: [], traits: [] }
-  : SAMPLE_DRAFT;
+// A dog not filled in yet: a live account's first dog, and any dog added later. Birthday, weight and energy
+// keep a starting value for their pickers; "With other dogs" is left for the owner to choose, since it decides
+// which group classes fit.
+const BLANK_DOG: Partial<OnboardingDraft> = {
+  dogName: '', photo: null, sex: 'Female', breed: '', mixed: false, notSure: false, birthMonth: SAMPLE_DRAFT.birthMonth,
+  birthYear: SAMPLE_DRAFT.birthYear, weight: SAMPLE_DRAFT.weight, fixed: false, energy: 'medium', social: '', interests: [], traits: [],
+};
+// Live accounts start blank: nothing about the sample member or Juno is filled in for a real owner.
+const DRAFT: OnboardingDraft = isLive ? { ...SAMPLE_DRAFT, ...BLANK_DOG, ownerName: '', email: '' } : SAMPLE_DRAFT;
 
 interface Demo {
   social: SocialStage;
@@ -90,13 +93,49 @@ export interface Vaccine {
 
 export type BookResult = { ok: true; bookingId: string } | { ok: false; error: BookError | string };
 
+/**
+ * One dog's records. The store's flat fields with the same names (vaccines, social, …) are the active dog's
+ * copy, so screens read the dog that's showing; the other dogs' records wait in `dogRecords`.
+ */
+export interface DogRecord {
+  social: SocialStage;
+  socialExpired: boolean;
+  socialClearanceId: string | null;
+  herdingAt: string[];
+  activePaths: Goal['id'][];
+  vaccines: Vaccine[];
+  vaccineRecord: VaccineRecord | null;
+  clearanceRecords: ClearanceRecord[] | null;
+  /** Sessions held for this dog until its Social assessment. */
+  pendingPlan: string[];
+}
+const RECORD_KEYS = ['social', 'socialExpired', 'socialClearanceId', 'herdingAt', 'activePaths', 'vaccines', 'vaccineRecord', 'clearanceRecords', 'pendingPlan'] as const;
+/** A dog with nothing on file yet: no Social, no vaccines, no paths. */
+export const BLANK_RECORD: DogRecord = {
+  social: 'working', socialExpired: false, socialClearanceId: null, herdingAt: [], activePaths: [], vaccines: [], vaccineRecord: null,
+  clearanceRecords: isLive ? [] : null, pendingPlan: [],
+};
+const pickRecord = (s: DogRecord): DogRecord => Object.fromEntries(RECORD_KEYS.map((k) => [k, s[k]])) as unknown as DogRecord;
+
 interface AppState extends Demo {
   appearance: Appearance;
   signedIn: boolean;
   onboarded: boolean;
   draft: OnboardingDraft;
-  /** The member's dogs; the first is the one the app is about (Juno in sample mode). */
+  /** The member's dogs, oldest first. */
   dogs: Dog[];
+  /** The dog the app is showing (Dog tab switcher). Null means the first dog. */
+  activeDogId: string | null;
+  /** Every dog's records; the active dog's are also in the flat fields below, which are the ones to read and change. */
+  dogRecords: Record<string, DogRecord>;
+  /** Shows another dog (and, in live mode, loads its training paths). */
+  selectDog: (dogId: string) => Promise<void>;
+  /** Onboarding 01e to 01j is adding another dog to the account: the flat fields are the new dog's, blank. */
+  addingDog: boolean;
+  /** Starts adding a dog: a blank draft (owner and area kept) and a blank record. */
+  startAddDog: () => void;
+  /** Backs out of adding a dog; nothing was saved. */
+  cancelAddDog: () => void;
   credits: number;
   bookings: Booking[];
   readNotifications: string[];
@@ -122,8 +161,8 @@ interface AppState extends Demo {
   /** The main dog's vet record (photo or PDF). Live mode: on the server; before the dog exists, pending. */
   vaccineRecord: VaccineRecord | null;
   pendingVaccineDoc: PickedDoc | null;
-  /** When the member last dismissed Records Denied (the denial's decidedAt), so it shows once per denial. */
-  seenRecordDenial: string | null;
+  /** Denials (their decidedAt) the member has seen Records Denied for, so it shows once per denial, per dog. */
+  seenRecordDenials: string[];
   seeRecordDenial: () => void;
   /** Sample mode: shows the record as denied by PackPass (Settings › Preview states). */
   denyRecordDemo: () => void;
@@ -211,7 +250,14 @@ const fresh = {
   signedIn: false,
   onboarded: false,
   draft: DRAFT,
-  dogs: Object.values(sampleDogs),
+  // Sample Juno's traits are the sample onboarding's; Otis has none on file.
+  dogs: Object.values(sampleDogs).map((d) => ({ ...d, traits: d.id === 'juno' ? SAMPLE_DRAFT.traits : [] })),
+  activeDogId: (isLive ? null : 'juno') as string | null,
+  // Sample Otis is Social cleared with current vaccines, so switching to him shows a Passport of his own.
+  dogRecords: (isLive ? {} : {
+    otis: { ...BLANK_RECORD, social: 'cleared', vaccines: OTIS_VACCINES.map((v) => ({ type: v.type, expires: localIso(v.expires) })), vaccineRecord: { name: 'Otis vet record.pdf', verified: true } },
+  }) as Record<string, DogRecord>,
+  addingDog: false,
   credits: INITIAL_CREDITS,
   bookings: INITIAL_BOOKINGS as Booking[],
   readNotifications: INITIALLY_READ,
@@ -226,7 +272,7 @@ const fresh = {
   // Sample Juno's records were checked at her first visit.
   vaccineRecord: (isLive ? null : { name: 'Vet record.pdf', verified: true }) as VaccineRecord | null,
   pendingVaccineDoc: null as PickedDoc | null,
-  seenRecordDenial: null as string | null,
+  seenRecordDenials: [] as string[],
   remoteNotifications: null as Notif[] | null,
   socialClearanceId: null as string | null,
   log: null as LogEntry[] | null,
@@ -244,7 +290,7 @@ const fresh = {
 // Live mode starts empty and fills from Supabase on sign-in.
 if (isLive) {
   Object.assign(fresh, {
-    dogs: [], credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], remoteNotifications: [], log: [], missed: [], clearanceRecords: [], paths: [], account: { name: '', email: '' },
+    dogs: [], dogRecords: {}, credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], remoteNotifications: [], log: [], missed: [], clearanceRecords: [], paths: [], account: { name: '', email: '' },
   });
 }
 
@@ -267,6 +313,23 @@ export function ruleContext(s: Pick<AppState, 'social' | 'socialExpired' | 'acti
   };
 }
 
+/** The dog the app is showing: the picked one, else the first. */
+export const activeDogId = (s: Pick<AppState, 'dogs' | 'activeDogId'>) =>
+  (s.activeDogId && s.dogs.some((d) => d.id === s.activeDogId) ? s.activeDogId : s.dogs[0]?.id) ?? null;
+/** Whether the flat fields hold this dog's records (they hold the new dog's while one is being added). */
+const isActive = (s: AppState, dogId: string) => !s.addingDog && dogId === activeDogId(s);
+/** Any dog's records: the flat fields for the active dog, else what's stored for it. */
+export const recordOf = (s: AppState, dogId: string): DogRecord => (isActive(s, dogId) ? pickRecord(s) : s.dogRecords[dogId] ?? BLANK_RECORD);
+/** Every dog's records with the active dog's working copy saved back. */
+const savedRecords = (s: AppState) => {
+  const id = activeDogId(s);
+  return id && !s.addingDog ? { ...s.dogRecords, [id]: pickRecord(s) } : s.dogRecords;
+};
+
+/** The booking rules for a given dog: its own clearances, paths and vaccines, the account's credits and bookings. */
+export const ruleContextFor = (s: AppState, dogId: string): RuleContext =>
+  ruleContext({ ...recordOf(s, dogId), credits: s.credits, bookings: s.bookings });
+
 export const useApp = create<AppState>()(
   persist(
     (set, get) => {
@@ -277,11 +340,23 @@ export const useApp = create<AppState>()(
         return r;
       };
 
+      /** Changes one dog's records: the flat fields when it's the active dog, else its stored record. */
+      const patchRecord = (dogId: string, patch: (r: DogRecord) => Partial<DogRecord>) =>
+        set((s) => {
+          const r = recordOf(s, dogId);
+          return isActive(s, dogId) ? patch(r) : { dogRecords: { ...s.dogRecords, [dogId]: { ...r, ...patch(r) } } };
+        });
+      /** Live mode: the dog's training paths, unless another dog was picked meanwhile. */
+      const loadPathsFor = async (dogId: string) => {
+        const paths = await live.loadPaths(dogId).catch(() => null);
+        if (activeDogId(get()) === dogId && !get().addingDog) set({ paths: paths ?? [] });
+      };
+
       // Sample-mode booking, same rules as book_session().
       const bookLocal = (sessionId: string, dogId: string): BookResult => {
         const s = get();
-        const held = s.pendingPlan.includes(sessionId);
-        const error = bookError(sessionId, dogId, ruleContext(s));
+        const held = recordOf(s, dogId).pendingPlan.includes(sessionId);
+        const error = bookError(sessionId, dogId, ruleContextFor(s, dogId));
         // A held session already has its spot.
         if (error && !(held && error === 'full')) return { ok: false, error };
         const v = view(sessionId)!;
@@ -290,9 +365,9 @@ export const useApp = create<AppState>()(
         set((st) => ({
           bookings: [...st.bookings, booking],
           credits: st.credits - v.cls.credits,
-          pendingPlan: st.pendingPlan.filter((x) => x !== sessionId),
           waitlist: st.waitlist.filter((w) => !(w.sessionId === sessionId && w.dogId === dogId)),
         }));
+        patchRecord(dogId, (r) => ({ pendingPlan: r.pendingPlan.filter((x) => x !== sessionId) }));
         return { ok: true, bookingId: booking.id };
       };
 
@@ -302,6 +377,29 @@ export const useApp = create<AppState>()(
         ready: !isLive,
 
         setAppearance: (appearance) => set({ appearance }),
+        selectDog: async (dogId) => {
+          const s = get();
+          if (s.addingDog || dogId === activeDogId(s) || !s.dogs.some((d) => d.id === dogId)) return;
+          const dogRecords = savedRecords(s);
+          set({ dogRecords, activeDogId: dogId, ...(dogRecords[dogId] ?? BLANK_RECORD), ...(isLive ? { paths: [] } : {}) });
+          if (isLive) await loadPathsFor(dogId);
+        },
+        startAddDog: () => {
+          const s = get();
+          if (s.addingDog) return;
+          set({
+            dogRecords: savedRecords(s), addingDog: true, ...BLANK_RECORD, pendingVaccineDoc: null, planSwaps: [],
+            draft: { ...s.draft, ...BLANK_DOG, area: s.area ?? s.draft.area },
+            ...(isLive ? { paths: [] } : {}),
+          });
+        },
+        cancelAddDog: () => {
+          const s = get();
+          if (!s.addingDog) return;
+          const id = activeDogId(s);
+          set({ addingDog: false, pendingVaccineDoc: null, ...(id ? s.dogRecords[id] ?? BLANK_RECORD : BLANK_RECORD) });
+          if (isLive && id) loadPathsFor(id);
+        },
         updateDraft: (patch) => set((s) => ({ draft: { ...s.draft, ...patch } })),
         saveName: async (name) => {
           if (isLive) await live.saveName(name);
@@ -331,6 +429,7 @@ export const useApp = create<AppState>()(
         },
         saveTraits: async (dogId) => {
           if (isLive) await thenRefresh(() => live.saveTraits(dogId, get().draft.traits));
+          else set((s) => ({ dogs: s.dogs.map((d) => (d.id === dogId ? { ...d, traits: s.draft.traits } : d)) }));
         },
         toggleTrait: (t) =>
           set((s) => {
@@ -342,23 +441,22 @@ export const useApp = create<AppState>()(
         holdSessions: async (sessionIds, dogId) => {
           if (isLive) return thenRefresh(() => live.holdSessions(dogId, sessionIds));
           // Same checks as hold_sessions(): every rule except Social, plus spots and a day's notice.
-          const ctx = { ...ruleContext(get()), hasSocial: true, credits: Infinity };
+          const ctx = { ...ruleContextFor(get(), dogId), hasSocial: true, credits: Infinity };
           return sessionIds.map((sessionId) => {
             const v = view(sessionId);
-            const st = get();
             let error: string | null = bookError(sessionId, dogId, ctx);
             if (!error && v && +v.session.startsAt - 86_400_000 <= +now()) error = 'too_soon';
-            if (!error && st.pendingPlan.includes(sessionId)) error = 'already_booked';
+            if (!error && recordOf(get(), dogId).pendingPlan.includes(sessionId)) error = 'already_booked';
             if (!error && v) {
               v.session.spotsLeft -= 1;
-              set({ pendingPlan: [...st.pendingPlan, sessionId] });
+              patchRecord(dogId, (r) => ({ pendingPlan: [...r.pendingPlan, sessionId] }));
             }
             return { sessionId, error };
           });
         },
         bookHeld: async (dogId) => {
           if (isLive) return thenRefresh(() => live.bookHeld(dogId));
-          return get().pendingPlan.map((sessionId) => {
+          return recordOf(get(), dogId).pendingPlan.map((sessionId) => {
             const r = bookLocal(sessionId, dogId);
             return { sessionId, error: r.ok ? null : r.error };
           });
@@ -368,12 +466,12 @@ export const useApp = create<AppState>()(
             await thenRefresh(() => live.releaseHolds(dogId, sessionId));
             return;
           }
-          const gone = get().pendingPlan.filter((x) => !sessionId || x === sessionId);
+          const gone = recordOf(get(), dogId).pendingPlan.filter((x) => !sessionId || x === sessionId);
           gone.forEach((id) => {
             const v = view(id);
             if (v) v.session.spotsLeft += 1;
           });
-          set((st) => ({ pendingPlan: st.pendingPlan.filter((x) => !gone.includes(x)) }));
+          patchRecord(dogId, (r) => ({ pendingPlan: r.pendingPlan.filter((x) => !gone.includes(x)) }));
         },
         setOrigin: (origin) => {
           set({ origin });
@@ -383,7 +481,7 @@ export const useApp = create<AppState>()(
           if (isLive) return thenRefresh(() => live.joinWaitlist(dogId, sessionId));
           const s = get();
           if (s.waitlist.some((w) => w.sessionId === sessionId && w.dogId === dogId)) throw new Error('already_waiting');
-          const error = bookError(sessionId, dogId, ruleContext(s));
+          const error = bookError(sessionId, dogId, ruleContextFor(s, dogId));
           if (error === null) throw new Error('not_full');
           if (error !== 'full') throw new Error(error);
           const v = view(sessionId)!;
@@ -433,6 +531,7 @@ export const useApp = create<AppState>()(
           }
         },
         finishOnboarding: async () => {
+          const adding = get().addingDog;
           if (isLive) {
             const dogId = await live.createDog(get().draft);
             const photo = get().draft.photo;
@@ -447,10 +546,25 @@ export const useApp = create<AppState>()(
               if (doc) await live.uploadVaccineRecord(dogId, doc).catch(() => {});
               set({ pendingVaccineDoc: null });
             }
+            // The new dog is the one to show. Refresh loads every dog's records; when adding, the flat fields only
+            // switch to the saved dog's afterwards, so they never stand in for another dog in between.
+            set({ activeDogId: dogId });
             await get().refresh();
+            if (adding) {
+              set((s) => ({ addingDog: false, ...(s.dogRecords[dogId] ?? BLANK_RECORD) }));
+              await loadPathsFor(dogId);
+            }
+          } else if (adding) {
+            // Sample mode keeps the new dog on the device, with whatever was entered for it on the way (vaccines).
+            const d = get().draft;
+            const dog: Dog = {
+              id: `dog-${Date.now()}`, name: d.dogName.trim(), photo: d.photo ?? undefined, breed: d.mixed ? 'Mixed breed' : d.breed,
+              ...live.ageOf(d.birthYear, d.birthMonth + 1), since: now().getFullYear(), traits: d.traits,
+            };
+            set((s) => ({ dogs: [...s.dogs, dog], activeDogId: dog.id, addingDog: false, pendingVaccineDoc: null, dogRecords: { ...s.dogRecords, [dog.id]: pickRecord(s) } }));
           } else {
-            const photo = get().draft.photo;
-            set((s) => ({ dogs: s.dogs.map((d, i) => (i === 0 ? { ...d, photo: photo ?? undefined } : d)), area: s.draft.area }));
+            const { photo, traits } = get().draft;
+            set((s) => ({ dogs: s.dogs.map((d, i) => (i === 0 ? { ...d, photo: photo ?? undefined, traits } : d)), area: s.draft.area }));
           }
           set({ signedIn: true, onboarded: true });
         },
@@ -495,35 +609,33 @@ export const useApp = create<AppState>()(
           }
           await live.loadCatalog();
           const [m, log] = await Promise.all([live.loadMember(), live.loadLog().catch(() => null)]);
-          const paths = m?.dogs[0] ? await live.loadPaths(m.dogs[0].id).catch(() => null) : [];
           if (!m) {
             set({ ready: true, signedIn: false, onboarded: false });
             return;
           }
+          // The picked dog if it's still on the account, else the first. While a dog is being added the flat
+          // fields are the new dog's, so they're left alone.
+          const active = activeDogId({ dogs: m.dogs, activeDogId: get().activeDogId });
+          const adding = get().addingDog;
+          const paths = active && !adding ? await live.loadPaths(active).catch(() => null) : [];
           set({
             ready: true,
             signedIn: true,
             onboarded: m.dogs.length > 0,
             dogs: m.dogs,
+            activeDogId: active,
+            dogRecords: m.records,
+            ...(adding ? {} : active ? m.records[active] : BLANK_RECORD),
             credits: m.credits,
             bookings: m.bookings,
-            social: m.social,
-            socialExpired: m.socialExpired,
-            socialClearanceId: m.socialClearanceId,
-            herdingAt: m.herdingAt,
-            activePaths: m.activePaths,
-            vaccines: m.vaccines,
             remoteNotifications: m.notifications,
             readNotifications: m.readNotifications,
             log: log ? log.filter((e) => !e.missed) : get().log,
             missed: log ? log.filter((e) => e.missed) : get().missed,
-            clearanceRecords: m.clearances,
             account: { name: m.name, email: m.email },
             membership: m.membership,
-            paths: paths ?? get().paths,
-            pendingPlan: m.holds,
+            ...(adding ? {} : { paths: paths ?? get().paths }),
             waitlist: m.waitlist,
-            vaccineRecord: m.vaccineRecord,
             area: m.area,
           });
           syncDistances();
@@ -571,12 +683,13 @@ export const useApp = create<AppState>()(
         clearBookings: () => set({ bookings: [] }),
         setCredits: (credits) => set({ credits }),
         saveVaccines: async (rows, doc) => {
-          const dog = get().dogs[0];
-          // Before onboarding finishes there's no dog row yet; finishOnboarding saves these.
+          const s0 = get();
+          const dog = s0.addingDog ? undefined : activeDogId(s0);
+          // Before onboarding (or adding a dog) finishes there's no dog row yet; finishOnboarding saves these.
           if (isLive && dog) {
             await thenRefresh(async () => {
-              await live.saveVaccines(dog.id, rows.map((r) => ({ type: r.type.toLowerCase() as 'rabies', expiresOn: r.expires })));
-              if (doc) await live.uploadVaccineRecord(dog.id, doc);
+              await live.saveVaccines(dog, rows.map((r) => ({ type: r.type.toLowerCase() as 'rabies', expiresOn: r.expires })));
+              if (doc) await live.uploadVaccineRecord(dog, doc);
             });
             return;
           }
@@ -589,7 +702,11 @@ export const useApp = create<AppState>()(
         },
 
         seeMissed: (bookingId) => set((s) => ({ seenMissed: s.seenMissed.includes(bookingId) ? s.seenMissed : [...s.seenMissed, bookingId].slice(-50) })),
-        seeRecordDenial: () => set((s) => ({ seenRecordDenial: s.vaccineRecord?.review?.decidedAt ?? s.seenRecordDenial })),
+        seeRecordDenial: () =>
+          set((s) => {
+            const at = s.vaccineRecord?.review?.decidedAt;
+            return at && !s.seenRecordDenials.includes(at) ? { seenRecordDenials: [...s.seenRecordDenials, at].slice(-50) } : {};
+          }),
         denyRecordDemo: () =>
           set((s) => ({
             vaccineRecord: {
@@ -620,17 +737,17 @@ export const useApp = create<AppState>()(
     },
     {
       name: 'packpass-member',
-      version: 5,
+      version: 6,
       storage: createJSONStorage(() => AsyncStorage),
       // Live mode keeps member data in Supabase; only preferences and the onboarding draft persist.
       partialize: (s) =>
         isLive
-          ? { appearance: s.appearance, draft: s.draft, origin: s.origin, seenRecordDenial: s.seenRecordDenial, seenMissed: s.seenMissed }
+          ? { appearance: s.appearance, draft: s.draft, origin: s.origin, seenRecordDenials: s.seenRecordDenials, seenMissed: s.seenMissed, activeDogId: s.activeDogId }
           : {
-              dogs: s.dogs, origin: s.origin, area: s.area, appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
+              dogs: s.dogs, activeDogId: s.activeDogId, dogRecords: s.dogRecords, addingDog: s.addingDog, origin: s.origin, area: s.area, appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
               readNotifications: s.readNotifications, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, social: s.social, socialExpired: s.socialExpired,
               behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines, vaccineRecord: s.vaccineRecord,
-              seenRecordDenial: s.seenRecordDenial, seenMissed: s.seenMissed,
+              seenRecordDenials: s.seenRecordDenials, seenMissed: s.seenMissed,
             },
       onRehydrateStorage: () => () => syncDistances(),
       migrate: (persisted, version) => {
@@ -643,6 +760,17 @@ export const useApp = create<AppState>()(
         if (version < 5 && p.draft) {
           p.draft = { ...p.draft, energy: LEGACY_ENERGY[p.draft.energy] ?? p.draft.energy, traits: (p.draft.traits ?? []).map(legacyTraitId) };
           if (Array.isArray(p.dogs)) p.dogs = p.dogs.map((d: Dog) => (d.traits ? { ...d, traits: d.traits.map(legacyTraitId) } : d));
+        }
+        // v6, more than one dog: the active dog is the first, which is the dog the app showed until now. Sample
+        // Juno's traits move from the draft onto her; sample Otis gets his records. A seen denial stays seen.
+        if (version < 6) {
+          p.seenRecordDenials = p.seenRecordDenial ? [p.seenRecordDenial] : [];
+          delete p.seenRecordDenial;
+          if (Array.isArray(p.dogs)) {
+            p.activeDogId = p.dogs[0]?.id ?? null;
+            p.dogs = p.dogs.map((d: Dog, i: number) => (d.traits ? d : { ...d, traits: i === 0 ? p.draft?.traits ?? [] : [] }));
+            p.dogRecords = { ...fresh.dogRecords };
+          }
         }
         return p as never;
       },
@@ -671,11 +799,14 @@ export const useAllowance = () => {
   return !isLive || paid ? plan.credits : null;
 };
 
-/** The main dog's vet record, when PackPass denied it and the member hasn't seen Records Denied for that decision yet. */
+/** The first dog whose vet record PackPass denied, when the member hasn't seen Records Denied for that decision yet. */
 export const useUnseenRecordDenial = () =>
   useApp((s) => {
-    const r = s.vaccineRecord?.review;
-    return r?.status === 'denied' && r.decidedAt !== s.seenRecordDenial ? r : null;
+    if (s.addingDog) return null;
+    return s.dogs.find((d) => {
+      const r = recordOf(s, d.id).vaccineRecord?.review;
+      return r?.status === 'denied' && !s.seenRecordDenials.includes(r.decidedAt);
+    })?.id ?? null;
   });
 
 /** Days a missed class still opens the Missed class screen on launch; older ones are only in the Log. */
@@ -684,14 +815,16 @@ const MISSED_RECENT_DAYS = 7;
 export const useUnseenMissed = () =>
   useApp((s) => s.missed.find((e) => !s.seenMissed.includes(e.bookingId) && now().getTime() - e.startsAt.getTime() < MISSED_RECENT_DAYS * 86_400_000) ?? null);
 
-/** The dog the app is about (Juno in sample mode). */
-export const useDog = () => useApp((s) => s.dogs[0] ?? sampleDogs.juno);
+/** The dog the app is showing (Juno in sample mode, until another is picked). */
+export const useDog = () => useApp((s) => s.dogs.find((d) => d.id === activeDogId(s)) ?? sampleDogs.juno);
 /** Notifications: the database's in live mode, otherwise the sample set for the current Social stage. */
 export const useNotifications = () => {
   const remote = useApp((s) => s.remoteNotifications);
   const social = useApp((s) => s.social);
   return remote ?? sampleNotifications(social);
 };
-/** Booking rule context for the current state. */
+/** Booking rule context for the dog that's showing. */
 export const useRules = () =>
   ruleContext(useApp((s) => s));
+/** Booking rule context for a given dog (the booking sheet's dog picker). */
+export const useRulesFor = (dogId: string) => ruleContextFor(useApp((s) => s), dogId);

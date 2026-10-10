@@ -1,5 +1,6 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Redirect, Tabs } from 'expo-router';
+import { Redirect, Tabs, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { View } from 'react-native';
 
 import { Icon, type IconName } from '@/ds/Icon';
@@ -61,9 +62,11 @@ export default function TabsLayout() {
   const onboarded = useApp((s) => s.onboarded);
   const denied = useUnseenRecordDenial();
   const missed = useUnseenMissed();
+  // Back on the tabs with a dog half added (backed out of 01e, or the app closed mid-way): nothing was saved.
+  useFocusEffect(useCallback(() => useApp.getState().cancelAddDog(), []));
   if (!onboarded) return <Redirect href="/welcome" />;
-  // PackPass denied the vet record: show why before anything else, once per denial.
-  if (denied) return <Redirect href="/onboarding/records-denied" />;
+  // PackPass denied a dog's vet record: show why before anything else, once per denial.
+  if (denied) return <Redirect href={`/onboarding/records-denied?dog=${denied}`} />;
   // A class the dog missed without cancelling in time: say so once, the next time the app opens.
   if (missed) return <Redirect href={`/missed/${missed.bookingId}`} />;
   return (

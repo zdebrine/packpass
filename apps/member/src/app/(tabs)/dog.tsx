@@ -17,7 +17,6 @@ import { Press } from '@/ds/Press';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { dayOffset, expiryLabel, fromIso } from '@/lib/dates';
-import { notice } from '@/lib/notice';
 import { pickDogPhoto } from '@/lib/photos';
 import { useApp, useDog } from '@/store/app';
 import { useClearanceStyle } from '@/features/passport/style';
@@ -126,6 +125,8 @@ export default function DogProfile() {
   const traits = (juno.traits ?? draftTraits).filter((t) => !TRAIT_SPECIAL.includes(t));
   const styleFor = useClearanceStyle();
   const dogs = useApp((s) => s.dogs);
+  const selectDog = useApp((s) => s.selectDog);
+  const startAddDog = useApp((s) => s.startAddDog);
   const vaccines = useApp((s) => s.vaccines);
   const passport = useClearances();
   const paths = useGoals();
@@ -134,19 +135,21 @@ export default function DogProfile() {
   return (
     <Screen>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 10, paddingBottom: 32 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 16 }}>
-          <View style={{ flexDirection: 'row', gap: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingRight: 20, paddingBottom: 16 }}>
+          {/* The member's dogs: tap one to show it everywhere. "Add a dog" (not in the designs) runs 01e to 01j for another. */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ gap: 6, paddingLeft: 20 }}>
             {dogs.map((d) => (
               <Chip
                 key={d.id}
                 selected={d.id === juno.id}
                 leading={<Photo name={d.photo} style={{ width: 28, height: 28, borderRadius: 9999 }} />}
-                onPress={d.id === juno.id ? undefined : () => notice(`${d.name} has no Passport yet`, `Book ${d.name} into a class to start one.`)}
+                onPress={d.id === juno.id ? undefined : () => selectDog(d.id)}
               >
                 {d.name}
               </Chip>
             ))}
-          </View>
+            <Chip icon="plus" onPress={() => { startAddDog(); router.push('/onboarding/dog'); }}>Add a dog</Chip>
+          </ScrollView>
           <IconButton icon="settings" label="Settings" onPress={() => router.push('/settings')} />
         </View>
 

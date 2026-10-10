@@ -215,7 +215,11 @@ release 24 hours before the session, and members are reminded a day before that;
 - **Cancelling** lives on the class detail screen (05) when the session is booked: "Cancel booking" under
   Check in, then an inline confirmation that says whether the credits come back (free until 12 hours before;
   the spot always goes back). The designs don't draw it; it reuses the footer's existing buttons.
-- **Otis** appears in the dog switcher and booking sheet; sample mode checks the rules against Juno's records.
+- **More than one dog** (docs/MULTI_DOG_SPEC.md). The Dog tab's switcher picks the dog the app shows (Today, Log,
+  Passport, goals, vaccines, Book); "Add a dog" at its end runs 01e to 01j again for another dog. The booking sheet's
+  dog picker checks the rules against the picked dog's own clearances, paths and vaccines. Credits stay with the
+  account. Notifications about one dog link to it (`?dog=<id>`). Sample mode's Otis has his own records (Social
+  cleared, vaccines current).
 - **Web QR scanning** in expo-camera loads jsQR from cdn.jsdelivr.net at runtime. The 4-digit code works without it.
 - **Glass on Android** uses expo-blur's experimental blur; older devices fall back to a translucent fill.
 

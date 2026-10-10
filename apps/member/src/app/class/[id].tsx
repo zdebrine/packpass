@@ -72,7 +72,8 @@ export default function ClassDetail() {
   const { cls, partner, trainer, session } = v;
   const el = eligibility(v, rules, juno.name);
   const started = session.startsAt <= now();
-  const booking = bookingFor(bookings, session.id);
+  // The showing dog's booking, else another of the member's dogs' (a notification about that dog's class).
+  const booking = bookingFor(bookings.filter((b) => b.dogId === juno.id), session.id) ?? bookingFor(bookings, session.id);
   const assessment = !el.ok && el.needs === 'herding' ? assessmentFor(cls) : undefined;
   const firstVaccine = [...vaccines].sort((a, b) => (a.expires < b.expires ? -1 : 1))[0];
   const group = cls.groupSize === 1 ? (cls.sessionType === 'Private' ? '1:1 · Private' : 'Your dogs only') : `${cls.groupSize} dogs · ${session.spotsLeft === 0 ? 'full' : `${session.spotsLeft} left`}`;

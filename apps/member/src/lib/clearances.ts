@@ -4,7 +4,7 @@ import { isLive } from '@/api/client';
 import { catalog } from '@/data/catalog';
 import { HERDING, SOCIAL_UNLOCKS, socialClearance, type Clearance } from '@/data/passport';
 import type { ClearanceRecord, LogEntry } from '@/data/types';
-import { useApp } from '@/store/app';
+import { useApp, useDog } from '@/store/app';
 import { now as clock } from './clock';
 import { monthDay } from './dates';
 
@@ -82,6 +82,9 @@ export function useClearances() {
   const rows = useApp((s) => s.clearanceRecords);
   const log = useApp((s) => s.log);
   const onPath = useApp((s) => s.activePaths.includes('calm-around-dogs'));
+  const dog = useDog();
   if (!isLive || !rows) return { social: socialClearance(social, expired), herding: HERDING, socialRecord: null as ClearanceRecord | null };
-  return { social: liveSocial(rows, log ?? [], onPath), herding: liveHerding(rows), socialRecord: rows.find((r) => r.type === 'social') ?? null };
+  // The Log has every dog's sessions; only this dog's assessments say where it stands.
+  const mine = (log ?? []).filter((e) => e.dogId === dog.id);
+  return { social: liveSocial(rows, mine, onPath), herding: liveHerding(rows), socialRecord: rows.find((r) => r.type === 'social') ?? null };
 }

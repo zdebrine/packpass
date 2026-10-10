@@ -17,12 +17,17 @@ function DogBasics() {
   const { c } = useTheme();
   const d = useApp((s) => s.draft);
   const update = useApp((s) => s.updateDraft);
+  const adding = useApp((s) => s.addingDog);
 
   return (
     <Screen theme="dark">
       <StepHeader step={1} />
       <Body>
-        <Intro eyebrow="Step 1 of 5 · The dog" title="Tell us about your pup" titleSize={28} lede="You can add more dogs later." />
+        {adding ? (
+          <Intro eyebrow="Step 1 of 5 · Another dog" title="Tell us about your pup" titleSize={28} lede="Your dogs share your plan's credits. Each one gets its own Passport." />
+        ) : (
+          <Intro eyebrow="Step 1 of 5 · The dog" title="Tell us about your pup" titleSize={28} lede="You can add more dogs later." />
+        )}
         <View style={{ alignItems: 'center', gap: 12 }}>
           <Press
             onPress={async () => {

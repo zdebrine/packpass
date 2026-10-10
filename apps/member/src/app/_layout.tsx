@@ -3,7 +3,7 @@ import { Geist_500Medium } from '@expo-google-fonts/geist/500Medium';
 import { Geist_600SemiBold } from '@expo-google-fonts/geist/600SemiBold';
 import { Geist_700Bold } from '@expo-google-fonts/geist/700Bold';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useGlobalSearchParams } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { Platform, View } from 'react-native';
@@ -52,6 +52,13 @@ function RootLayout() {
   const dataReady = useApp((s) => s.ready);
   const ready = fontsLoaded && hydrated && dataReady;
   usePush();
+
+  // A link that names a dog (notifications: /goal/…?dog=<id>) shows that dog.
+  const { dog } = useGlobalSearchParams<{ dog?: string }>();
+  const dogCount = useApp((s) => s.dogs.length);
+  useEffect(() => {
+    if (typeof dog === 'string' && dataReady) useApp.getState().selectDog(dog).catch(() => {});
+  }, [dog, dataReady, dogCount]);
 
   // Live mode: load the catalog and the member, and reload when the session changes.
   useEffect(() => {

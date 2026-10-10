@@ -6,7 +6,7 @@ import { photoKey } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
 import type { Booking, ClassType, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
-import type { OnboardingDraft, SocialStage } from '@/store/app';
+import type { DogRecord, OnboardingDraft } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { db, partnerMediaUrl } from './client';
 
@@ -118,27 +118,18 @@ export interface MemberSnapshot {
   credits: number;
   membership: Membership;
   dogs: Dog[];
+  /** Each dog's clearances (newest first, expired ones too), paths, vaccines, vet record and holds, by dog id. */
+  records: Record<string, DogRecord>;
   bookings: Booking[];
-  social: SocialStage;
-  socialExpired: boolean;
-  socialClearanceId: string | null;
-  herdingAt: string[];
-  activePaths: Goal['id'][];
-  vaccines: { type: 'Rabies' | 'DHPP' | 'Bordetella'; expires: string }[];
   notifications: Notif[];
   readNotifications: string[];
-  /** Sessions held for the main dog until its Social assessment. */
-  holds: string[];
   waitlist: WaitEntry[];
-  /** The area picked in onboarding ("Trains near"), stored on the main dog. */
+  /** The area picked in onboarding ("Trains near"), stored on the first dog. */
   area: string | null;
-  /** The main dog's vet record, if one was uploaded. */
-  vaccineRecord: VaccineRecord | null;
-  /** The main dog's clearances, newest first (expired ones too). */
-  clearances: ClearanceRecord[];
 }
 
-const ageOf = (year?: number | null, month?: number | null) => {
+/** "3 yrs" and "Prime" from a birthday (month 1 to 12). */
+export const ageOf = (year?: number | null, month?: number | null) => {
   if (!year) return { age: '', stage: '' };
   const now = new Date();
   const months = (now.getFullYear() - year) * 12 + (now.getMonth() + 1 - (month ?? 1));
@@ -161,7 +152,6 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
   const profile = check(await c.from('profiles').select('*').eq('id', auth.user.id).single()) as any;
   const dogs = check(await c.from('dogs').select('*').order('created_at')) as any[];
   const dogIds = dogs.map((d) => d.id);
-  const main = dogs[0]?.id ?? null;
   // dog-photos is private: show uploads through signed URLs, cached by path so a fresh URL doesn't refetch.
   const photoPaths = dogs.map((d) => d.photo_path).filter(Boolean) as string[];
   const signed = photoPaths.length ? (check(await c.storage.from('dog-photos').createSignedUrls(photoPaths, PHOTO_URL_TTL)) as { path: string; signedUrl: string }[]) : [];
@@ -178,10 +168,27 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
   ]) as any[][];
 
   const today = new Date().toISOString().slice(0, 10);
-  const mine = (rows: any[]) => rows.filter((r) => r.dog_id === main);
-  const social = mine(clearances).filter((k) => k.type === 'social').sort((a, b) => (a.assessed_on < b.assessed_on ? 1 : -1))[0];
-  const socialValid = social && (!social.expires_on || social.expires_on >= today);
-  const vax = mine(vaccines);
+  const recordFor = (dogId: string): DogRecord => {
+    const mine = (rows: any[]) => rows.filter((r) => r.dog_id === dogId);
+    const rows = mine(clearances).sort((a, b) => (a.assessed_on < b.assessed_on ? 1 : -1));
+    const social = rows.find((k) => k.type === 'social');
+    const socialValid = social && (!social.expires_on || social.expires_on >= today);
+    const vax = mine(vaccines);
+    return {
+      social: !social ? 'working' : social.seen_at ? 'cleared' : 'earned',
+      socialExpired: !!social && !socialValid,
+      socialClearanceId: social?.id ?? null,
+      herdingAt: rows.filter((k) => k.type === 'herding' && (!k.expires_on || k.expires_on >= today)).map((k) => k.partner_id),
+      activePaths: mine(paths).filter((p) => !p.completed_at).map((p) => p.path_id as Goal['id']),
+      vaccineRecord: recordOf(vax, mine(reviews)[0]),
+      vaccines: vax.map((v) => ({ type: ({ rabies: 'Rabies', dhpp: 'DHPP', bordetella: 'Bordetella' } as const)[v.type as 'rabies'], expires: v.expires_on })),
+      pendingPlan: mine(holds).map((h) => h.session_id),
+      clearanceRecords: rows.map((k): ClearanceRecord => ({
+        id: k.id, type: k.type, scope: k.scope, partnerId: k.partner_id, assessedOn: k.assessed_on, expiresOn: k.expires_on,
+        assessor: k.assessor, strengths: k.strengths ?? [], workingOn: k.working_on ?? [], quote: k.quote, seen: !!k.seen_at,
+      })),
+    };
+  };
 
   return {
     name: profile.name,
@@ -195,14 +202,8 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
       id: d.id, name: d.name, photo: photoUrl.has(d.photo_path) ? { uri: photoUrl.get(d.photo_path)!, cacheKey: d.photo_path } : undefined, breed: d.mixed ? 'Mixed breed' : d.breed ?? '',
       ...ageOf(d.birth_year, d.birth_month), since: d.member_since, traits: d.traits ?? [],
     })),
+    records: Object.fromEntries(dogIds.map((id) => [id, recordFor(id)])),
     bookings: bookings.map((b) => ({ id: b.id, sessionId: b.session_id, dogId: b.dog_id, credits: b.credits_charged, status: b.status === 'checked_in' ? 'checked_in' : 'booked' })),
-    social: !social ? 'working' : social.seen_at ? 'cleared' : 'earned',
-    socialExpired: !!social && !socialValid,
-    socialClearanceId: social?.id ?? null,
-    herdingAt: mine(clearances).filter((k) => k.type === 'herding' && (!k.expires_on || k.expires_on >= today)).map((k) => k.partner_id),
-    activePaths: mine(paths).filter((p) => !p.completed_at).map((p) => p.path_id),
-    vaccineRecord: recordOf(vax, mine(reviews)[0]),
-    vaccines: vax.map((v) => ({ type: ({ rabies: 'Rabies', dhpp: 'DHPP', bordetella: 'Bordetella' } as const)[v.type as 'rabies'], expires: v.expires_on })),
     notifications: notes.map((n): Notif => ({
       id: n.id,
       icon: n.kind === 'records_denied' ? 'shield-alert' : n.kind === 'class_missed' ? 'calendar-x' : n.kind === 'path_step' ? 'check' : n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : n.kind === 'waitlist_booked' ? 'calendar-check' : n.kind.startsWith('waitlist') || n.kind.startsWith('hold') ? 'clock' : 'message-square',
@@ -212,13 +213,8 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
       href: n.href ?? undefined,
     })),
     readNotifications: notes.filter((n) => n.read_at).map((n) => n.id),
-    holds: mine(holds).map((h) => h.session_id),
     area: dogs[0]?.area ?? null,
     waitlist: waiting.map((w) => ({ sessionId: w.session_id, dogId: w.dog_id, place: w.place })),
-    clearances: mine(clearances).sort((a, b) => (a.assessed_on < b.assessed_on ? 1 : -1)).map((k): ClearanceRecord => ({
-      id: k.id, type: k.type, scope: k.scope, partnerId: k.partner_id, assessedOn: k.assessed_on, expiresOn: k.expires_on,
-      assessor: k.assessor, strengths: k.strengths ?? [], workingOn: k.working_on ?? [], quote: k.quote, seen: !!k.seen_at,
-    })),
   };
 }
 

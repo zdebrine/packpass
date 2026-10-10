@@ -5,13 +5,13 @@ import { errorCopy } from '@/api/errors';
 import { catalog } from '@/data/catalog';
 import { payoff } from '@/data/payoffs';
 import { FALLBACK_TRAITS, loadTraits, pathsFor, traitLabel } from '@/data/traits';
-import { nextSession } from '@/lib/booking';
+import { bookError, nextSession } from '@/lib/booking';
 import { setLiveClock } from '@/lib/clock';
 import { liveHerding, liveSocial } from '@/lib/clearances';
 import { liveLog } from '@/lib/log';
 import { liveGoal, pathTrainers } from '@/lib/paths';
 import { statsOf } from '@/lib/stats';
-import { useApp } from '@/store/app';
+import { ruleContextFor, useApp } from '@/store/app';
 
 setLiveClock(true);
 const psql = (sql: string) => execFileSync('psql', ['-h', process.env.PGHOST || '/tmp', '-p', process.env.PGPORT || '5432', '-U', process.env.PGUSER || 'postgres', '-d', process.env.DB || 'packpass_api', '-Atqc', sql]).toString().trim();
@@ -100,7 +100,7 @@ const S = () => useApp.getState();
   await S().refresh();
   ok(calm().steps[0].state === 'done' && /^Done /.test(calm().steps[0].stateLabel) && calm().steps[1].state === 'next' && /^Step 1 done /.test(calm().updated),
      'checking in to a step\'s class completes it, and the next step opens');
-  ok(S().remoteNotifications!.some((n) => n.title === 'Step 1 of 4 done' && n.href === '/goal/calm-around-dogs'), 'and the member is told');
+  ok(S().remoteNotifications!.some((n) => n.title === 'Step 1 of 4 done' && n.href === `/goal/calm-around-dogs?dog=${S().dogs[0].id}`), 'and the member is told, with a link to that dog\'s goal');
   psql(`update bookings set status = 'cancelled' where id = '${stepBooking}'`); // keep the booking counts below as they were
   ok(Object.keys(catalog.classes).length >= 16 && catalog.sessions.length > 300, 'the catalog loads from Supabase');
   // Trait catalog and payoff lines (copy refresh, phase 2).
@@ -257,6 +257,65 @@ const S = () => useApp.getState();
   await S().signIn(email, 'collies-rule-99');
   ok(S().onboarded && S().bookings.length === 5, 'signing back in restores the dog and bookings');
   ok(S().pendingPlan.length === 1, 'held spots follow the member to a new sign-in');
+
+  // More than one dog (docs/MULTI_DOG_SPEC.md): Otis is added from the Dog tab and keeps his own records.
+  psql(`update profiles set credits_balance = credits_balance + 10 where id = '${userId}'`); // room for two dogs' bookings
+  await S().refresh();
+  const juno = S().dogs[0].id;
+  const junoVaccines = JSON.stringify(S().vaccines);
+  const junoRecord = S().vaccineRecord?.name;
+  const sharedCredits = S().credits;
+  S().startAddDog();
+  ok(S().addingDog && S().draft.dogName === '' && S().draft.area === 'Mueller' && S().vaccines.length === 0 && S().social === 'working' && S().pendingPlan.length === 0,
+     'adding a dog starts a blank one and keeps the area');
+  S().cancelAddDog();
+  ok(!S().addingDog && JSON.stringify(S().vaccines) === junoVaccines && S().social === 'cleared' && S().pendingPlan.length === 1, 'backing out puts Juno back');
+  S().startAddDog();
+  await S().saveVaccines([{ type: 'Rabies', expires: iso }, { type: 'DHPP', expires: iso }, { type: 'Bordetella', expires: iso }], record('Otis record.pdf'));
+  ok(psql(`select count(*) from vaccinations v join dogs d on d.id = v.dog_id where d.owner_id = '${userId}'`) === '3', 'the new dog\'s vaccines wait for the dog, and Juno\'s stay as they were');
+  S().updateDraft({ dogName: 'Otis', sex: 'Male', breed: 'Labrador', social: 'Loves dogs', traits: ['none'], photo: { uri: jpeg('otis') } });
+  await S().finishOnboarding();
+  const otis = S().dogs.find((d) => d.name === 'Otis')?.id ?? '';
+  ok(S().dogs.length === 2 && S().dogs[0].id === juno && S().activeDogId === otis && !S().addingDog, 'finishing saves Otis as a second dog and shows him');
+  ok(S().vaccines.length === 3 && S().vaccineRecord?.name === 'Otis record.pdf' && S().social === 'working' && S().clearanceRecords!.length === 0 && S().pendingPlan.length === 0,
+     'Otis has his own vaccines and vet record, and no Social or holds');
+  ok((S().dogs.find((d) => d.id === otis)!.photo as { cacheKey: string }).cacheKey.startsWith(`${userId}/${otis}/`), 'his photo goes in his own folder');
+  ok(psql(`select area from dogs where id = '${otis}'`) === 'Mueller', 'and he trains near the same area');
+  ok(S().dogRecords[juno].social === 'cleared' && JSON.stringify(S().dogRecords[juno].vaccines) === junoVaccines && S().dogRecords[juno].vaccineRecord?.name === junoRecord
+     && S().dogRecords[juno].pendingPlan.length === 1, 'Juno\'s records are untouched');
+  ok(S().credits === sharedCredits, 'a second dog adds no credits: the account\'s are shared');
+
+  const groupDay2 = nextSession('agility-drop-in', 2)!;
+  ok(bookError(groupDay2.session.id, otis, ruleContextFor(S(), otis)) === 'needs_social' && bookError(groupDay2.session.id, juno, ruleContextFor(S(), juno)) === null,
+     'the booking rules check each dog\'s own clearances');
+  r = await S().bookSession(groupDay2.session.id, otis);
+  ok(!r.ok && r.error === 'needs_social', 'and the server agrees for Otis');
+  r = await S().bookSession(groupDay2.session.id, juno);
+  ok(r.ok && S().credits === sharedCredits - groupDay2.cls.credits, 'Juno books it while Otis is showing, from the shared credits');
+  const calmDay2 = nextSession('calm-private', 2)!;
+  r = await S().bookSession(calmDay2.session.id, otis);
+  ok(r.ok && S().bookings.filter((b) => b.dogId === otis).length === 1, 'Otis books a private session on his own vaccines');
+
+  await S().selectDog(juno);
+  ok(S().activeDogId === juno && S().social === 'cleared' && S().vaccineRecord?.name === junoRecord && S().paths!.some((p) => p.startedAt), 'switching back shows Juno\'s records and paths');
+  ok(S().dogRecords[otis].vaccineRecord?.name === 'Otis record.pdf', 'and keeps Otis\'s');
+  await S().refresh();
+  ok(S().activeDogId === juno && S().social === 'cleared', 'the picked dog stays picked after a refresh');
+
+  await S().startPath(otis, 'loose-leash-walking');
+  ok(S().dogRecords[otis].activePaths.includes('loose-leash-walking'), 'a path can be started for the dog that isn\'t showing');
+  psql(`insert into sessions (class_id, starts_at, capacity, packpass_spots, spots_left) values ('loose-leash', now() - interval '3 hours', 1, 1, 0)`);
+  const otisStep = psql(`insert into bookings (session_id, dog_id, member_id, credits_charged) select id, '${otis}', '${userId}', 3 from sessions where class_id = 'loose-leash' and starts_at < now() order by starts_at desc limit 1 returning id`);
+  psql(`update bookings set status = 'checked_in', checked_in_at = now() where id = '${otisStep}'`);
+  await S().refresh();
+  ok(S().remoteNotifications!.some((x) => x.title === 'Step 1 of 3 done' && x.href === `/goal/loose-leash-walking?dog=${otis}`), 'Otis\'s path step links to his goal');
+  psql(`update bookings set status = 'cancelled' where id = '${otisStep}'`);
+
+  psql(`insert into vet_record_reviews (dog_id, status, reason) values ('${otis}', 'denied', 'The record is for another dog.')`);
+  await S().refresh();
+  ok(ruleContextFor(S(), otis).recordsDenied && !ruleContextFor(S(), juno).recordsDenied, 'a denied vet record blocks only that dog');
+  psql(`delete from vet_record_reviews where dog_id = '${otis}'`);
+  await S().refresh();
 
   // Settings › Account: name, password, then delete the account.
   await S().saveName('Sam Rivera');

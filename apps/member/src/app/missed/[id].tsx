@@ -51,13 +51,14 @@ function MissedClass() {
   const { c } = useTheme();
   const top = useTop();
   const bottom = useBottom(34);
-  const dog = useDog();
+  const active = useDog();
   const { id } = useLocalSearchParams<{ id: string }>();
   const found = useApp((s) => s.missed.find((e) => e.bookingId === id));
   const see = useApp((s) => s.seeMissed);
   const credits = useApp((s) => s.credits);
   const allowance = useAllowance();
-  const e = found ?? (!isLive && id === 'sample' ? sampleMissed(dog.id) : null);
+  const e = found ?? (!isLive && id === 'sample' ? sampleMissed(active.id) : null);
+  const dog = useApp((s) => s.dogs.find((d) => d.id === e?.dogId)) ?? active;
   if (!e) return <Redirect href="/" />;
 
   // Check-in closes 15 minutes after the start (check_in); free cancellation 12 hours before it (cancel_booking).

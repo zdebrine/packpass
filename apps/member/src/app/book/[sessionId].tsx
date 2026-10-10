@@ -17,7 +17,7 @@ import { addToCalendar } from '@/lib/calendar';
 import { cancelCopy, dayTimeInline, relativeDay, time } from '@/lib/dates';
 import { pay, settle } from '@/lib/checkout';
 import { comingWithAccounts } from '@/lib/notice';
-import { useAllowance, useApp, useRules } from '@/store/app';
+import { useAllowance, useApp, useDog, useRulesFor } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 import { motion } from '@/theme/tokens';
 
@@ -32,7 +32,8 @@ export default function BookingSheet() {
   const first = view(sessionId);
   const [selected, setSelected] = useState(sessionId);
   const dogs = useApp((s) => s.dogs);
-  const [dogId, setDogId] = useState(dogs[0]?.id ?? 'juno');
+  // Starts on the dog that's showing; the picker books any of the member's dogs, on that dog's own records.
+  const [dogId, setDogId] = useState(useDog().id);
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export default function BookingSheet() {
   const credits = useApp((s) => s.credits);
   const allowance = useAllowance();
   const bookings = useApp((s) => s.bookings);
-  const rules = useRules();
+  const rules = useRulesFor(dogId);
   const book = useApp((s) => s.bookSession);
 
   const v = view(selected) ?? first;
