@@ -1,8 +1,8 @@
 import {
   Activity, ArrowRight, Award, BatteryFull, Bell, Bookmark, Cake, Calendar, CalendarCheck, CalendarSearch, CalendarX, Camera, Check,
-  ChevronDown, ChevronLeft, ChevronRight, Clock, Fence, FileText, Flashlight, House, Link, Lock, LockOpen, MapPin, MessageSquare,
+  ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock, Fence, FileText, Flashlight, House, Link, Lock, LockOpen, MapPin, MessageSquare,
   Minus, Plus, RotateCcw, Search, Settings, Share, Shield, ShieldAlert, ShieldCheck, Star, Stethoscope, Syringe, Ticket,
-  Trees, TrendingUp, Trophy, UserRound, Users, X, Zap, type LucideIcon,
+  Trees, TrendingUp, Trophy, UserRound, Users, Wallet, X, Zap, type LucideIcon,
 } from 'lucide-react-native';
 
 import { useTheme } from '@/theme/ThemeProvider';
@@ -10,12 +10,12 @@ import { useTheme } from '@/theme/ThemeProvider';
 const ICONS = {
   activity: Activity, 'arrow-right': ArrowRight, award: Award, 'battery-full': BatteryFull, bell: Bell, bookmark: Bookmark,
   cake: Cake, calendar: Calendar, 'calendar-check': CalendarCheck, 'calendar-search': CalendarSearch, 'calendar-x': CalendarX, camera: Camera,
-  check: Check, 'chevron-down': ChevronDown, 'chevron-left': ChevronLeft, 'chevron-right': ChevronRight, clock: Clock,
+  check: Check, 'chevron-down': ChevronDown, 'chevron-left': ChevronLeft, 'chevron-right': ChevronRight, 'circle-alert': CircleAlert, clock: Clock,
   fence: Fence, 'file-text': FileText, flashlight: Flashlight, house: House, link: Link, lock: Lock, 'lock-open': LockOpen, 'map-pin': MapPin,
   'message-square': MessageSquare, minus: Minus, plus: Plus, 'rotate-ccw': RotateCcw, search: Search, settings: Settings,
   share: Share, shield: Shield, 'shield-alert': ShieldAlert, 'shield-check': ShieldCheck, star: Star,
   stethoscope: Stethoscope, syringe: Syringe, ticket: Ticket, trees: Trees, 'trending-up': TrendingUp, trophy: Trophy,
-  'user-round': UserRound, users: Users, x: X, zap: Zap,
+  'user-round': UserRound, users: Users, wallet: Wallet, x: X, zap: Zap,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;
