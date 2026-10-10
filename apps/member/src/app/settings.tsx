@@ -115,6 +115,11 @@ export default function Settings() {
           right={<Button size="sm" variant="quiet" fill={c.bg} onPress={() => { s.denyRecordDemo(); router.push('/onboarding/records-denied'); }}>Open</Button>}
         />
         <Row
+          title="Missed class"
+          sub={`${juno.name} wasn't checked in and the class wasn't cancelled in time.`}
+          right={<Button size="sm" variant="quiet" fill={c.bg} onPress={() => router.push('/missed/sample')}>Open</Button>}
+        />
+        <Row
           title="Behaviorist note on the path"
           sub="Calm around dogs suggests certified behaviorists."
           right={<Toggle on={s.behaviorNote} label="Behaviorist note" onPress={() => s.setDemo({ behaviorNote: !s.behaviorNote })} />}

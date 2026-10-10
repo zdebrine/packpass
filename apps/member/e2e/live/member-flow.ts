@@ -209,11 +209,22 @@ const S = () => useApp.getState();
   await S().refresh();
   const logged = S().log!.find((e) => e.bookingId === ran.id);
   ok(logged?.note === 'Fast on the recall. Needs a longer warm-up.' && logged.noteBy === 'Dev Patel', 'a session that ran is in the Log with the trainer\'s note');
-  const view = liveLog(S().log!, dog, 'Juno', S().social);
+  const view = liveLog(S().log!, S().missed, dog, 'Juno', S().social);
   ok(view.stats[0][0] === String(S().log!.filter((e) => e.startsAt.getMonth() === new Date().getMonth()).length) && view.sessions[0].trainer.startsWith('Dev Patel · '),
      'and counts toward the month');
   const stats = statsOf(S().log!.filter((e) => e.dogId === dog));
   ok(stats.sessions === S().log!.length && stats.disciplines >= 1 && stats.levels[0].level === 1, 'the Athlete Card counts sessions and disciplines from the Log');
+
+  // Missed class: a booking nobody checked in or cancelled becomes a no-show, and the app says so once.
+  const skipped = S().bookings.find((b) => b.status === 'booked' && b.id !== ran.id)!;
+  psql(`update sessions set starts_at = now() - interval '1 day' where id = '${skipped.sessionId}'`);
+  ok(Number(psql('select public.mark_no_shows()')) >= 1, 'a booking nobody checked in becomes a no-show');
+  await S().refresh();
+  ok(S().missed.some((e) => e.bookingId === skipped.id) && !S().log!.some((e) => e.bookingId === skipped.id), 'it is a missed class, kept out of the Log\'s counts');
+  ok(S().remoteNotifications!.some((x) => x.href === `/missed/${skipped.id}` && x.icon === 'calendar-x'), 'and the member is told');
+  ok(liveLog(S().log!, S().missed, dog, 'Juno', S().social).sessions.some((x) => x.missed && x.href === `/missed/${skipped.id}`), 'the Log lists it as missed');
+  S().seeMissed(skipped.id);
+  ok(S().seenMissed.includes(skipped.id), 'and the Missed class screen opens once');
 
   // Hold reminders: the device is linked for push, and a hold within a day of release gets a reminder.
   await S().registerPush('ExponentPushToken[e2e-device]', 'ios');

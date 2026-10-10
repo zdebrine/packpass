@@ -132,6 +132,11 @@ interface AppState extends Demo {
   socialClearanceId: string | null;
   /** Live mode: the dogs' sessions that have run (07 Log). Null in sample mode, which shows the designs' log. */
   log: LogEntry[] | null;
+  /** Live mode: classes the dogs missed (no-shows, supabase/migrations/…_missed_classes.sql), newest first. */
+  missed: LogEntry[];
+  /** Missed classes (booking ids) the member has seen the Missed class screen for, so it opens once for each. */
+  seenMissed: string[];
+  seeMissed: (bookingId: string) => void;
   /** Live mode: the main dog's clearance rows. Null in sample mode (the Passport shows the designs' Juno). */
   clearanceRecords: ClearanceRecord[] | null;
   /** Live mode: every training path with the main dog's progress. Null in sample mode (the designs' two paths). */
@@ -225,6 +230,8 @@ const fresh = {
   remoteNotifications: null as Notif[] | null,
   socialClearanceId: null as string | null,
   log: null as LogEntry[] | null,
+  missed: [] as LogEntry[],
+  seenMissed: [] as string[],
   clearanceRecords: null as ClearanceRecord[] | null,
   paths: null as PathProgress[] | null,
   account: { name: 'Alex Kim', email: 'alex@kim.co' },
@@ -237,7 +244,7 @@ const fresh = {
 // Live mode starts empty and fills from Supabase on sign-in.
 if (isLive) {
   Object.assign(fresh, {
-    dogs: [], credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], remoteNotifications: [], log: [], clearanceRecords: [], paths: [], account: { name: '', email: '' },
+    dogs: [], credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], remoteNotifications: [], log: [], missed: [], clearanceRecords: [], paths: [], account: { name: '', email: '' },
   });
 }
 
@@ -449,7 +456,7 @@ export const useApp = create<AppState>()(
         },
         signOut: async () => {
           if (isLive) await live.signOut(get().pushToken);
-          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [], clearanceRecords: [], paths: [] } : {}) });
+          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [], missed: [], clearanceRecords: [], paths: [] } : {}) });
         },
         setDogPhoto: async (dogId, dataUri) => {
           if (isLive) {
@@ -508,7 +515,8 @@ export const useApp = create<AppState>()(
             vaccines: m.vaccines,
             remoteNotifications: m.notifications,
             readNotifications: m.readNotifications,
-            log: log ?? get().log,
+            log: log ? log.filter((e) => !e.missed) : get().log,
+            missed: log ? log.filter((e) => e.missed) : get().missed,
             clearanceRecords: m.clearances,
             account: { name: m.name, email: m.email },
             membership: m.membership,
@@ -580,6 +588,7 @@ export const useApp = create<AppState>()(
           }));
         },
 
+        seeMissed: (bookingId) => set((s) => ({ seenMissed: s.seenMissed.includes(bookingId) ? s.seenMissed : [...s.seenMissed, bookingId].slice(-50) })),
         seeRecordDenial: () => set((s) => ({ seenRecordDenial: s.vaccineRecord?.review?.decidedAt ?? s.seenRecordDenial })),
         denyRecordDemo: () =>
           set((s) => ({
@@ -616,12 +625,12 @@ export const useApp = create<AppState>()(
       // Live mode keeps member data in Supabase; only preferences and the onboarding draft persist.
       partialize: (s) =>
         isLive
-          ? { appearance: s.appearance, draft: s.draft, origin: s.origin, seenRecordDenial: s.seenRecordDenial }
+          ? { appearance: s.appearance, draft: s.draft, origin: s.origin, seenRecordDenial: s.seenRecordDenial, seenMissed: s.seenMissed }
           : {
               dogs: s.dogs, origin: s.origin, area: s.area, appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
               readNotifications: s.readNotifications, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, social: s.social, socialExpired: s.socialExpired,
               behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines, vaccineRecord: s.vaccineRecord,
-              seenRecordDenial: s.seenRecordDenial,
+              seenRecordDenial: s.seenRecordDenial, seenMissed: s.seenMissed,
             },
       onRehydrateStorage: () => () => syncDistances(),
       migrate: (persisted, version) => {
@@ -668,6 +677,12 @@ export const useUnseenRecordDenial = () =>
     const r = s.vaccineRecord?.review;
     return r?.status === 'denied' && r.decidedAt !== s.seenRecordDenial ? r : null;
   });
+
+/** Days a missed class still opens the Missed class screen on launch; older ones are only in the Log. */
+const MISSED_RECENT_DAYS = 7;
+/** The newest missed class from the past week that the member hasn't seen the Missed class screen for. */
+export const useUnseenMissed = () =>
+  useApp((s) => s.missed.find((e) => !s.seenMissed.includes(e.bookingId) && now().getTime() - e.startsAt.getTime() < MISSED_RECENT_DAYS * 86_400_000) ?? null);
 
 /** The dog the app is about (Juno in sample mode). */
 export const useDog = () => useApp((s) => s.dogs[0] ?? sampleDogs.juno);

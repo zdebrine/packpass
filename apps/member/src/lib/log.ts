@@ -22,6 +22,8 @@ export interface LogSession {
   key: string; title: string; date: string; trainer: string; note: string | null; img: PhotoSource;
   /** "Cleared · Social" / "Not yet · Herding" */
   assessment: string | null; cleared: boolean; href: string | null;
+  /** A no-show: the dog wasn't checked in and the booking wasn't cancelled in time. */
+  missed: boolean;
 }
 export interface LogView {
   balance: { label: string; done: number; of: number; color: 'agility' | 'turf' | 'pitch' }[];
@@ -53,8 +55,10 @@ const monthOf = (y: number, m: number, entries: LogEntry[], at: Date): LogMonth 
 const hoursLabel = (min: number) => String(Math.round((min / 60) * 10) / 10);
 const typeName = (t: 'social' | 'herding') => (t === 'social' ? 'Social' : 'Herding');
 
-export function liveLog(all: LogEntry[], dogId: string | undefined, dogName: string, social: SocialStage, at = clock()): LogView {
+/** all: sessions the dog went to. missed: no-shows, which show in the list but don't count towards anything. */
+export function liveLog(all: LogEntry[], missed: LogEntry[], dogId: string | undefined, dogName: string, social: SocialStage, at = clock()): LogView {
   const entries = all.filter((e) => e.dogId === dogId);
+  const listed = [...entries, ...missed.filter((e) => e.dogId === dogId)].sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime());
   const y = at.getFullYear(), m = at.getMonth();
   const thisMonth = entries.filter((e) => e.startsAt.getFullYear() === y && e.startsAt.getMonth() === m);
 
@@ -66,7 +70,7 @@ export function liveLog(all: LogEntry[], dogId: string | undefined, dogName: str
 
   const months = [monthOf(m === 0 ? y - 1 : y, (m + 11) % 12, entries, at), monthOf(y, m, entries, at)];
 
-  const sessions = entries.map((e): LogSession => {
+  const sessions = listed.map((e): LogSession => {
     const a = e.assessment;
     const sameDay = e.startsAt.toDateString() === at.toDateString();
     return {
@@ -75,7 +79,8 @@ export function liveLog(all: LogEntry[], dogId: string | undefined, dogName: str
       note: a?.quote ?? e.note,
       assessment: a ? `${a.outcome === 'cleared' ? 'Cleared' : 'Not yet'} · ${typeName(a.type)}` : null,
       cleared: a?.outcome === 'cleared',
-      href: a ? `/assessment/${e.bookingId}` : null,
+      href: e.missed ? `/missed/${e.bookingId}` : a ? `/assessment/${e.bookingId}` : null,
+      missed: e.missed,
     };
   });
 
@@ -106,9 +111,9 @@ export function liveLog(all: LogEntry[], dogId: string | undefined, dogName: str
 export function sampleLog(dogName: string, social: SocialStage): LogView {
   const sessions: LogSession[] = [
     ...(social === 'cleared'
-      ? [{ key: 'recheck', title: 'Social re-check', date: 'Today', trainer: 'Sam Reyes · Eastside Dog Club', note: RECHECK_QUOTE, img: 'dogs_meeting_on_leash' as PhotoKey, assessment: 'Cleared · Social', cleared: true, href: '/assessment/social' }]
+      ? [{ key: 'recheck', title: 'Social re-check', date: 'Today', trainer: 'Sam Reyes · Eastside Dog Club', note: RECHECK_QUOTE, img: 'dogs_meeting_on_leash' as PhotoKey, assessment: 'Cleared · Social', cleared: true, href: '/assessment/social', missed: false }]
       : []),
-    ...pastSessions.map((s) => ({ ...s, key: s.title + s.date, assessment: null, cleared: false, href: null })),
+    ...pastSessions.map((s) => ({ ...s, key: s.title + s.date, assessment: null, cleared: false, href: null, missed: false })),
   ];
   return {
     balance: monthBalance,

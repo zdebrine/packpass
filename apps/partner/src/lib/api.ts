@@ -20,7 +20,7 @@ export interface Session {
   waiting: number; check_in_code: string; waitlist_open: boolean; auto_promote: boolean; cancelled_at: string | null; cancel_reason: string | null;
 }
 export interface RosterDog {
-  booking_id: string; status: 'booked' | 'checked_in'; checked_in_at: string | null; dog_id: string; dog_name: string; breed: string | null; mixed: boolean;
+  booking_id: string; status: 'booked' | 'checked_in' | 'no_show'; checked_in_at: string | null; dog_id: string; dog_name: string; breed: string | null; mixed: boolean;
   birth_year: number | null; birth_month: number | null; energy: string | null; sociability: string | null; traits: string[]; photo_path: string | null;
   owner_name: string; vaccine_line: string; record_path: string | null; record_verified: boolean; clearances: string[]; last_note: string | null;
 }

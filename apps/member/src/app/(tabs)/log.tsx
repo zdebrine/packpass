@@ -19,7 +19,8 @@ export default function Log() {
   const { c } = useTheme();
   const social = useApp((s) => s.social);
   const entries = useApp((s) => s.log);
-  const view = useMemo(() => (isLive && entries ? liveLog(entries, juno.id, juno.name, social) : sampleLog(juno.name, social)), [entries, juno.id, juno.name, social]);
+  const missed = useApp((s) => s.missed);
+  const view = useMemo(() => (isLive && entries ? liveLog(entries, missed, juno.id, juno.name, social) : sampleLog(juno.name, social)), [entries, missed, juno.id, juno.name, social]);
   const [m, setM] = useState(1);
   const month = view.months[m];
   const shade = [c.bg, `${c.turf}4d`, `${c.turf}a6`, c.turf];
@@ -129,6 +130,14 @@ export default function Log() {
                     <Text variant="caption" muted>{s.date}</Text>
                   </View>
                   <Text variant="caption" muted style={{ marginTop: 2, marginBottom: 6 }}>{s.trainer}</Text>
+                  {s.missed ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <View style={{ height: 24, paddingHorizontal: 10, borderRadius: 9999, backgroundColor: c.kennelRedSoft, justifyContent: 'center' }}>
+                        <Text variant="caption" weight="600" color={c.kennelRed}>Missed</Text>
+                      </View>
+                      <Text variant="caption" muted>Not cancelled in time</Text>
+                    </View>
+                  ) : null}
                   {s.assessment ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                       <View style={{ height: 24, paddingHorizontal: 10, borderRadius: 9999, backgroundColor: c.surfaceRaised, justifyContent: 'center' }}>
@@ -137,7 +146,7 @@ export default function Log() {
                       <Text variant="caption" weight="600" color={s.cleared ? c.turf : c.inkMuted}>{s.assessment}</Text>
                     </View>
                   ) : null}
-                  {s.note ? <Text variant="label">{`“${s.note}”`}</Text> : <Text variant="label" muted>No note yet.</Text>}
+                  {s.missed ? null : s.note ? <Text variant="label">{`“${s.note}”`}</Text> : <Text variant="label" muted>No note yet.</Text>}
                 </View>
               </Press>
             ))}
