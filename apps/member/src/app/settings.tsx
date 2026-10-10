@@ -110,6 +110,11 @@ export default function Settings() {
           right={<Toggle on={s.socialExpired} label="Social clearance expired" onPress={() => s.social === 'cleared' && s.setDemo({ socialExpired: !s.socialExpired })} />}
         />
         <Row
+          title="Vet records denied"
+          sub="PackPass denies the record and the app shows why."
+          right={<Button size="sm" variant="quiet" fill={c.bg} onPress={() => { s.denyRecordDemo(); router.push('/onboarding/records-denied'); }}>Open</Button>}
+        />
+        <Row
           title="Behaviorist note on the path"
           sub="Calm around dogs suggests certified behaviorists."
           right={<Toggle on={s.behaviorNote} label="Behaviorist note" onPress={() => s.setDemo({ behaviorNote: !s.behaviorNote })} />}

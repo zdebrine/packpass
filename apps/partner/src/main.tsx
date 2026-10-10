@@ -8,6 +8,7 @@ import { Applications } from '@/admin/Applications';
 import { Partners as AdminPartners } from '@/admin/Partners';
 import { Review } from '@/admin/Review';
 import { Staff as AdminStaff } from '@/admin/Staff';
+import { VetRecords } from '@/admin/VetRecords';
 import { PartnerProvider, useStaffSession } from '@/lib/partner';
 import { Assessments } from '@/pages/Assessments';
 import { Classes } from '@/pages/Classes';
@@ -28,6 +29,7 @@ const adminRoutes = (
   <>
     <Route path="admin" element={<Review />} />
     <Route path="admin/applications" element={<Applications />} />
+    <Route path="admin/vet-records" element={<VetRecords />} />
     <Route path="admin/partners" element={<AdminPartners />} />
     <Route path="admin/staff" element={<AdminStaff />} />
   </>

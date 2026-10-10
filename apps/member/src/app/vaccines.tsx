@@ -103,7 +103,9 @@ export default function Vaccines() {
               <Icon name="file-text" />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text variant="label" weight="600" numberOfLines={1}>{(doc ?? record)!.name}</Text>
-                <Text variant="caption" muted>{doc ? 'Uploads when you save' : record!.verified ? 'Checked by PackPass' : 'Not checked yet'}</Text>
+                {doc ? <Text variant="caption" muted>Uploads when you save</Text>
+                  : record!.review?.status === 'denied' ? <Text variant="caption" weight="600" color={c.kennelRed}>{`Denied: ${record!.review.reason}`}</Text>
+                  : <Text variant="caption" muted>{record!.verified ? 'Checked by PackPass' : 'Waiting for PackPass to check it'}</Text>}
               </View>
               {doc ? <Button size="sm" variant="quiet" fill={c.bg} onPress={() => setDoc(null)}>Remove</Button> : null}
             </View>

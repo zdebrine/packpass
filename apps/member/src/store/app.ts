@@ -122,6 +122,11 @@ interface AppState extends Demo {
   /** The main dog's vet record (photo or PDF). Live mode: on the server; before the dog exists, pending. */
   vaccineRecord: VaccineRecord | null;
   pendingVaccineDoc: PickedDoc | null;
+  /** When the member last dismissed Records Denied (the denial's decidedAt), so it shows once per denial. */
+  seenRecordDenial: string | null;
+  seeRecordDenial: () => void;
+  /** Sample mode: shows the record as denied by PackPass (Settings › Preview states). */
+  denyRecordDemo: () => void;
   /** Live mode only: notifications from the database, and the Social clearance row. */
   remoteNotifications: Notif[] | null;
   socialClearanceId: string | null;
@@ -216,6 +221,7 @@ const fresh = {
   // Sample Juno's records were checked at her first visit.
   vaccineRecord: (isLive ? null : { name: 'Vet record.pdf', verified: true }) as VaccineRecord | null,
   pendingVaccineDoc: null as PickedDoc | null,
+  seenRecordDenial: null as string | null,
   remoteNotifications: null as Notif[] | null,
   socialClearanceId: null as string | null,
   log: null as LogEntry[] | null,
@@ -567,10 +573,20 @@ export const useApp = create<AppState>()(
           }
           set((s) => ({
             vaccines: rows,
-            vaccineRecord: doc ? { name: doc.name, verified: false } : s.vaccineRecord,
+            // A new file or new dates go back for review, like the server's vaccinations trigger.
+            vaccineRecord: doc ? { name: doc.name, verified: false } : s.vaccineRecord && { name: s.vaccineRecord.name, verified: s.vaccineRecord.verified && s.vaccineRecord.review?.status !== 'denied' },
             pendingVaccineDoc: isLive && doc ? doc : s.pendingVaccineDoc,
           }));
         },
+
+        seeRecordDenial: () => set((s) => ({ seenRecordDenial: s.vaccineRecord?.review?.decidedAt ?? s.seenRecordDenial })),
+        denyRecordDemo: () =>
+          set((s) => ({
+            vaccineRecord: {
+              name: s.vaccineRecord?.name ?? 'Vet record.pdf', verified: false,
+              review: { status: 'denied', reason: 'The record doesn\'t show Bordetella. Ask your vet for the full vaccine history and upload that.', decidedAt: new Date().toISOString() },
+            },
+          })),
 
         markRead: (ids) => {
           const all = ids ?? (get().remoteNotifications ?? []).map((n) => n.id);
@@ -599,11 +615,12 @@ export const useApp = create<AppState>()(
       // Live mode keeps member data in Supabase; only preferences and the onboarding draft persist.
       partialize: (s) =>
         isLive
-          ? { appearance: s.appearance, draft: s.draft, origin: s.origin }
+          ? { appearance: s.appearance, draft: s.draft, origin: s.origin, seenRecordDenial: s.seenRecordDenial }
           : {
               dogs: s.dogs, origin: s.origin, area: s.area, appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
               readNotifications: s.readNotifications, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, social: s.social, socialExpired: s.socialExpired,
               behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines, vaccineRecord: s.vaccineRecord,
+              seenRecordDenial: s.seenRecordDenial,
             },
       onRehydrateStorage: () => () => syncDistances(),
       migrate: (persisted, version) => {
@@ -643,6 +660,13 @@ export const useAllowance = () => {
   const paid = useApp((s) => s.membership.status === 'active' || s.membership.status === 'past_due');
   return !isLive || paid ? plan.credits : null;
 };
+
+/** The main dog's vet record, when PackPass denied it and the member hasn't seen Records Denied for that decision yet. */
+export const useUnseenRecordDenial = () =>
+  useApp((s) => {
+    const r = s.vaccineRecord?.review;
+    return r?.status === 'denied' && r.decidedAt !== s.seenRecordDenial ? r : null;
+  });
 
 /** The dog the app is about (Juno in sample mode). */
 export const useDog = () => useApp((s) => s.dogs[0] ?? sampleDogs.juno);

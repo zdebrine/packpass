@@ -288,6 +288,18 @@ export const loadOwnerWaitlist = async () => check(await db.rpc('admin_owner_wai
 export const decideApplication = async (id: string, approve: boolean, reason?: string) =>
   check(await db.rpc('admin_decide_application', { p_id: id, p_approve: approve, p_reason: reason ?? null })) as string | null;
 
+export type VaccineKind = 'rabies' | 'dhpp' | 'bordetella';
+export interface AdminVetRecord {
+  dog_id: string; dog_name: string; breed: string | null; mixed: boolean; owner_name: string | null; email: string;
+  document_path: string; uploaded_at: string | null; vaccines: { type: VaccineKind; expires_on: string; verified: boolean }[];
+  status: 'pending' | 'approved' | 'denied'; reason: string | null; decided_at: string | null;
+}
+/** Vet records waiting for a decision, then the last 30 days of decisions. */
+export const loadVetRecords = async () => check(await db.rpc('admin_vet_records')) as AdminVetRecord[];
+/** Approve verifies the three vaccines; deny needs a reason, which the member sees. */
+export const decideVetRecord = async (dogId: string, approve: boolean, reason?: string) =>
+  check(await db.rpc('admin_decide_vet_record', { p_dog: dogId, p_approve: approve, p_reason: reason ?? null }));
+
 /** Copy for the reason codes the partner functions raise. */
 const COPY: Record<string, string> = {
   not_partner: 'This account isn\'t linked to a partner yet.',

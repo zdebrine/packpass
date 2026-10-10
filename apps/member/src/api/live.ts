@@ -166,11 +166,12 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
   const photoPaths = dogs.map((d) => d.photo_path).filter(Boolean) as string[];
   const signed = photoPaths.length ? (check(await c.storage.from('dog-photos').createSignedUrls(photoPaths, PHOTO_URL_TTL)) as { path: string; signedUrl: string }[]) : [];
   const photoUrl = new Map(signed.map((x) => [x.path, x.signedUrl]));
-  const [bookings, clearances, paths, vaccines, notes, holds, waiting] = await Promise.all([
+  const [bookings, clearances, paths, vaccines, reviews, notes, holds, waiting] = await Promise.all([
     c.from('bookings').select('*').neq('status', 'cancelled').then(check),
     c.from('clearances').select('*').in('dog_id', dogIds).then(check),
     c.from('dog_paths').select('*').in('dog_id', dogIds).then(check),
     c.from('vaccinations').select('*').in('dog_id', dogIds).then(check),
+    c.from('vet_record_reviews').select('*').in('dog_id', dogIds).then(check),
     c.from('notifications').select('*').order('created_at', { ascending: false }).limit(50).then(check),
     c.from('held_spots').select('session_id, dog_id, expires_at').eq('status', 'held').gt('expires_at', new Date().toISOString()).then(check),
     c.rpc('my_waitlist').then(check),
@@ -200,11 +201,11 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     socialClearanceId: social?.id ?? null,
     herdingAt: mine(clearances).filter((k) => k.type === 'herding' && (!k.expires_on || k.expires_on >= today)).map((k) => k.partner_id),
     activePaths: mine(paths).filter((p) => !p.completed_at).map((p) => p.path_id),
-    vaccineRecord: recordOf(vax),
+    vaccineRecord: recordOf(vax, mine(reviews)[0]),
     vaccines: vax.map((v) => ({ type: ({ rabies: 'Rabies', dhpp: 'DHPP', bordetella: 'Bordetella' } as const)[v.type as 'rabies'], expires: v.expires_on })),
     notifications: notes.map((n): Notif => ({
       id: n.id,
-      icon: n.kind === 'path_step' ? 'check' : n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : n.kind === 'waitlist_booked' ? 'calendar-check' : n.kind.startsWith('waitlist') || n.kind.startsWith('hold') ? 'clock' : 'message-square',
+      icon: n.kind === 'records_denied' ? 'shield-alert' : n.kind === 'path_step' ? 'check' : n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : n.kind === 'waitlist_booked' ? 'calendar-check' : n.kind.startsWith('waitlist') || n.kind.startsWith('hold') ? 'clock' : 'message-square',
       tone: n.kind === 'clearance_earned' ? 'clr' : n.kind === 'path_step' ? 'path' : 'n',
       title: n.title, body: n.body, time: relTime(n.created_at),
       cat: cap(n.category), isNew: Date.now() - new Date(n.created_at).getTime() < 3 * 86_400_000 || !n.read_at,
@@ -352,9 +353,13 @@ export async function uploadDogPhoto(dogId: string, dataUri: string) {
 
 /** Vet records are stored as <member>/<dog>/<time>-<original name>. */
 const recordName = (path: string) => path.slice(path.lastIndexOf('/') + 1).replace(/^\d+-/, '');
-function recordOf(vax: { document_path: string | null; verified: boolean }[]): VaccineRecord | null {
+function recordOf(vax: { document_path: string | null; verified: boolean }[], review?: { status: 'approved' | 'denied'; reason: string | null; decided_at: string }): VaccineRecord | null {
   const path = vax.find((v) => v.document_path)?.document_path;
-  return path ? { name: recordName(path), verified: vax.length > 0 && vax.every((v) => v.verified) } : null;
+  if (!path) return null;
+  return {
+    name: recordName(path), verified: vax.length > 0 && vax.every((v) => v.verified),
+    review: review ? { status: review.status, reason: review.reason, decidedAt: review.decided_at } : undefined,
+  };
 }
 
 /**
