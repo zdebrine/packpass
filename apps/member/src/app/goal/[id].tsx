@@ -73,7 +73,7 @@ export default function GoalDetail() {
             const d = dot[s.state];
             const isLast = n === g.steps.length - 1;
             const next = s.classId ? nextSession(s.classId) : undefined;
-            const booked = !!s.classId && activeBookings(bookings).some((x) => x.booking.status === 'booked' && x.v.cls.id === s.classId);
+            const booked = !!s.classId && activeBookings(bookings.filter((b) => b.dogId === dog.id)).some((x) => x.booking.status === 'booked' && x.v.cls.id === s.classId);
             return (
               <View key={s.title} style={{ flexDirection: 'row', gap: 14 }}>
                 <View style={{ alignItems: 'center', width: 36 }}>

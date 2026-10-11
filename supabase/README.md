@@ -73,6 +73,9 @@ Schema, security rules and booking logic for the member app. It's deployed to th
   per dog; this adds the dog to the links in notifications that open one dog's screen (`dog_href`, `?dog=<id>`):
   Clearance earned, held spots released, an assessment's "not yet", a path step, and vet record decisions.
   Undoing a check-in takes back a path-step notification with or without the dog in its link.
+- `migrations/…_dog_links.sql` — every dog is its own profile in the app, so the rest of the notifications about
+  one dog name it too: booked, the waitlist (one "spot opened" per waiting dog), a cancelled session, a trainer's
+  note, held spots releasing soon and a missed class.
 - `migrations/…_check_in_closes.sql` — member check-in (`check_in`) closes 15 minutes after the start instead of at
   the end; partners can still check a dog in from the roster.
 - `migrations/…_path_progress.sql` — training path progress. Checking a dog in to its current step's class (QR
@@ -139,9 +142,9 @@ Expo with `--clear` (Metro caches env values).
   shim for `auth` and `storage`) and runs `booking.test.sql` (104 checks: each rule, credits, holds, reminders,
   the waitlist, RLS and storage policies) `partner.test.sql` (168 checks: staff access, teams and invites, one partner never
   reaching another's data, and each dashboard function) and `multi_dog.test.sql` (one owner, two dogs: each books
-  on its own records from the shared credits, holds and the waitlist per dog, links that name the dog). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
+  on its own records from the shared credits, holds and the waitlist per dog, links that name the dog) and `dog_links.test.sql` (each of the notifications above opens the dog it's about). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
-  PostgREST, with a stand-in for Supabase Auth and Storage: 117 checks, from sign-up with a dog photo and vet record to adding a second dog, a password reset, account settings and deleting the account.
+  PostgREST, with a stand-in for Supabase Auth and Storage: 118 checks, from sign-up with a dog photo and vet record to adding a second dog, a password reset, account settings and deleting the account.
 - `e2e/run.sh` — screen tests (Playwright, Chromium): builds the member app for web, the partner dashboard and
   the website against that same local stack and clicks through them. A new member signs up, onboards a dog, adds
   vaccines, books and cancels; a returning member signs in; a member adds a second dog and switches between them; a partner checks a dog in and uploads a trainer photo;

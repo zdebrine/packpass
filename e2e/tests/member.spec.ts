@@ -116,6 +116,12 @@ test('a member adds a second dog from the Dog tab and switches between them', as
   const id = await account(email, 'goodpass123');
   sql(`insert into dogs (owner_id, name, breed, birth_year, energy, sociability, area) values ('${id}', 'Juno', 'Border Collie', 2023, 'working', 'loves_dogs', 'Mueller')`);
   const dogs = () => sql(`select string_agg(name || ':' || coalesce(area, ''), ',' order by created_at) from dogs where owner_id = '${id}'`);
+  // Juno has a class coming up; it's Juno's alone, so Otis's Today doesn't show it.
+  sql(`insert into bookings (session_id, dog_id, member_id, credits_charged)
+       select s.id, d.id, d.owner_id, 1 from dogs d, sessions s
+       where d.owner_id = '${id}' and s.starts_at > now() + interval '1 day' and s.spots_left > 0 and s.cancelled_at is null
+       order by s.starts_at limit 1`);
+  const checkIn = page.getByRole('button', { name: 'Check in', exact: true });
 
   await page.goto('/');
   await page.getByText('I already have an account').click();
@@ -123,6 +129,7 @@ test('a member adds a second dog from the Dog tab and switches between them', as
   await ui.boxes().nth(1).fill('goodpass123');
   await ui.button('Sign in').click();
   await expect(ui.text('Juno is due for a hard day.')).toBeVisible();
+  await expect(checkIn).toBeVisible();
 
   // Backing out of step 1 saves nothing.
   await page.goto('/dog');
@@ -152,6 +159,8 @@ test('a member adds a second dog from the Dog tab and switches between them', as
   // Otis is saved next to Juno, in the same area, and the app now shows him.
   await expect(ui.text('Otis is due for a hard day.')).toBeVisible();
   expect(dogs()).toBe('Juno:Mueller,Otis:Mueller');
+  // Otis's own profile: nothing up next, and Juno's class isn't his.
+  await expect(checkIn).toHaveCount(0);
 
   // The Dog tab's switcher goes back to Juno, and Today follows.
   await page.goto('/dog');
@@ -159,4 +168,5 @@ test('a member adds a second dog from the Dog tab and switches between them', as
   await expect(page.getByRole('button', { name: "Juno's Athlete Card. Tap to see discipline levels." })).toBeVisible();
   await page.goto('/');
   await expect(ui.text('Juno is due for a hard day.')).toBeVisible();
+  await expect(checkIn).toBeVisible();
 });
