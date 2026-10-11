@@ -16,7 +16,8 @@ export function Glass({ style, children }: { style?: StyleProp<ViewStyle>; child
   }
   return (
     <View style={[{ overflow: 'hidden' }, style]}>
-      <BlurView tint="default" intensity={40} experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
+      {/* Android only blurs inside a <BlurTargetView> since SDK 55; without one it shows the tint alone. */}
+      <BlurView tint="default" intensity={40} style={StyleSheet.absoluteFill} />
       <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.12)' }]} />
       {children}
     </View>

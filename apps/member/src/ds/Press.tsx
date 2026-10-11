@@ -19,7 +19,7 @@ interface Props extends Omit<PressableProps, 'style' | 'children'> {
 export function Press({ style, activeStyle, scale = true, disabled, children, onPressIn, onPressOut, ...rest }: Props) {
   const s = useSharedValue(1);
   const [active, setActive] = useState(false);
-  const animated = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
+  const animated = useAnimatedStyle(() => ({ transform: [{ scale: s.get() }] }));
   return (
     <AnimatedPressable
       {...rest}
@@ -27,11 +27,11 @@ export function Press({ style, activeStyle, scale = true, disabled, children, on
       accessibilityRole={rest.accessibilityRole ?? 'button'}
       accessibilityState={{ disabled: !!disabled, ...rest.accessibilityState }}
       onPressIn={(e) => {
-        if (scale) s.value = withTiming(motion.pressScale, { duration: motion.fast, easing: ease });
+        if (scale) s.set(withTiming(motion.pressScale, { duration: motion.fast, easing: ease }));
         onPressIn?.(e);
       }}
       onPressOut={(e) => {
-        s.value = withTiming(1, { duration: motion.fast, easing: ease });
+        s.set(withTiming(1, { duration: motion.fast, easing: ease }));
         onPressOut?.(e);
       }}
       onHoverIn={() => setActive(true)}

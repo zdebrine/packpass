@@ -23,7 +23,7 @@ The designs are 390pt phone screens. On web, v1 renders the same mobile layout i
 
 | Concern | Choice |
 | --- | --- |
-| App framework | Expo SDK 54, React Native 0.81, React 19, TypeScript strict |
+| App framework | Expo SDK 57, React Native 0.86, React 19.2, TypeScript strict |
 | Routing | Expo Router v6 (typed routes), tabs plus stack plus form-sheet modals |
 | Styling | `StyleSheet` with a typed theme object generated from the design tokens (light and dark). No CSS-in-JS runtime. |
 | Fonts | Geist (`@expo-google-fonts/geist`) and Archivo **static instances generated from the variable font** at width 112 / weight 800 (display) and width 125 / weight 600 and 700 (wide caps). React Native can't set `font-variation-settings`, so the widths are baked into separate font files. |

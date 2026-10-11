@@ -35,6 +35,8 @@ export default function PlanScreen() {
   };
   // Back from Stripe on the web: the page reloads with ?checkout=done.
   useEffect(() => {
+    // The note mirrors a URL param set by Stripe's redirect, so it is set from the effect on purpose.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (params.checkout === 'done') thanks();
     else if (params.checkout === 'cancel') setNote({ ok: false, text: 'Checkout closed. Nothing was charged.' });
     else if (params.checkout === 'portal') useApp.getState().refresh().catch(() => {});

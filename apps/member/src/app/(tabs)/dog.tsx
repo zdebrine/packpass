@@ -32,7 +32,7 @@ function FlipCard() {
   const deg = useDerivedValue(() => withTiming(flipped ? 180 : 0, { duration: motion.slow, easing: Easing.bezier(...motion.easeOut) }));
   const front = useAnimatedStyle(() => ({ transform: [{ perspective: 1400 }, { rotateY: `${deg.value}deg` }] }));
   const back = useAnimatedStyle(() => ({ transform: [{ perspective: 1400 }, { rotateY: `${deg.value + 180}deg` }] }));
-  const face = { ...StyleSheet.absoluteFillObject, backfaceVisibility: 'hidden' as const };
+  const face = { ...StyleSheet.absoluteFill, backfaceVisibility: 'hidden' as const };
 
   return (
     <Press
