@@ -383,7 +383,7 @@ export async function uploadVaccineRecord(dogId: string, doc: PickedDoc) {
 /** Checks the file's magic bytes: PDFs start with "%PDF-", JPEGs with FF D8 FF. */
 function looksLike(bytes: Uint8Array, mime: PickedDoc['mime']) {
   const magic = mime === 'application/pdf' ? [0x25, 0x50, 0x44, 0x46, 0x2d] : [0xff, 0xd8, 0xff];
-  return bytes.length > 64 && magic.every((b, i) => bytes[i] === b);
+  return magic.every((b, i) => bytes[i] === b);
 }
 
 /**
