@@ -1,7 +1,6 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
-import { dogs } from '@/data/fixtures';
 import { Button } from '@/ds/controls';
 import { Icon, type IconName } from '@/ds/Icon';
 import { Badge, Screen, useBottom, useTop, themed } from '@/ds/layout';
@@ -32,7 +31,8 @@ function CheckedIn() {
   const allowance = useAllowance();
   const b = bookings.find((x) => x.id === id);
   const v = b ? view(b.sessionId) : undefined;
-  const dog = dogs[b?.dogId ?? 'juno'];
+  // The dog that was checked in (in live mode an id from the server, so not the sample fixtures).
+  const dog = useApp((s) => s.dogs.find((d) => d.id === b?.dogId) ?? s.dogs[0]);
 
   if (!b || !v) return <Redirect href="/" />;
 

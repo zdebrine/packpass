@@ -222,7 +222,7 @@ const S = () => useApp.getState();
   ok(Number(psql('select public.mark_no_shows()')) >= 1, 'a booking nobody checked in becomes a no-show');
   await S().refresh();
   ok(S().missed.some((e) => e.bookingId === skipped.id) && !S().log!.some((e) => e.bookingId === skipped.id), 'it is a missed class, kept out of the Log\'s counts');
-  ok(S().remoteNotifications!.some((x) => x.href === `/missed/${skipped.id}` && x.icon === 'calendar-x'), 'and the member is told');
+  ok(S().remoteNotifications!.some((x) => x.href === `/missed/${skipped.id}?dog=${dog}` && x.icon === 'calendar-x'), 'and the member is told');
   ok(liveLog(S().log!, S().missed, dog, 'Juno', S().social).sessions.some((x) => x.missed && x.href === `/missed/${skipped.id}`), 'the Log lists it as missed');
   S().seeMissed(skipped.id);
   ok(S().seenMissed.includes(skipped.id), 'and the Missed class screen opens once');
@@ -296,6 +296,10 @@ const S = () => useApp.getState();
   const calmDay2 = nextSession('calm-private', 2)!;
   r = await S().bookSession(calmDay2.session.id, otis);
   ok(r.ok && S().bookings.filter((b) => b.dogId === otis).length === 1, 'Otis books a private session on his own vaccines');
+  await S().refresh();
+  ok(S().remoteNotifications!.some((x) => x.title.startsWith('Booked.') && x.href === `/class/${calmDay2.session.id}?dog=${otis}`)
+     && S().remoteNotifications!.some((x) => x.title.startsWith('Booked.') && x.href === `/class/${groupDay2.session.id}?dog=${juno}`),
+     'each dog\'s booking notification opens that dog\'s class');
 
   await S().selectDog(juno);
   ok(S().activeDogId === juno && S().social === 'cleared' && S().vaccineRecord?.name === junoRecord && S().paths!.some((p) => p.startedAt), 'switching back shows Juno\'s records and paths');

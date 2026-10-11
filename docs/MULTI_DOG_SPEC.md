@@ -52,9 +52,11 @@ the area ("Trains near"), which stays an account setting read from the first dog
 3. **Adding a dog reuses onboarding 01e to 01j** (photo, details, play style, traits, Athlete Card, the
    dog's month), started from an "Add a dog" chip at the end of the Dog tab's switcher. Owner name, email
    and area are kept. Back out on step 1 and nothing is saved. The new dog becomes the active dog.
-4. **Up next on Today shows the soonest booking for any dog**, with the dog's name when there are two or
-   more, so a second dog's class isn't hidden. Everything else on Today is the active dog's.
-5. **Each dog's held month shows on Today** (one card per dog with holds), since holds release on their own.
+4. **Each dog is its own profile; only credits are shared.** Today (Up next, the held month, goals, the
+   month), Log, Passport, goals, vaccines, check-in and class screens show the dog that's picked and nothing
+   of the other dogs'. Another dog's class shows when that dog is picked.
+5. **Notifications stay one feed for the account**, since each names its dog. Every one about a dog's class,
+   hold, note or result opens that dog (`?dog=` in its link), so tapping it switches the profile.
 6. **No limit on dogs per account**, and removing a dog isn't in this change (the account's Delete account
    still removes all of them).
 
@@ -68,6 +70,13 @@ the area ("Trains near"), which stays an account setting read from the first dog
 - `rewind_paths` takes back a path-step notification whether its link has the dog or not (notifications
   sent before this migration don't).
 - No data changes. Old notifications keep their links; the app opens them for the active dog, as today.
+
+### Database: `supabase/migrations/20261012000100_dog_links.sql`
+
+The rest of the notifications about one dog get `?dog=` too: booked, the waitlist (spot opened, booked off
+it, couldn't book it), a partner cancelling the session, a trainer's note, held spots releasing soon, and a
+missed class. "A spot opened" goes once per waiting dog. Taking back a missed-class notice matches its link
+with or without the dog.
 
 ### Member app
 
@@ -85,8 +94,8 @@ the area ("Trains near"), which stays an account setting read from the first dog
   but the first.
 - **Routing (`src/app/_layout.tsx`).** A `dog` search param (from a notification link) selects that dog.
 - **Screens.** Dog tab: the switcher switches, plus "Add a dog". Booking sheet: starts on the active dog (or
-  `?dog=`), rules follow the picked dog. Today: Up next across dogs with the dog's name, a held-month card
-  per dog. Missed class: the dog that missed. Clearance, goals and stats use the active dog's Log entries
+  `?dog=`), rules follow the picked dog. Today: only the picked dog's Up next and held month. Check-in
+  picks the picked dog's class. Class detail shows only the picked dog's booking. Missed class: the dog that missed. Clearance, goals and stats use the active dog's Log entries
   only. 01e to 01j: "Add a dog" copy, step 1 can back out, 01j counts what the account has left in credits.
 - **Sample mode.** Otis gets his own records (Social cleared, vaccines current) so switching to him shows a
   real Passport; a sample dog added in the app starts with no records.
@@ -115,4 +124,7 @@ ignore the `?dog=` part of a link, so the order doesn't matter.
 - `apps/member/e2e/live/member-flow.ts`: adds a second dog through the store (`startAddDog` →
   `finishOnboarding`) with its own vaccines, record and photo, checks the first dog's records are untouched,
   switches between them, and books the second dog against its own rules.
-- `e2e/tests/member.spec.ts`: adds a dog from the Dog tab's switcher and switches back.
+- `supabase/tests/dog_links.test.sql`: every notification above names the dog it's about, one "spot opened"
+  per waiting dog, and an old-style missed notice is still taken back.
+- `e2e/tests/member.spec.ts`: adds a dog from the Dog tab's switcher and switches back; the first dog's
+  booked class shows on its Today and not on the second dog's.

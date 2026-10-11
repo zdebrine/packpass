@@ -41,7 +41,7 @@ select m.ok((select status from bookings where id = (select id from m.b where k 
 select m.ok((select status from bookings where id = (select id from m.b where k = 'cancelled')) = 'booked', 'a cancelled session is never a no-show');
 select m.ok((select status from bookings where id = (select id from m.b where k = 'attended')) = 'checked_in', 'a checked-in dog is left alone');
 select m.ok((select count(*) from notifications where kind = 'class_missed' and member_id = '00000000-0000-0000-0000-0000000000d1'
-             and href = '/missed/' || (select id from m.b where k = 'over')
+             and href = public.dog_href('/missed/' || (select id from m.b where k = 'over'), (select id from dogs where owner_id = '00000000-0000-0000-0000-0000000000d1'))
              and title = 'Rex missed ' || (select title from class_types where id = 'agility-drop-in')
              and body like '%2 credits were used%') = 1, 'the member is told once, with the credits');
 select m.ok(public.mark_no_shows() = 0, 'running again marks nothing');

@@ -16,7 +16,7 @@ import { Text } from '@/ds/Text';
 import { QrArt } from '@/features/QrArt';
 import { activeBookings, checkInClosesAt } from '@/lib/booking';
 import { startsCopy } from '@/lib/dates';
-import { useApp } from '@/store/app';
+import { useApp, useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts } from '@/theme/tokens';
 
@@ -42,6 +42,7 @@ function Scan() {
   const top = useTop();
   const { booking: bookingId } = useLocalSearchParams<{ booking?: string }>();
   const bookings = useApp((s) => s.bookings);
+  const dog = useDog();
   const checkIn = useApp((s) => s.checkIn);
   const [perm, requestPerm] = useCameraPermissions();
   const [torch, setTorch] = useState(false);
@@ -51,7 +52,8 @@ function Scan() {
   const [error, setError] = useState<string | null>(null);
 
   const upcoming = activeBookings(bookings).filter((x) => x.booking.status === 'booked' && checkInClosesAt(x.v.session.startsAt) >= now());
-  const target = upcoming.find((x) => x.booking.id === bookingId) ?? upcoming[0];
+  // The booking that was tapped, else the soonest for the dog that's showing (not another dog's class).
+  const target = upcoming.find((x) => x.booking.id === bookingId) ?? upcoming.find((x) => x.booking.dogId === dog.id);
 
   useEffect(() => {
     if (perm && !perm.granted && perm.canAskAgain) requestPerm().catch(() => {});

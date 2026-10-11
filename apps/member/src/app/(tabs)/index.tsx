@@ -33,17 +33,15 @@ export default function Today() {
   const allowance = useAllowance();
   const read = useApp((s) => s.readNotifications);
   const juno = useDog();
-  const dogs = useApp((s) => s.dogs);
   const from = useOriginLabel();
   const rules = useRules();
   const notes = useNotifications();
   const canBook = (id: string) => !bookError(id, juno.id, rules);
 
-  // Up next is the soonest booking for any of the member's dogs; the rest of Today is the dog that's showing.
-  const upcomingAll = activeBookings(bookings).filter((x) => x.booking.status === 'booked' && checkInClosesAt(x.v.session.startsAt) >= now());
-  const upNext = upcomingAll[0];
-  const upNextDog = dogs.length > 1 ? dogs.find((d) => d.id === upNext?.booking.dogId)?.name : undefined;
-  const upcoming = upcomingAll.filter((x) => x.booking.dogId === juno.id);
+  // Today is the dog that's showing: its classes, holds, goals and month. Other dogs' show when they're picked.
+  const upcoming = activeBookings(bookings.filter((b) => b.dogId === juno.id))
+    .filter((x) => x.booking.status === 'booked' && checkInClosesAt(x.v.session.startsAt) >= now());
+  const upNext = upcoming[0];
   const unread = notes.some((n) => n.isNew && !read.includes(n.id));
   const goal = useGoals().goals.find((g) => !isComplete(g));
   const step = goal ? goal.steps[stepIndex(goal)] : undefined;
@@ -123,7 +121,7 @@ export default function Today() {
                 <Press onPress={() => router.push(`/class/${upNext.v.session.id}`)} scale={false} accessibilityLabel={upNext.v.cls.title}>
                   <MapSketch variant="card" pin={{ left: '48%', top: '22%' }} style={{ height: 104, borderRadius: 20 }} />
                   <View style={{ paddingTop: 14, paddingHorizontal: 8 }}>
-                    <Text variant="wide" muted>{`${upNextDog ? `${upNextDog} · ` : ''}${relativeDay(upNext.v.session.startsAt)} · ${time(upNext.v.session.startsAt)} · ${upNext.v.cls.durationMin} min`}</Text>
+                    <Text variant="wide" muted>{`${relativeDay(upNext.v.session.startsAt)} · ${time(upNext.v.session.startsAt)} · ${upNext.v.cls.durationMin} min`}</Text>
                     <Text variant="displayMd" style={{ marginTop: 6 }}>{upNext.v.cls.title}</Text>
                     <Text variant="caption" muted style={{ marginTop: 4 }}>{`${upNext.v.partner.name} · ${upNext.v.partner.street} · ${upNext.v.partner.distanceMi} mi`}</Text>
                   </View>
@@ -141,7 +139,7 @@ export default function Today() {
             )}
           </View>
 
-          {dogs.map((d) => <HeldPlan key={d.id} dogId={d.id} />)}
+          <HeldPlan dogId={juno.id} />
 
           <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
