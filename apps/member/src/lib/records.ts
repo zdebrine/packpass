@@ -23,11 +23,12 @@ export async function pickRecordPhoto(): Promise<PickedDoc | null> {
 
 /** A PDF the vet sent. Throws 'too_big' over the bucket's 10 MB limit. */
 export async function pickRecordPdf(): Promise<PickedDoc | null> {
-  const r = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true });
+  const r = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true, base64: true });
   if (r.canceled || !r.assets[0]) return null;
   const a = r.assets[0];
   if (a.size && a.size > MAX_RECORD_BYTES) throw new Error('too_big');
-  // The web picker already returns a data URI; on phones, read the cached copy.
-  const uri = Platform.OS === 'web' ? a.uri : `data:application/pdf;base64,${await new File(a.uri).base64()}`;
+  // On the web, `uri` is a blob: URL and the file's data URI comes back as `base64`; on phones, read the cached copy.
+  const uri = Platform.OS === 'web' ? a.base64 : `data:application/pdf;base64,${await new File(a.uri).base64()}`;
+  if (!uri?.startsWith('data:')) throw new Error('bad_file');
   return { name: a.name || 'Vet record.pdf', mime: 'application/pdf', uri };
 }

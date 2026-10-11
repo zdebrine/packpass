@@ -371,10 +371,19 @@ export async function uploadVaccineRecord(dogId: string, doc: PickedDoc) {
     .map((r) => r.document_path).filter((p): p is string => !!p);
   const safe = doc.name.replace(/[^\w. -]+/g, '').trim().slice(0, 80) || 'Vet record';
   const path = `${auth.user.id}/${dogId}/${Date.now()}-${safe}`;
-  check(await c.storage.from('vaccine-docs').upload(path, base64ToBytes(doc.uri.slice(doc.uri.indexOf(',') + 1)), { contentType: doc.mime }));
+  const bytes = base64ToBytes(doc.uri.slice(doc.uri.indexOf(',') + 1));
+  // Refuse anything that isn't really a PDF or JPEG, so a bad read never replaces a good record.
+  if (!doc.uri.startsWith('data:') || !looksLike(bytes, doc.mime)) throw new Error('bad_file');
+  check(await c.storage.from('vaccine-docs').upload(path, bytes, { contentType: doc.mime }));
   check(await c.from('vaccinations').update({ document_path: path, verified: false }).eq('dog_id', dogId));
   const old = Array.from(new Set(before)).filter((p) => p !== path);
   if (old.length) await c.storage.from('vaccine-docs').remove(old);
+}
+
+/** Checks the file's magic bytes: PDFs start with "%PDF-", JPEGs with FF D8 FF. */
+function looksLike(bytes: Uint8Array, mime: PickedDoc['mime']) {
+  const magic = mime === 'application/pdf' ? [0x25, 0x50, 0x44, 0x46, 0x2d] : [0xff, 0xd8, 0xff];
+  return magic.every((b, i) => bytes[i] === b);
 }
 
 /**

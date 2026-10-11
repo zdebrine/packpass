@@ -12,6 +12,7 @@ const COPY: Record<string, string> = {
   credits: 'Not enough credits left this month.',
   not_found: 'This session isn\'t available any more.',
   not_your_dog: 'That dog isn\'t on your account.',
+  bad_file: 'That file didn\'t read properly. Try picking it again, or upload a photo of the page.',
   not_signed_in: 'Sign in to book.',
   not_cancellable: 'This booking can\'t be cancelled.',
   wrong_code: 'That code doesn\'t match this session. Check the sign at the entrance.',
