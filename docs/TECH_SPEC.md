@@ -220,7 +220,7 @@ release 24 hours before the session, and members are reminded a day before that;
   dog picker checks the rules against the picked dog's own clearances, paths and vaccines. Credits stay with the
   account. Notifications about one dog link to it (`?dog=<id>`). Sample mode's Otis has his own records (Social
   cleared, vaccines current).
-- **Web QR scanning** in expo-camera loads jsQR from cdn.jsdelivr.net at runtime. The 4-digit code works without it.
+- **Web QR scanning** uses the browser's BarcodeDetector where it exists (Chrome on Android). Elsewhere (Safari, Firefox) expo-camera falls back to zxing, whose WebAssembly the web build serves itself (`scripts/copy-zxing.mjs`, `src/lib/qr-decoder.web.ts`). The 4-digit code works without it.
 - **Glass on Android** uses expo-blur's experimental blur; older devices fall back to a translucent fill.
 
 ## 9. Open questions

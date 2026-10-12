@@ -8,6 +8,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'rea
 import { isLive } from '@/api/client';
 import { errorCopy } from '@/api/errors';
 import { photos } from '@/data/fixtures';
+import '@/lib/qr-decoder';
 import { now } from '@/lib/clock';
 import { Button } from '@/ds/controls';
 import { IconButton, Screen, useTop, themed } from '@/ds/layout';
