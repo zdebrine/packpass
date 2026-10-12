@@ -50,6 +50,14 @@ vaccines screen (Dog tab › Health and care › Update).
 sessions (spots reserved, no credits; stored on the server in live mode). Today's "Rest of Juno's month" card
 books them once she passes (Settings › Preview states › Pass re-check).
 
+## Web
+
+`npm run export:web` builds a static single-page app in `dist/` from the same routes. It is hosted on the Vercel
+project `packpass-member` with root `apps/member`; `vercel.json` sets the build and sends every path to `index.html`
+so links like `/class/<id>` open directly. Like store builds, it uses the committed `.env`, so it runs on the live
+project. `public/index.html` is the page template (title, description, icons); Expo adds the scripts on export.
+The web app gets no push notifications, and on wide screens the phone design sits in a centered column.
+
 ## Store builds
 
 `eas.json` has three profiles. Builds use the committed `.env`, so every store build runs on the live PackPass
