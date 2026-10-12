@@ -4,7 +4,9 @@ import { View } from 'react-native';
 
 import { Button } from '@/ds/controls';
 import { Field, Footer, MiniButton, Screen, themed } from '@/ds/layout';
+import { tile, useWide } from '@/ds/responsive';
 import { Text } from '@/ds/Text';
+import { Split } from '@/features/desktop/Split';
 import { BackButton, Body, Intro } from '@/features/onboarding/parts';
 import { isLive } from '@/api/client';
 import { errorCopy } from '@/api/errors';
@@ -23,7 +25,75 @@ function SignUp() {
   const [error, setError] = useState<string | null>(null);
   const signUp = useApp((s) => s.signUp);
   const pwOk = pw.length >= 8;
+  const wide = useWide();
   const valid = draft.ownerName.trim().length > 0 && EMAIL.test(draft.email.trim()) && pwOk;
+
+  const create = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await signUp(draft.email.trim(), pw);
+      router.push('/verify');
+    } catch (e) {
+      setError((e as Error).message || 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const fields = (
+    <>
+      <Field label="Your name" value={draft.ownerName} onChangeText={(ownerName) => update({ ownerName })} autoComplete="name" textContentType="name" />
+      <Field label="Email" value={draft.email} onChangeText={(email) => update({ email })} autoComplete="email" textContentType="emailAddress" keyboardType="email-address" autoCapitalize="none" />
+      <View style={{ gap: 8 }}>
+        <Field
+          label="Password"
+          value={pw}
+          onChangeText={setPw}
+          secureTextEntry={!show}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          right={<MiniButton onPress={() => setShow((v) => !v)}>{show ? 'Hide' : 'Show'}</MiniButton>}
+        />
+        <Text variant="caption" muted>{pwOk ? 'Strong enough.' : 'At least 8 characters.'}</Text>
+      </View>
+    </>
+  );
+  const actions = (
+    <>
+      {error ? <Text variant="label" weight="600" color="#f08470" center accessibilityLiveRegion="polite">{errorCopy(error)}</Text> : null}
+      {error === 'already_registered' || error === 'user_already_exists' ? (
+        <Button variant="quiet" block onPress={() => router.replace('/sign-in')}>Sign in instead</Button>
+      ) : null}
+      <Button block disabled={!valid || busy} onPress={create}>
+        {busy ? 'Creating account…' : 'Create account'}
+      </Button>
+      <Text variant="caption" muted center>
+        By continuing you agree to the{' '}
+        <Text variant="caption" weight="600" accessibilityRole="link" onPress={() => openSite('/terms')}>Membership terms</Text> and{' '}
+        <Text variant="caption" weight="600" accessibilityRole="link" onPress={() => openSite('/privacy')}>Privacy policy</Text>.
+      </Text>
+    </>
+  );
+
+  if (wide) {
+    return (
+      <Split photo="dog_chilling_in_car" gap={18}>
+        <Intro eyebrow="Join PackPass" title="Create your account." />
+        {isLive ? null : (
+          <>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <View style={tile(180)}><Button block onPress={() => router.push('/onboarding/dog')}>Continue with Apple</Button></View>
+              <View style={tile(180)}><Button variant="quiet" block onPress={() => router.push('/onboarding/dog')}>Continue with Google</Button></View>
+            </View>
+            <Text variant="caption" muted center>Or use your email</Text>
+          </>
+        )}
+        {fields}
+        {actions}
+      </Split>
+    );
+  }
 
   return (
     <Screen theme="dark">
@@ -40,50 +110,9 @@ function SignUp() {
             <Text variant="caption" muted center style={{ marginTop: 4 }}>Or use your email</Text>
           </>
         )}
-        <Field label="Your name" value={draft.ownerName} onChangeText={(ownerName) => update({ ownerName })} autoComplete="name" textContentType="name" />
-        <Field label="Email" value={draft.email} onChangeText={(email) => update({ email })} autoComplete="email" textContentType="emailAddress" keyboardType="email-address" autoCapitalize="none" />
-        <View style={{ gap: 8 }}>
-          <Field
-            label="Password"
-            value={pw}
-            onChangeText={setPw}
-            secureTextEntry={!show}
-            autoComplete="new-password"
-            textContentType="newPassword"
-            right={<MiniButton onPress={() => setShow((v) => !v)}>{show ? 'Hide' : 'Show'}</MiniButton>}
-          />
-          <Text variant="caption" muted>{pwOk ? 'Strong enough.' : 'At least 8 characters.'}</Text>
-        </View>
+        {fields}
       </Body>
-      <Footer>
-        {error ? <Text variant="label" weight="600" color="#f08470" center accessibilityLiveRegion="polite">{errorCopy(error)}</Text> : null}
-        {error === 'already_registered' || error === 'user_already_exists' ? (
-          <Button variant="quiet" block onPress={() => router.replace('/sign-in')}>Sign in instead</Button>
-        ) : null}
-        <Button
-          block
-          disabled={!valid || busy}
-          onPress={async () => {
-            setBusy(true);
-            setError(null);
-            try {
-              await signUp(draft.email.trim(), pw);
-              router.push('/verify');
-            } catch (e) {
-              setError((e as Error).message || 'error');
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          {busy ? 'Creating account…' : 'Create account'}
-        </Button>
-        <Text variant="caption" muted center>
-          By continuing you agree to the{' '}
-          <Text variant="caption" weight="600" accessibilityRole="link" onPress={() => openSite('/terms')}>Membership terms</Text> and{' '}
-          <Text variant="caption" weight="600" accessibilityRole="link" onPress={() => openSite('/privacy')}>Privacy policy</Text>.
-        </Text>
-      </Footer>
+      <Footer>{actions}</Footer>
     </Screen>
   );
 }

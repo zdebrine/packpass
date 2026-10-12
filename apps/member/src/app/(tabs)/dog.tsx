@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Share, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useDerivedValue, withTiming } from 'react-native-reanimated';
@@ -14,6 +14,7 @@ import { AthleteCard } from '@/ds/cards';
 import { Button, Chip, Tag } from '@/ds/controls';
 import { Badge, Bars, IconButton, Screen } from '@/ds/layout';
 import { Press } from '@/ds/Press';
+import { col, Columns, Page, tile, useWide, web } from '@/ds/responsive';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { dayOffset, expiryLabel, fromIso } from '@/lib/dates';
@@ -131,6 +132,185 @@ export default function DogProfile() {
   const passport = useClearances();
   const paths = useGoals();
   const clearances = [passport.social, passport.herding];
+  const wide = useWide();
+  const pathname = usePathname();
+  // The card column sticks only while it sits beside the content; once the columns wrap it would ride over them.
+  const [rowW, setRowW] = useState(0);
+  const goalCaption = (g: (typeof paths.goals)[number]) => {
+    const done = isComplete(g);
+    const next = g.steps[stepIndex(g)];
+    return isLive
+      ? done ? g.steps[g.steps.length - 1].stateLabel : `Next: ${next.title} · ${next.meta}`
+      : done ? 'Done. Social cleared.' : g.id === 'calm-around-dogs' ? `Next: ${next.title} · private session · Earns Social` : `Next: ${next.title} with Ana Ruiz`;
+  };
+  const vaccineRows = (['Rabies', 'DHPP', 'Bordetella'] as const).map((type) => {
+    const rec = vaccines.find((v) => v.type === type);
+    const exp = rec ? fromIso(rec.expires) : null;
+    const days = exp ? dayOffset(exp) : -1;
+    const status = !exp ? 'Not on file' : days < 0 ? 'Expired' : days <= 30 ? 'Due soon' : 'Current';
+    return { type, status, sub: exp ? `${days < 0 ? 'Expired' : 'Expires'} ${expiryLabel(exp)}` : 'Add the date from the vet record' };
+  });
+  const careNotes = [['Allergies', 'Chicken'], ['Medication', 'None'], ['Triggers', 'Nervous around men in hats']];
+  const share = () => Share.share({ message: `${juno.name}'s PackPass Passport: clearances, vaccines and care notes.` }).catch(() => {});
+  const addDog = () => { startAddDog(); router.push('/onboarding/dog'); };
+
+  if (wide) {
+    const tileBox = { borderRadius: 24, backgroundColor: c.surfaceRaised } as const;
+    return (
+      <Page top={32}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          {/* The member's dogs: click one to show it everywhere. "Add a dog" (not in the designs) runs 01e to 01j for another. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, flex: 1 }}>
+            {dogs.map((d) => (
+              <Chip
+                key={d.id}
+                selected={d.id === juno.id}
+                leading={<Photo name={d.photo} style={{ width: 28, height: 28, borderRadius: 9999 }} />}
+                onPress={d.id === juno.id ? undefined : () => selectDog(d.id)}
+                style={{ height: 40, paddingLeft: 6 }}
+              >
+                {d.name}
+              </Chip>
+            ))}
+            <Chip icon="plus" onPress={addDog} style={{ height: 40 }}>Add a dog</Chip>
+          </View>
+          <IconButton icon="settings" label="Settings" onPress={() => router.push('/settings')} />
+        </View>
+
+        <View onLayout={(e) => setRowW(e.nativeEvent.layout.width)} style={{ marginTop: 28 }}>
+          <Columns gap={48}>
+            <View style={[{ flexGrow: 0, flexShrink: 1, flexBasis: 340, minWidth: 300, alignItems: 'center', gap: 16 }, rowW >= 340 + 48 + 460 ? web({ position: 'sticky', top: 24 }) : null]}>
+              <FlipCard />
+              <Text variant="caption" muted>Click the card to flip</Text>
+              <ChangePhoto />
+              <View style={{ width: '100%', maxWidth: 320, gap: 8 }}>
+                <Button block onPress={share}>Share Passport with a partner</Button>
+                <Text variant="caption" muted center>Partners see clearances, vaccines and care notes.</Text>
+              </View>
+            </View>
+
+            <View style={col(999, 460, { gap: 40 })}>
+              <View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                  <Text variant="title">Passport</Text>
+                  <Text variant="caption" muted>Verified by partners</Text>
+                </View>
+                <Text variant="caption" muted style={{ marginBottom: 14 }}>{`Clearances travel with ${juno.name} to every PackPass partner. Click one for details.`}</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                  {clearances.map((k) => {
+                    const st = styleFor(k);
+                    const open = pathname === `/passport/${k.type}`;
+                    return (
+                      <Press key={k.type} onPress={() => router.push(`/passport/${k.type}`)} accessibilityLabel={`${k.name}: ${STATUS_LABEL[k.status]}`} style={tile(180, { ...tileBox, padding: 18, alignItems: 'flex-start', boxShadow: open ? `inset 0 0 0 2px ${c.ink}` : undefined })}>
+                        <Badge icon={st.icon} bg={st.bg} fg={st.fg} size={40} iconSize={20} />
+                        <Text variant="label" weight="600" style={{ marginTop: 20 }}>{k.name}</Text>
+                        <Text variant="caption" weight="600" color={st.color}>{STATUS_LABEL[k.status]}</Text>
+                        <Text variant="caption" muted style={{ marginTop: 2 }}>{k.sub}</Text>
+                      </Press>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View>
+                <Text variant="title" style={{ marginBottom: 14 }}>Next goals</Text>
+                {paths.goals.length ? null : <Text variant="label" muted style={{ marginBottom: 8 }}>{`No path started yet. Pick one below and ${juno.name} works through it a class at a time.`}</Text>}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {paths.goals.map((g) => {
+                    const i = stepIndex(g);
+                    const done = isComplete(g);
+                    return (
+                      <Press key={g.id} onPress={() => router.push(`/goal/${g.id}`)} style={tile(300, { ...tileBox, paddingVertical: 18, paddingHorizontal: 20, gap: 10 })}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+                          <Text variant="heading" weight="600" style={{ flex: 1 }}>{g.title}</Text>
+                          <Text variant="caption" muted>{done ? 'Complete' : `Step ${i + 1} of ${g.steps.length}`}</Text>
+                        </View>
+                        <Bars total={g.steps.length} done={done ? g.steps.length : i} />
+                        <Text variant="caption" muted>{goalCaption(g)}</Text>
+                      </Press>
+                    );
+                  })}
+                  {paths.available.map((g) => (
+                    <Press key={g.id} onPress={() => router.push(`/goal/${g.id}`)} style={tile(300, { paddingVertical: 18, paddingHorizontal: 20, borderRadius: 24, borderWidth: 1, borderColor: c.surfaceSunken, gap: 6 })}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+                        <Text variant="heading" weight="600" style={{ flex: 1 }}>{g.title}</Text>
+                        <Text variant="caption" muted>{`${g.steps.length} steps`}</Text>
+                      </View>
+                      <Text variant="caption" muted>{g.lede}</Text>
+                    </Press>
+                  ))}
+                </View>
+              </View>
+
+              <View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <Text variant="title">Traits</Text>
+                  <Button variant="quiet" size="sm" onPress={() => router.push('/onboarding/traits?edit=1')}>Edit</Button>
+                </View>
+                <Text variant="caption" muted style={{ marginBottom: 12 }}>From you. Used to suggest classes and trainers, never to grant access.</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {traits.map((t) => (
+                    <View key={t} style={tile(300, { paddingVertical: 14, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 })}>
+                      <Text variant="label" style={{ flex: 1 }}>{traitLabel(t)}</Text>
+                      <Text variant="caption" muted>From you</Text>
+                    </View>
+                  ))}
+                </View>
+                {traits.length === 0 ? <Text variant="label" muted>No traits added.</Text> : null}
+              </View>
+
+              <View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <Text variant="title">Health and care</Text>
+                  <Button variant="quiet" size="sm" onPress={() => router.push('/vaccines')}>Update</Button>
+                </View>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  <View style={tile(280, { backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 16 })}>
+                    {vaccineRows.map((v) => (
+                      <View key={v.type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                        <View style={{ flexShrink: 1 }}>
+                          <Text variant="label" weight="600">{v.type}</Text>
+                          <Text variant="caption" muted>{v.sub}</Text>
+                        </View>
+                        <Tag tone={v.status === 'Current' ? 'neutral' : 'warning'}>{v.status}</Tag>
+                      </View>
+                    ))}
+                  </View>
+                  {/* Care notes are sample content: members can't enter them yet, so live builds leave them out. */}
+                  {isLive ? null : (
+                    <View style={tile(280, { backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 14 })}>
+                      {careNotes.map(([k, v]) => (
+                        <View key={k}>
+                          <Text variant="caption" muted>{k}</Text>
+                          <Text variant="label" weight="600">{v}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+                {isLive ? null : <Text variant="caption" muted style={{ marginTop: 10, marginHorizontal: 4 }}>Vet: Cedar Animal Clinic · (555) 014-2290</Text>}
+              </View>
+
+              {stageAt >= 0 ? (
+                <View>
+                  <Text variant="title" style={{ marginBottom: 14 }}>Life stage</Text>
+                  <View style={{ flexDirection: 'row', gap: 4 }}>
+                    {STAGES.map((l, i) => (
+                      <View key={l} style={{ flex: 1 }}>
+                        <View style={{ height: 6, borderRadius: 9999, backgroundColor: i <= stageAt ? c.ink : c.surfaceSunken }} />
+                        <Text variant="caption" muted={i !== stageAt} weight={i === stageAt ? '600' : undefined} style={{ marginTop: 8 }}>{i === stageAt ? `${l} · now` : l}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Text variant="label" muted style={{ marginTop: 12 }}>Senior starts around age 8. Programming shifts to swim, scent work and slow walks.</Text>
+                </View>
+              ) : null}
+            </View>
+          </Columns>
+        </View>
+      </Page>
+    );
+  }
 
   return (
     <Screen>
@@ -148,7 +328,7 @@ export default function DogProfile() {
                 {d.name}
               </Chip>
             ))}
-            <Chip icon="plus" onPress={() => { startAddDog(); router.push('/onboarding/dog'); }}>Add a dog</Chip>
+            <Chip icon="plus" onPress={addDog}>Add a dog</Chip>
           </ScrollView>
           <IconButton icon="settings" label="Settings" onPress={() => router.push('/settings')} />
         </View>
@@ -183,7 +363,6 @@ export default function DogProfile() {
             {paths.goals.map((g) => {
               const i = stepIndex(g);
               const done = isComplete(g);
-              const next = g.steps[i];
               return (
                 <Press key={g.id} onPress={() => router.push(`/goal/${g.id}`)} style={{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised, gap: 10 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
@@ -191,11 +370,7 @@ export default function DogProfile() {
                     <Text variant="caption" muted>{done ? 'Complete' : `Step ${i + 1} of ${g.steps.length}`}</Text>
                   </View>
                   <Bars total={g.steps.length} done={done ? g.steps.length : i} />
-                  <Text variant="caption" muted>
-                    {isLive
-                      ? done ? g.steps[g.steps.length - 1].stateLabel : `Next: ${next.title} · ${next.meta}`
-                      : done ? 'Done. Social cleared.' : g.id === 'calm-around-dogs' ? `Next: ${next.title} · private session · Earns Social` : `Next: ${next.title} with Ana Ruiz`}
-                  </Text>
+                  <Text variant="caption" muted>{goalCaption(g)}</Text>
                 </Press>
               );
             })}
@@ -230,27 +405,21 @@ export default function DogProfile() {
 
         <Section title="Health and care" right={<Button variant="quiet" size="sm" onPress={() => router.push('/vaccines')}>Update</Button>}>
           <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 16 }}>
-            {(['Rabies', 'DHPP', 'Bordetella'] as const).map((type) => {
-              const rec = vaccines.find((v) => v.type === type);
-              const exp = rec ? fromIso(rec.expires) : null;
-              const days = exp ? dayOffset(exp) : -1;
-              const status = !exp ? 'Not on file' : days < 0 ? 'Expired' : days <= 30 ? 'Due soon' : 'Current';
-              return (
-                <View key={type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View>
-                    <Text variant="label" weight="600">{type}</Text>
-                    <Text variant="caption" muted>{exp ? `${days < 0 ? 'Expired' : 'Expires'} ${expiryLabel(exp)}` : 'Add the date from the vet record'}</Text>
-                  </View>
-                  <Tag tone={status === 'Current' ? 'neutral' : 'warning'}>{status}</Tag>
+            {vaccineRows.map((v) => (
+              <View key={v.type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View>
+                  <Text variant="label" weight="600">{v.type}</Text>
+                  <Text variant="caption" muted>{v.sub}</Text>
                 </View>
-              );
-            })}
+                <Tag tone={v.status === 'Current' ? 'neutral' : 'warning'}>{v.status}</Tag>
+              </View>
+            ))}
           </View>
           {/* Care notes are sample content: members can't enter them yet, so live builds leave them out. */}
           {isLive ? null : (
             <>
               <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 14, marginTop: 8 }}>
-                {[['Allergies', 'Chicken'], ['Medication', 'None'], ['Triggers', 'Nervous around men in hats']].map(([k, v]) => (
+                {careNotes.map(([k, v]) => (
                   <View key={k}>
                     <Text variant="caption" muted>{k}</Text>
                     <Text variant="label" weight="600">{v}</Text>
@@ -277,7 +446,7 @@ export default function DogProfile() {
         ) : null}
 
         <View style={{ marginTop: 32, paddingHorizontal: 20, gap: 10 }}>
-          <Button block onPress={() => Share.share({ message: `${juno.name}'s PackPass Passport: clearances, vaccines and care notes.` }).catch(() => {})}>Share Passport with a partner</Button>
+          <Button block onPress={share}>Share Passport with a partner</Button>
           <Text variant="caption" muted center>Partners see clearances, vaccines and care notes.</Text>
         </View>
       </ScrollView>

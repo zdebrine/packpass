@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { Redirect, router } from 'expo-router';
-import { useEffect } from 'react';
-import { Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Platform, ScrollView, Share, StyleSheet, View, type ViewStyle } from 'react-native';
 import Animated, {
   Easing, interpolate, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withTiming, type SharedValue,
 } from 'react-native-reanimated';
@@ -11,7 +11,10 @@ import { RECHECK_QUOTE, SOCIAL_UNLOCKS } from '@/data/passport';
 import { Button } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
 import { IconButton, Screen, useBottom, useTop, themed } from '@/ds/layout';
-import { Gradient, Photo, PhotoFill } from '@/ds/Surface';
+import { Overlay } from '@/ds/overlay';
+import { col, useWide, web } from '@/ds/responsive';
+import { Press } from '@/ds/Press';
+import { Glass, Gradient, Photo, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { catalog } from '@/data/catalog';
 import { monthYear, useClearances } from '@/lib/clearances';
@@ -76,6 +79,7 @@ function ClearanceEarned() {
 
 function Celebration() {
   const juno = useDog();
+  const wide = useWide();
   const top = useTop();
   const bottom = useBottom(32);
   const see = useApp((s) => s.seeSocialClearance);
@@ -83,19 +87,81 @@ function Celebration() {
   const arc = useSharedValue(0);
   const pop = useSharedValue(0);
 
+  // Desktop's Replay runs the ring, badge and headline again (the Rise and Ring timers restart on remount).
+  const [run, setRun] = useState(0);
+  const play = useCallback(() => {
+    arc.set(0);
+    pop.set(0);
+    arc.set(withDelay(250, withTiming(1, { duration: 900, easing: ease })));
+    pop.set(withDelay(700, withTiming(1, { duration: 800, easing: ease })));
+  }, [arc, pop]);
+  const replay = () => {
+    setRun((n) => n + 1);
+    play();
+  };
+
   useEffect(() => {
     see();
     markRead(['n-recheck']);
-    arc.value = withDelay(250, withTiming(1, { duration: 900, easing: ease }));
-    pop.value = withDelay(700, withTiming(1, { duration: 800, easing: ease }));
+    play();
     if (Platform.OS !== 'web') {
       const t = setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}), 900);
       return () => clearTimeout(t);
     }
-  }, [see, markRead, arc, pop]);
+  }, [see, markRead, play]);
 
   const close = () => router.dismissTo('/dog');
   const share = () => Share.share({ message: `${juno.name} is Social cleared on PackPass. Group sport, play and group skills are open.` }).catch(() => {});
+
+  if (wide) {
+    return (
+      <Overlay kind="dialog" width={760} dim={0.6} onClose={close}>
+        <View style={{ height: 420, overflow: 'hidden' }}>
+          <PhotoFill name="dogs_meeting_on_leash" />
+          <Gradient stops={[['rgba(0,0,0,0.45)', 0], ['rgba(0,0,0,0.2)', 0.3], ['rgba(0,0,0,0.35)', 0.6], ['#0e0f0e', 1]]} />
+          <View style={{ position: 'absolute', top: 20, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', zIndex: 2 }}>
+            <IconButton glass icon="x" label="Close" onPress={close} />
+            <Press onPress={replay} accessibilityLabel="Replay" style={{ height: 44, paddingHorizontal: 16, borderRadius: 9999, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+              <Glass style={web({ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 })} />
+              <Text variant="caption" weight="600" color="#fff" style={{ fontSize: 13 }}>Replay</Text>
+            </Press>
+          </View>
+          <View key={run} style={{ position: 'absolute', left: 0, right: 0, top: 60, bottom: 0 }}>
+            <View style={{ alignItems: 'center' }}>
+              <Badge arc={arc} pop={pop} />
+            </View>
+            <View style={{ position: 'absolute', left: 32, right: 32, bottom: 24, alignItems: 'center' }}>
+              <ThemeAgility />
+              <Rise delay={1250}>
+                <Text variant="displayXl" color="#fff" center style={{ marginTop: 10 }} accessibilityRole="header">{`${juno.name} is Social cleared.`}</Text>
+              </Rise>
+              <Rise delay={1400}>
+                <Text variant="label" color="rgba(255,255,255,0.88)" center style={{ marginTop: 10 }}>Four steps of Calm around dogs, done. Group sport is open at every PackPass partner.</Text>
+              </Rise>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ paddingTop: 8, paddingHorizontal: 32, paddingBottom: 32 }}>
+          <Facts />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 28 }}>
+            <View style={col(1, 300)}>
+              <Text variant="title" style={{ marginBottom: 14 }}>{`Open to ${juno.name} now`}</Text>
+              <Unlocks />
+            </View>
+            <View style={col(1, 260, { gap: 16 })}>
+              <Quote style={{ marginTop: 0 }} />
+              <Text variant="caption" muted>{`Added to ${juno.name}'s Passport. Partners see it when you book.`}</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 24 }}>
+            <Button variant="quiet" style={{ flex: 1 }} onPress={share}>Share</Button>
+            <Button variant="signal" style={{ flex: 2 }} onPress={() => { router.dismissTo('/book'); }}>Book group sport</Button>
+          </View>
+        </View>
+      </Overlay>
+    );
+  }
 
   return (
     <Screen theme="dark" bleed statusLight>
@@ -190,12 +256,12 @@ function Unlocks() {
   );
 }
 
-function Quote() {
+function Quote({ style }: { style?: ViewStyle }) {
   const { c } = useTheme();
   const e = useEarned();
   if (!e.quote) return null;
   return (
-    <View style={{ marginTop: 28, padding: 20, borderRadius: 28, backgroundColor: c.surfaceRaised }}>
+    <View style={[{ marginTop: 28, padding: 20, borderRadius: 28, backgroundColor: c.surfaceRaised }, style]}>
       <Text variant="wide" muted>From the assessor</Text>
       <Text style={{ marginTop: 10 }}>{`“${e.quote}”`}</Text>
       <Text variant="caption" muted style={{ marginTop: 8 }}>{[e.assessor, e.issuerFull].filter(Boolean).join(', ')}</Text>

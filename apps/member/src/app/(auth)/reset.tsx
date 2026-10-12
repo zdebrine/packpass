@@ -7,7 +7,9 @@ import { errorCopy } from '@/api/errors';
 import { Button } from '@/ds/controls';
 import { Field, Footer, Screen, themed } from '@/ds/layout';
 import { Press } from '@/ds/Press';
+import { useWide } from '@/ds/responsive';
 import { Text } from '@/ds/Text';
+import { Split } from '@/features/desktop/Split';
 import { BackButton, Body, Intro } from '@/features/onboarding/parts';
 import { useApp } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -18,6 +20,7 @@ import { useTheme } from '@/theme/ThemeProvider';
  */
 function Reset() {
   const { c } = useTheme();
+  const wide = useWide();
   const draft = useApp((s) => s.draft);
   const update = useApp((s) => s.updateDraft);
   const request = useApp((s) => s.requestPasswordReset);
@@ -46,36 +49,48 @@ function Reset() {
     router.replace(useApp.getState().onboarded ? '/' : '/onboarding/dog');
   });
 
+  const fields = sent ? (
+    <>
+      <Intro eyebrow="Check your inbox" title="New password." lede={`If ${email} has a PackPass account, we sent it a 6-digit code.`} />
+      <Field label="Code" value={code} onChangeText={(v) => { setCode(v.replace(/\D/g, '').slice(0, 6)); setError(null); }} keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="one-time-code" maxLength={6} autoFocus />
+      <Field label="New password" value={pw} onChangeText={(v) => { setPw(v); setError(null); }} secureTextEntry autoComplete="new-password" textContentType="newPassword" onSubmitEditing={save} />
+      <Text variant="caption" muted>At least 8 characters.</Text>
+      <Press onPress={() => { setSent(false); setCode(''); setError(null); }} scale={false} accessibilityRole="link" style={{ alignSelf: 'flex-start' }}>
+        <Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Use a different email or send a new code</Text>
+      </Press>
+    </>
+  ) : (
+    <>
+      <Intro eyebrow="PackPass" title="Reset your password." lede="We'll email you a 6-digit code to set a new one." />
+      <Field label="Email" value={draft.email} onChangeText={(v) => { update({ email: v }); setError(null); }} autoComplete="email" keyboardType="email-address" autoCapitalize="none" textContentType="emailAddress" autoFocus onSubmitEditing={send} />
+    </>
+  );
+  const actions = (
+    <>
+      {error ? <Text variant="label" weight="600" color={c.kennelRed} center accessibilityLiveRegion="polite">{error}</Text> : null}
+      {sent ? (
+        <Button block disabled={code.length < 6 || pw.length < 8 || busy} onPress={save}>{busy ? 'Saving…' : 'Set password and sign in'}</Button>
+      ) : (
+        <Button block disabled={!/.+@.+\..+/.test(email) || busy} onPress={send}>{busy ? 'Sending…' : 'Send code'}</Button>
+      )}
+      {isLive ? null : <Text variant="caption" muted center>Any 6 digits work in this preview.</Text>}
+    </>
+  );
+
+  if (wide) {
+    return (
+      <Split photo="dog_chilling_with_owner_on_porch" gap={18}>
+        {fields}
+        {actions}
+      </Split>
+    );
+  }
+
   return (
     <Screen theme="dark">
       <View style={{ paddingTop: 6, paddingHorizontal: 20 }}><BackButton /></View>
-      <Body top={20} gap={18}>
-        {sent ? (
-          <>
-            <Intro eyebrow="Check your inbox" title="New password." lede={`If ${email} has a PackPass account, we sent it a 6-digit code.`} />
-            <Field label="Code" value={code} onChangeText={(v) => { setCode(v.replace(/\D/g, '').slice(0, 6)); setError(null); }} keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="one-time-code" maxLength={6} autoFocus />
-            <Field label="New password" value={pw} onChangeText={(v) => { setPw(v); setError(null); }} secureTextEntry autoComplete="new-password" textContentType="newPassword" onSubmitEditing={save} />
-            <Text variant="caption" muted>At least 8 characters.</Text>
-            <Press onPress={() => { setSent(false); setCode(''); setError(null); }} scale={false} accessibilityRole="link" style={{ alignSelf: 'flex-start' }}>
-              <Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Use a different email or send a new code</Text>
-            </Press>
-          </>
-        ) : (
-          <>
-            <Intro eyebrow="PackPass" title="Reset your password." lede="We'll email you a 6-digit code to set a new one." />
-            <Field label="Email" value={draft.email} onChangeText={(v) => { update({ email: v }); setError(null); }} autoComplete="email" keyboardType="email-address" autoCapitalize="none" textContentType="emailAddress" autoFocus onSubmitEditing={send} />
-          </>
-        )}
-      </Body>
-      <Footer>
-        {error ? <Text variant="label" weight="600" color={c.kennelRed} center accessibilityLiveRegion="polite">{error}</Text> : null}
-        {sent ? (
-          <Button block disabled={code.length < 6 || pw.length < 8 || busy} onPress={save}>{busy ? 'Saving…' : 'Set password and sign in'}</Button>
-        ) : (
-          <Button block disabled={!/.+@.+\..+/.test(email) || busy} onPress={send}>{busy ? 'Sending…' : 'Send code'}</Button>
-        )}
-        {isLive ? null : <Text variant="caption" muted center>Any 6 digits work in this preview.</Text>}
-      </Footer>
+      <Body top={20} gap={18}>{fields}</Body>
+      <Footer>{actions}</Footer>
     </Screen>
   );
 }

@@ -7,7 +7,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 type Road = { left: DimensionValue; top: DimensionValue; w: DimensionValue; h: DimensionValue; rotate: number };
 type Park = { left: DimensionValue; top: DimensionValue; w: DimensionValue; h: DimensionValue; r?: number };
 
-const LAYOUTS: Record<'card' | 'detail' | 'full', { roads: Road[]; parks: Park[] }> = {
+const LAYOUTS: Record<'card' | 'detail' | 'full' | 'wide', { roads: Road[]; parks: Park[] }> = {
   card: {
     roads: [
       { left: '-10%', top: '52%', w: '120%', h: 10, rotate: -8 },
@@ -34,6 +34,20 @@ const LAYOUTS: Record<'card' | 'detail' | 'full', { roads: Road[]; parks: Park[]
     parks: [
       { left: '8%', top: '36%', w: '34%', h: '16%', r: 20 },
       { left: '62%', top: '8%', w: '30%', h: '14%', r: 20 },
+    ],
+  },
+  /** Desktop Book map (04 Book map): a landscape panel beside the list. */
+  wide: {
+    roads: [
+      { left: '-20%', top: '30%', w: '140%', h: 14, rotate: -12 },
+      { left: '-20%', top: '62%', w: '140%', h: 10, rotate: 6 },
+      { left: '30%', top: '-10%', w: 12, h: '120%', rotate: 10 },
+      { left: '68%', top: '-10%', w: 8, h: '120%', rotate: -6 },
+      { left: '-20%', top: '14%', w: '140%', h: 6, rotate: 4 },
+    ],
+    parks: [
+      { left: '8%', top: '38%', w: '30%', h: '18%', r: 20 },
+      { left: '64%', top: '8%', w: '26%', h: '16%', r: 20 },
     ],
   },
 };

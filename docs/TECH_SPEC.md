@@ -17,7 +17,7 @@ Why Expo fits this design specifically:
 - Every native need in the design has an Expo module that also runs on web: `expo-blur` (glass capsules), `expo-linear-gradient` (scrims), `expo-image` (photo-first screens), `expo-camera` (QR check-in), `expo-haptics`, `expo-notifications`, `react-native-reanimated` (word cycle, card flip, clearance celebration).
 
 ### Web layout
-The designs are 390pt phone screens. On web, v1 renders the same mobile layout in a centered column (max 480px) on a neutral ground, which is how ClassPass and Life Time ship their web booking flows. A responsive desktop layout needs its own design pass and is out of scope for v1.
+The designs are 390pt phone screens. On web, v1 renders the same mobile layout in a centered column (max 480px) on a neutral ground, which is how ClassPass and Life Time ship their web booking flows. From 1024px wide the web app switches to the desktop design (Pack Member App Desktop): a left sidebar in place of the tab bar, wide two-column pages, and dialogs or side panels in place of sheets (`useWide()` in `src/ds/responsive.tsx`, `Overlay` in `src/ds/overlay.tsx`). Screens the desktop design doesn't cover (settings, plan, vaccines) keep the phone layout in a centered 640px column.
 
 ## 2. Stack
 

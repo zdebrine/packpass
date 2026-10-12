@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { Icon, type IconName } from '@/ds/Icon';
 import { useBottom } from '@/ds/layout';
 import { Press } from '@/ds/Press';
+import { useWide } from '@/ds/responsive';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { useApp, useDog, useUnseenMissed, useUnseenRecordDenial } from '@/store/app';
@@ -62,6 +63,8 @@ export default function TabsLayout() {
   const onboarded = useApp((s) => s.onboarded);
   const denied = useUnseenRecordDenial();
   const missed = useUnseenMissed();
+  // Desktop navigates from the sidebar.
+  const wide = useWide();
   // Back on the tabs with a dog half added (backed out of 01e, or the app closed mid-way): nothing was saved.
   useFocusEffect(useCallback(() => useApp.getState().cancelAddDog(), []));
   if (!onboarded) return <Redirect href="/welcome" />;
@@ -70,7 +73,7 @@ export default function TabsLayout() {
   // A class the dog missed without cancelling in time: say so once, the next time the app opens.
   if (missed) return <Redirect href={`/missed/${missed.bookingId}`} />;
   return (
-    <Tabs tabBar={(p) => <TabBar {...p} />} screenOptions={{ headerShown: false }}>
+    <Tabs tabBar={(p) => (wide ? null : <TabBar {...p} />)} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index" />
       <Tabs.Screen name="book" />
       <Tabs.Screen name="log" />

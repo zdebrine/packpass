@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
@@ -8,7 +8,10 @@ import { AthleteCard } from '@/ds/cards';
 import { Button } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
 import { Screen, useBottom, themed } from '@/ds/layout';
+import { Press } from '@/ds/Press';
+import { tile, useWide } from '@/ds/responsive';
 import { Text } from '@/ds/Text';
+import { Split } from '@/features/desktop/Split';
 import { Intro, StepHeader } from '@/features/onboarding/parts';
 import { useApp } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -22,10 +25,14 @@ function Reveal() {
   const name = d.dogName.trim() || 'Your dog';
   const yrs = now().getFullYear() - d.birthYear - (now().getMonth() < d.birthMonth ? 1 : 0);
 
+  const wide = useWide();
   const t = useSharedValue(0);
+  // Desktop has a Replay link that runs the reveal again.
+  const [run, setRun] = useState(0);
   useEffect(() => {
+    t.value = 0;
     t.value = withDelay(200, withTiming(1, { duration: 1100, easing: Easing.bezier(...motion.easeOut) }));
-  }, [t]);
+  }, [t, run]);
   const card = useAnimatedStyle(() => ({
     opacity: interpolate(t.value, [0, 0.55, 1], [0, 1, 1]),
     transform: [
@@ -36,6 +43,47 @@ function Reveal() {
     ],
   }));
 
+  const athlete = (
+    <Animated.View style={card}>
+      <AthleteCard
+        name={name}
+        photo={d.photo ?? undefined}
+        breed={d.mixed ? 'Mixed breed' : d.breed || undefined}
+        age={yrs < 1 ? 'Puppy' : `${yrs} yrs`}
+        stage={yrs < 1 ? undefined : yrs < 8 ? 'Prime' : 'Senior'}
+        since={now().getFullYear()}
+        stats={[{ value: 0, label: 'Sessions' }, { value: 0, label: 'Hours active' }, { value: 0, label: 'Disciplines' }]}
+      />
+    </Animated.View>
+  );
+  const records = (
+    <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+      <Icon name="syringe" />
+      <Text variant="label" style={{ flex: 1 }}>{`Upload ${name}'s vaccination records before the first booking.`}</Text>
+    </View>
+  );
+  const upload = <Button block onPress={() => router.push('/vaccines')}>Upload records</Button>;
+  const month = <Button variant="quiet" block onPress={() => router.push('/onboarding/month')}>{`See ${name}'s month`}</Button>;
+
+  if (wide) {
+    return (
+      <Split photo="dog_chilling" step={5} back={false} gap={20}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 }}>
+          <View style={{ flex: 1 }}><Intro eyebrow="Step 5 of 5 · Athlete Card" title={`${name} is on the roster.`} /></View>
+          <Press onPress={() => setRun((n) => n + 1)} scale={false} accessibilityLabel="Replay the reveal">
+            <Text variant="caption" muted style={{ fontSize: 13, textDecorationLine: 'underline' }}>Replay</Text>
+          </Press>
+        </View>
+        <View style={{ alignItems: 'center', paddingVertical: 8 }}>{athlete}</View>
+        {records}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <View style={tile(180)}>{upload}</View>
+          <View style={tile(180)}>{month}</View>
+        </View>
+      </Split>
+    );
+  }
+
   return (
     <Screen theme="dark">
       <StepHeader step={5} showBack={false} />
@@ -43,25 +91,12 @@ function Reveal() {
         <Intro eyebrow="Step 5 of 5 · Athlete Card" title={`${name} is on the roster.`} />
       </View>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Animated.View style={card}>
-          <AthleteCard
-            name={name}
-            photo={d.photo ?? undefined}
-            breed={d.mixed ? 'Mixed breed' : d.breed || undefined}
-            age={yrs < 1 ? 'Puppy' : `${yrs} yrs`}
-            stage={yrs < 1 ? undefined : yrs < 8 ? 'Prime' : 'Senior'}
-            since={now().getFullYear()}
-            stats={[{ value: 0, label: 'Sessions' }, { value: 0, label: 'Hours active' }, { value: 0, label: 'Disciplines' }]}
-          />
-        </Animated.View>
+        {athlete}
       </View>
       <View style={{ paddingHorizontal: 20, paddingBottom: bottom, gap: 10 }}>
-        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
-          <Icon name="syringe" />
-          <Text variant="label" style={{ flex: 1 }}>{`Upload ${name}'s vaccination records before the first booking.`}</Text>
-        </View>
-        <Button block onPress={() => router.push('/vaccines')}>Upload records</Button>
-        <Button variant="quiet" block onPress={() => router.push('/onboarding/month')}>{`See ${name}'s month`}</Button>
+        {records}
+        {upload}
+        {month}
       </View>
     </Screen>
   );

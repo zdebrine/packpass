@@ -3,13 +3,15 @@ import { Geist_500Medium } from '@expo-google-fonts/geist/500Medium';
 import { Geist_600SemiBold } from '@expo-google-fonts/geist/600SemiBold';
 import { Geist_700Bold } from '@expo-google-fonts/geist/700Bold';
 import { useFonts } from 'expo-font';
-import { Stack, useGlobalSearchParams } from 'expo-router';
+import { Stack, useGlobalSearchParams, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { isLive, supabase } from '@/api/client';
+import { useWide } from '@/ds/responsive';
+import { Sidebar } from '@/features/desktop/Sidebar';
 import { setLiveClock } from '@/lib/clock';
 import { identify, wrap } from '@/lib/monitoring';
 import { usePush } from '@/lib/push';
@@ -25,10 +27,25 @@ function useHydrated() {
   return done;
 }
 
-/** On web the phone-sized designs sit in a centered column (docs/TECH_SPEC.md §1). */
+/**
+ * On web the phone-sized designs sit in a centered column (docs/TECH_SPEC.md §1). A desktop-width
+ * browser gets the full-width layout from Pack Member App Desktop, with the sidebar once signed in.
+ */
 function WebFrame({ children }: { children: React.ReactNode }) {
   const { c } = useTheme();
+  const wide = useWide();
+  const segments = useSegments() as string[];
+  const onboarded = useApp((s) => s.onboarded);
   if (Platform.OS !== 'web') return <>{children}</>;
+  if (wide) {
+    const inApp = onboarded && segments[0] !== '(auth)' && segments[0] !== 'onboarding';
+    return (
+      <View style={{ flex: 1, flexDirection: 'row', backgroundColor: c.bg }}>
+        {inApp ? <Sidebar /> : null}
+        <View style={{ flex: 1, minWidth: 0 }}>{children}</View>
+      </View>
+    );
+  }
   return (
     <View style={{ flex: 1, backgroundColor: c.bg === '#ffffff' ? '#e4e4e1' : '#050605', alignItems: 'center' }}>
       <View style={{ flex: 1, width: '100%', maxWidth: 480, backgroundColor: c.bg, overflow: 'hidden', boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 30px 80px -30px rgba(0,0,0,0.35)' }}>
@@ -36,6 +53,13 @@ function WebFrame({ children }: { children: React.ReactNode }) {
       </View>
     </View>
   );
+}
+
+/** Desktop shows sheets and full-screen modals as dialogs over the page, so the page has to stay rendered underneath. */
+function useModal(phone: 'transparentModal' | 'fullScreenModal' | undefined, animation?: 'fade') {
+  const wide = useWide();
+  if (wide) return { presentation: 'transparentModal' as const, animation: 'fade' as const };
+  return { presentation: phone, animation };
 }
 
 function RootLayout() {
@@ -52,6 +76,10 @@ function RootLayout() {
   const dataReady = useApp((s) => s.ready);
   const ready = fontsLoaded && hydrated && dataReady;
   usePush();
+  const sheet = useModal('transparentModal', 'fade');
+  const fade = useModal('fullScreenModal', 'fade');
+  const scan = useModal('fullScreenModal');
+  const page = useModal(undefined);
 
   // A link that names a dog (notifications: /goal/…?dog=<id>) shows that dog.
   const { dog } = useGlobalSearchParams<{ dog?: string }>();
@@ -86,11 +114,13 @@ function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
             <Stack.Screen name="onboarding" />
-            <Stack.Screen name="book/[sessionId]" options={{ presentation: 'transparentModal', animation: 'fade' }} />
-            <Stack.Screen name="passport/[type]" options={{ presentation: 'transparentModal', animation: 'fade' }} />
-            <Stack.Screen name="clearance-earned" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-            <Stack.Screen name="check-in/scan" options={{ presentation: 'fullScreenModal' }} />
-            <Stack.Screen name="check-in/done" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+            <Stack.Screen name="book/[sessionId]" options={sheet} />
+            <Stack.Screen name="passport/[type]" options={sheet} />
+            <Stack.Screen name="clearance-earned" options={fade} />
+            <Stack.Screen name="check-in/scan" options={scan} />
+            <Stack.Screen name="check-in/done" options={fade} />
+            <Stack.Screen name="notifications" options={page} />
+            <Stack.Screen name="missed/[id]" options={page} />
           </Stack>
         </WebFrame>
       </ThemeProvider>
