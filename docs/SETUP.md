@@ -23,6 +23,8 @@ Edge Function secrets, EAS or Vercel.
 | Stripe keys (test mode) | Plans, credit top-ups, Founding Pack, partner payouts (Connect) | `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` as Edge Function secrets. The apps need no Stripe key (payments open Stripe's hosted Checkout) | Done (test mode); see section 3 |
 | Maps key | A real map instead of the drawn one | Google Maps or Mapbox key in the app config | Later |
 | Vercel project | Hosting the partner dashboard | `packpass-partner` → packpass-partner.vercel.app (Supabase values come from `apps/partner/.env`) | Done |
+| Vercel project for the member app on the web | Members sign in, book and pay in a browser (`apps/member` web build) | `packpass-member`, root `apps/member`, settings in `apps/member/vercel.json`, no env vars needed (`apps/member/.env` is public). Add its URL to Supabase Auth's redirect URLs | **To do** |
+| Member app link on the website | The "Open in your browser" button next to the store buttons | `VITE_MEMBER_APP_URL` in `apps/web/.env` (shows once `VITE_APP_LIVE=true`) | Later, with launch |
 | Vercel project for the website | Hosting the public site (`apps/web`) | New project, root `apps/web`, no env vars needed (`apps/web/.env` is public) | **To do** |
 | Support email | Shown on the website's /privacy, /terms and /support pages | `VITE_SUPPORT_EMAIL` on the `packpass-landing` Vercel project (defaults to support@packpass.app) | **To do** once the domain's mailbox exists |
 | App store links | The website's download buttons | `VITE_IOS_URL`, `VITE_ANDROID_URL` in `apps/web/.env` | Later, once listed |

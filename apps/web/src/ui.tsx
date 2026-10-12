@@ -1,9 +1,9 @@
 // Small wrappers over the design system's pk- classes.
-import { Minus, Plus, Smartphone, Play } from 'lucide-react';
+import { Globe, Minus, Plus, Smartphone, Play } from 'lucide-react';
 import { useState, type CSSProperties, type ImgHTMLAttributes, type ReactNode } from 'react';
 
 import type { Faq as FaqRow, Photo } from './content/defaults';
-import { ANDROID_URL, IOS_URL } from './lib/supabase';
+import { ANDROID_URL, IOS_URL, MEMBER_APP_URL } from './lib/supabase';
 
 type Variant = 'primary' | 'signal' | 'quiet' | 'glass';
 const cls = (variant: Variant, size?: 'sm', block?: boolean) => ['pk-btn', `pk-btn-${variant}`, size === 'sm' && 'pk-btn-sm', block && 'pk-btn-block'].filter(Boolean).join(' ');
@@ -21,12 +21,13 @@ export const Chip = ({ children, on, onClick }: { children: ReactNode; on?: bool
 
 export const Tag = ({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'signal' | 'glass' }) => <span className={`pk-tag pk-tag-${tone}`}>{children}</span>;
 
-/** iOS and Android buttons. Until the app is listed (no store link set), they say so instead of linking. */
+/** iOS and Android buttons, plus the web app once it has a URL. Until the app is listed (no store link set), the store buttons say so instead of linking. */
 export function StoreButtons() {
   return (
     <>
       <Button href={IOS_URL || undefined} disabled={!IOS_URL} style={{ minWidth: 200 }}><Smartphone size={18} />{IOS_URL ? 'Download for iOS' : 'iOS · coming soon'}</Button>
       <Button variant="glass" href={ANDROID_URL || undefined} disabled={!ANDROID_URL} style={{ minWidth: 200 }}><Play size={18} />{ANDROID_URL ? 'Get it on Android' : 'Android · coming soon'}</Button>
+      {MEMBER_APP_URL ? <Button variant="glass" href={MEMBER_APP_URL} style={{ minWidth: 200 }}><Globe size={18} />Open in your browser</Button> : null}
     </>
   );
 }

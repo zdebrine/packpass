@@ -10,6 +10,8 @@ export const DASHBOARD_URL = (import.meta.env.VITE_DASHBOARD_URL as string | und
 export const APPLY_URL = `${DASHBOARD_URL}/?apply=1`;
 export const IOS_URL = (import.meta.env.VITE_IOS_URL as string | undefined) || '';
 export const ANDROID_URL = (import.meta.env.VITE_ANDROID_URL as string | undefined) || '';
+/** The member app on the web (apps/member's web build). Unset hides the browser button. */
+export const MEMBER_APP_URL = (import.meta.env.VITE_MEMBER_APP_URL as string | undefined) || '';
 
 /** The app is in the stores. Until then (unset), the site collects founding-member signups instead of store links. */
 export const APP_LIVE = import.meta.env.VITE_APP_LIVE === 'true';
