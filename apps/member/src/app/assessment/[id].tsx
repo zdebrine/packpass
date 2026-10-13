@@ -31,7 +31,7 @@ function ClearedCard({ title, sub }: { title: string; sub: string }) {
   const { c } = useTheme();
   const wide = useWide();
   return (
-    <View style={{ backgroundColor: c.agility, borderRadius: 28, padding: wide ? 24 : 20, flexDirection: 'row', gap: wide ? 16 : 14, alignItems: 'center' }}>
+    <View style={{ backgroundColor: c.agility, borderRadius: 16, padding: wide ? 24 : 20, flexDirection: 'row', gap: wide ? 16 : 14, alignItems: 'center' }}>
       <View style={{ width: wide ? 56 : 52, height: wide ? 56 : 52, borderRadius: 9999, backgroundColor: 'rgba(14,15,14,0.1)', alignItems: 'center', justifyContent: 'center' }}>
         <Icon name="shield-check" size={wide ? 28 : 24} color={c.onAgility} />
       </View>
@@ -64,12 +64,12 @@ function DesktopResult({ date, title, sub, card, quote, by, cta, strengths, work
   ) : null);
   return (
     <Page>
-      <View style={{ backgroundColor: c.pitch, borderRadius: 32, paddingTop: 28, paddingHorizontal: 32, paddingBottom: 36 }}>
+      <View style={{ backgroundColor: c.pitch, borderRadius: 24, paddingTop: 28, paddingHorizontal: 32, paddingBottom: 36 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text variant="wide" color={c.onPitchMuted}>{`Assessment result · ${date}`}</Text>
           <IconButton icon="x" label="Close" onPress={close} style={{ backgroundColor: 'rgba(255,255,255,0.12)' }} />
         </View>
-        <Text variant="display2xl" color={c.onPitch} style={{ marginTop: 20 }} accessibilityRole="header">{title}</Text>
+        <Text variant="hero" color={c.onPitch} style={{ marginTop: 20 }} accessibilityRole="header">{title}</Text>
         <Text variant="label" color={c.onPitchMuted} style={{ marginTop: 10 }}>{sub}</Text>
       </View>
       <Columns gap={48} style={{ marginTop: 32 }}>
@@ -113,7 +113,7 @@ function RecordedResult({ e }: { e: LogEntry }) {
       sub={a.type === 'herding' ? `Assessed at ${e.partner}. Herding stays with this partner.` : `${e.partner}. Counts at every PackPass partner.`}
     />
   ) : (
-    <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: wide ? 24 : 20, gap: wide ? 12 : 8 }}>
+    <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 16, padding: wide ? 24 : 20, gap: wide ? 12 : 8 }}>
       <Text variant="wide" color={c.turf}>{`${type} · Working on it`}</Text>
       <Text variant="displayMd">{a.type === 'social' ? "Not yet. Here's the path." : 'Not yet.'}</Text>
       <Text variant="caption" muted>{a.type === 'social' ? `Calm around dogs gets ${dog.name} ready for a re-check.` : `Book another Herding assessment at ${e.partner} when ${dog.name} is ready.`}</Text>
@@ -180,7 +180,7 @@ function SampleResult() {
   const working = cleared ? ['Fixates for the first few minutes'] : ['Fixates on new dogs at the gate', 'Fixates for the first few minutes'];
   const wide = useWide();
   const notYetCard = (
-    <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: wide ? 24 : 20, gap: 12 }}>
+    <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 16, padding: wide ? 24 : 20, gap: 12 }}>
       <Text variant="wide" color={c.turf}>Social · Working on it</Text>
       <Text variant="displayMd">Not yet. Here’s the path.</Text>
       <Bars total={4} done={1} />

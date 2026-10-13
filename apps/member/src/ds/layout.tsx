@@ -68,24 +68,30 @@ export function Footer({ children, shadow = true, style }: { children: ReactNode
   );
 }
 
-/** 44pt round icon button: glass over photos, raised elsewhere. */
-export function IconButton({ icon, onPress, glass, size = 44, label, style }: { icon: IconName; onPress?: () => void; glass?: boolean; size?: number; label: string; style?: StyleProp<ViewStyle> }) {
+/** 44pt round icon button: glass over photos, raised elsewhere. `dot` marks something unread. */
+export function IconButton({ icon, onPress, glass, size = 44, label, style, dot }: { icon: IconName; onPress?: () => void; glass?: boolean; size?: number; label: string; style?: StyleProp<ViewStyle>; dot?: boolean }) {
   const { c } = useTheme();
   const box: ViewStyle = { width: size, height: size, borderRadius: 9999, alignItems: 'center', justifyContent: 'center' };
   return (
     <Press onPress={onPress} accessibilityLabel={label} style={[box, glass ? { overflow: 'hidden' } : { backgroundColor: c.surfaceRaised }, style]}>
       {glass ? <Glass style={[box, { position: 'absolute' }]} /> : null}
       <Icon name={icon} size={size > 40 ? 20 : 18} color={glass ? '#fff' : c.ink} />
+      {dot ? <View style={{ position: 'absolute', top: '22%', right: '22%', width: 7, height: 7, borderRadius: 9999, backgroundColor: c.kennelRed, boxShadow: `0 0 0 2px ${glass ? 'transparent' : c.bg}` }} /> : null}
     </Press>
   );
 }
 
 /** Section title with the round arrow button (the design's replacement for "See all"). */
 export function SectionTitle({ title, onMore, right, style }: { title: string; onMore?: () => void; right?: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const { c } = useTheme();
   return (
-    <View style={[{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }, style]}>
+    <View style={[{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }, style]}>
       <Text variant="title">{title}</Text>
-      {right ?? (onMore ? <IconButton icon="arrow-right" size={36} onPress={onMore} label={`More ${title}`} /> : null)}
+      {right ?? (onMore ? (
+        <Press onPress={onMore} accessibilityLabel={`More ${title}`} style={{ width: 32, height: 32, borderRadius: 9999, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="arrow-right" size={16} color={c.inkMuted} />
+        </Press>
+      ) : null)}
     </View>
   );
 }
@@ -127,11 +133,14 @@ export function Toggle({ on, onPress, label }: { on: boolean; onPress: () => voi
   );
 }
 
-/** Pill text input on a raised fill (or `fill`, e.g. the page colour when it sits on a raised panel). */
-export function Field({ label, right, left, fill, style, ...input }: TextInputProps & { label?: string; right?: ReactNode; left?: ReactNode; fill?: string }) {
+/** v3 text field: 48pt, radius 12, a strong hairline on the surface (`fill` overrides the surface). `search` is the 44pt raised pill. */
+export function Field({ label, right, left, fill, search, style, ...input }: TextInputProps & { label?: string; right?: ReactNode; left?: ReactNode; fill?: string; search?: boolean }) {
   const { c } = useTheme();
+  const shape: ViewStyle = search
+    ? { height: 44, borderRadius: 9999, backgroundColor: fill ?? c.surfaceRaised, paddingLeft: 14, paddingRight: 14 }
+    : { height: 48, borderRadius: 12, backgroundColor: fill ?? c.surface, boxShadow: `inset 0 0 0 1px ${c.lineStrong}`, paddingLeft: left ? 12 : 14, paddingRight: right ? 6 : 14 };
   const box = (
-    <View style={{ height: 52, borderRadius: 9999, backgroundColor: fill ?? c.surfaceRaised, flexDirection: 'row', alignItems: 'center', paddingLeft: left ? 18 : 20, paddingRight: right ? 8 : 20, gap: 10 }}>
+    <View style={[shape, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
       {left}
       <TextInput
         placeholderTextColor={c.inkFaint}
@@ -143,8 +152,8 @@ export function Field({ label, right, left, fill, style, ...input }: TextInputPr
   );
   if (!label) return box;
   return (
-    <View style={{ gap: 8 }}>
-      <Text variant="label" weight="600">{label}</Text>
+    <View style={{ gap: 6 }}>
+      <Text variant="heading">{label}</Text>
       {box}
     </View>
   );
@@ -154,7 +163,7 @@ export function Field({ label, right, left, fill, style, ...input }: TextInputPr
 export function MiniButton({ children, onPress, fill }: { children: ReactNode; onPress?: () => void; fill?: string }) {
   const { c } = useTheme();
   return (
-    <Press onPress={onPress} style={{ height: 36, paddingHorizontal: 14, borderRadius: 9999, backgroundColor: fill ?? c.bg, alignItems: 'center', justifyContent: 'center' }}>
+    <Press onPress={onPress} style={{ height: 34, paddingHorizontal: 12, borderRadius: 9999, backgroundColor: fill ?? c.surfaceRaised, alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ fontFamily: fonts.sansSemibold, fontSize: 13, lineHeight: 18 }}>{children}</Text>
     </Press>
   );
@@ -166,10 +175,40 @@ export function Grabber() {
   return <View style={{ width: 40, height: 5, borderRadius: 9999, backgroundColor: c.surfaceSunken, alignSelf: 'center' }} />;
 }
 
-/** Raised row with a 44 to 52pt thumbnail, used across Today, 01j, 13. */
-export function Card({ children, style, radius = 28, fill }: { children: ReactNode; style?: StyleProp<ViewStyle>; radius?: number; fill?: string }) {
+/** v3 card: radius 16, filled on `surfaceRaised`, or a hairline on the page with `line`. */
+export function Card({ children, style, radius = 16, fill, line }: { children: ReactNode; style?: StyleProp<ViewStyle>; radius?: number; fill?: string; line?: boolean }) {
   const { c } = useTheme();
-  return <View style={[{ backgroundColor: fill ?? c.surfaceRaised, borderRadius: radius }, style]}>{children}</View>;
+  return <View style={[line ? { boxShadow: `inset 0 0 0 1px ${c.line}` } : { backgroundColor: fill ?? c.surfaceRaised }, { borderRadius: radius }, style]}>{children}</View>;
+}
+
+/** v3 list row: 60pt min, hairline under it, a 44pt thumb, title, meta and a trailing slot. */
+export function Row({ title, meta, thumb, trail, onPress, last, style }: { title: ReactNode; meta?: ReactNode; thumb?: ReactNode; trail?: ReactNode; onPress?: () => void; last?: boolean; style?: StyleProp<ViewStyle> }) {
+  const { c } = useTheme();
+  const body = (
+    <>
+      {thumb ? <View style={{ width: 44, height: 44, borderRadius: 12, overflow: 'hidden', backgroundColor: c.surfaceRaised, alignItems: 'center', justifyContent: 'center' }}>{thumb}</View> : null}
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        {typeof title === 'string' ? <Text variant="heading" numberOfLines={1}>{title}</Text> : title}
+        {typeof meta === 'string' ? <Text variant="caption" muted numberOfLines={1}>{meta}</Text> : meta}
+      </View>
+      {trail ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>{trail}</View> : null}
+    </>
+  );
+  const box: StyleProp<ViewStyle> = [{ minHeight: 60, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 12 }, last ? null : { borderBottomWidth: 1, borderBottomColor: c.line }, style];
+  return onPress ? <Press onPress={onPress} scale={false} style={box} activeStyle={{ backgroundColor: c.hover }}>{body}</Press> : <View style={box}>{body}</View>;
+}
+
+/** v3 empty state: icon in a 44pt circle, a title, a muted line and an optional action. */
+export function EmptyState({ icon, title, body, children }: { icon?: IconName; title: string; body?: string; children?: ReactNode }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ alignItems: 'center', gap: 8, paddingVertical: 32, paddingHorizontal: 24 }}>
+      {icon ? <View style={{ width: 44, height: 44, borderRadius: 9999, backgroundColor: c.surfaceRaised, alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}><Icon name={icon} color={c.inkMuted} /></View> : null}
+      <Text variant="title" center>{title}</Text>
+      {body ? <Text muted center style={{ maxWidth: 300 }}>{body}</Text> : null}
+      {children ? <View style={{ marginTop: 8 }}>{children}</View> : null}
+    </View>
+  );
 }
 
 /** Round badge with an icon (clearances, milestones, notifications). */

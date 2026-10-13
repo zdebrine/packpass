@@ -166,7 +166,7 @@ function Celebration() {
   return (
     <Screen theme="dark" bleed statusLight>
       <ScrollView style={{ flex: 1 }}>
-        <View style={{ height: 520, overflow: 'hidden' }}>
+        <View style={{ height: 392, overflow: 'hidden' }}>
           <PhotoFill name="dogs_meeting_on_leash" />
           <Gradient stops={[['rgba(0,0,0,0.45)', 0], ['rgba(0,0,0,0.2)', 0.3], ['rgba(0,0,0,0.35)', 0.6], ['#0e0f0e', 1]]} />
           <View style={{ position: 'absolute', top: top + 8, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -229,7 +229,7 @@ function Facts() {
   return (
     <View style={{ flexDirection: 'row', gap: 8 }}>
       {[['Issued by', e.issuer], ['Earned', e.earned], ['Valid to', e.validTo]].map(([k, v]) => (
-        <View key={k} style={{ flex: 1, backgroundColor: c.surfaceRaised, borderRadius: 20, padding: 14 }}>
+        <View key={k} style={{ flex: 1, backgroundColor: c.surfaceRaised, borderRadius: 12, padding: 14 }}>
           <Text variant="caption" muted>{k}</Text>
           <Text variant="label" weight="600" style={{ marginTop: 4 }}>{v}</Text>
         </View>
@@ -243,7 +243,7 @@ function Unlocks() {
   return (
     <View style={{ gap: 8 }}>
       {SOCIAL_UNLOCKS.map((u) => (
-        <View key={u.label} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 10, paddingLeft: 10, paddingRight: 14, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+        <View key={u.label} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 10, paddingLeft: 10, paddingRight: 14, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
           <Photo name={u.photo} style={{ width: 52, height: 52, borderRadius: 12 }} />
           <View style={{ flex: 1 }}>
             <Text variant="label" weight="600">{u.label}</Text>
@@ -261,7 +261,7 @@ function Quote({ style }: { style?: ViewStyle }) {
   const e = useEarned();
   if (!e.quote) return null;
   return (
-    <View style={[{ marginTop: 28, padding: 20, borderRadius: 28, backgroundColor: c.surfaceRaised }, style]}>
+    <View style={[{ marginTop: 28, padding: 20, borderRadius: 16, backgroundColor: c.surfaceRaised }, style]}>
       <Text variant="wide" muted>From the assessor</Text>
       <Text style={{ marginTop: 10 }}>{`“${e.quote}”`}</Text>
       <Text variant="caption" muted style={{ marginTop: 8 }}>{[e.assessor, e.issuerFull].filter(Boolean).join(', ')}</Text>

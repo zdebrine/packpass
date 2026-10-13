@@ -45,12 +45,12 @@ function RecordsDenied() {
         title="Records denied."
         lede={`PackPass couldn't approve ${dog.name}'s vaccine record. Upload a new one and we'll check it again.`}
       />
-      <View style={{ gap: 8, padding: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+      <View style={{ gap: 8, padding: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
         <Text variant="caption" muted>Why it was denied</Text>
         <Text variant="label" weight="600">{review.reason}</Text>
       </View>
       {record ? (
-        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
           <Icon name="file-text" />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text variant="label" weight="600" numberOfLines={1}>{record.name}</Text>
@@ -58,7 +58,7 @@ function RecordsDenied() {
           </View>
         </View>
       ) : null}
-      <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+      <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
         <Icon name="syringe" />
         <Text variant="label" style={{ flex: 1 }}>{`Classes need Rabies, DHPP and Bordetella on one record, with the dates you enter matching it.`}</Text>
       </View>

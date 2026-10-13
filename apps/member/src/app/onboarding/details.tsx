@@ -57,7 +57,7 @@ function Details() {
           <Icon name="minus" />
         </Press>
         <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'baseline' }}>
-          <Text variant="displayXl" num>{d.weight}</Text>
+          <Text variant="statNum" num>{d.weight}</Text>
           <Text variant="heading" muted> lb</Text>
         </View>
         <Press onPress={() => update({ weight: Math.min(200, d.weight + 1) })} accessibilityLabel="More" style={{ width: 52, height: 52, borderRadius: 9999, backgroundColor: c.surfaceRaised, alignItems: 'center', justifyContent: 'center' }}>
@@ -67,7 +67,7 @@ function Details() {
     </FieldGroup>
   );
   const fixed = (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
       <View style={{ gap: 2, flex: 1 }}>
         <Text variant="label" weight="600">{d.sex === 'Female' ? 'Spayed' : 'Neutered'}</Text>
         <Text variant="caption" muted>Some play groups require it.</Text>

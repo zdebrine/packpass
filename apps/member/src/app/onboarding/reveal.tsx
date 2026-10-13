@@ -57,7 +57,7 @@ function Reveal() {
     </Animated.View>
   );
   const records = (
-    <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+    <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
       <Icon name="syringe" />
       <Text variant="label" style={{ flex: 1 }}>{`Upload ${name}'s vaccination records before the first booking.`}</Text>
     </View>

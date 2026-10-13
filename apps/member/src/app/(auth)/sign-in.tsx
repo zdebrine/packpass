@@ -68,7 +68,7 @@ function SignIn() {
       <Field label="Email" value={draft.email} onChangeText={(email) => { update({ email }); setError(false); }} autoComplete="email" keyboardType="email-address" autoCapitalize="none" textContentType="emailAddress" />
       <Field label="Password" value={pw} onChangeText={(v) => { setPw(v); setError(false); }} secureTextEntry autoComplete="current-password" textContentType="password" onSubmitEditing={submit} />
       {error ? (
-        <View style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft }} accessibilityLiveRegion="polite">
+        <View style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.kennelRedSoft }} accessibilityLiveRegion="polite">
           <Text variant="label" weight="600" color={c.kennelRed}>{error === 'mismatch' ? "That email and password don't match. Try again, or use Forgot password (also if you were invited and never set one)." : error}</Text>
         </View>
       ) : null}

@@ -103,7 +103,7 @@ export default function Vaccines() {
         <View style={{ gap: 10 }}>
           <Text variant="label" weight="600">Vet record</Text>
           {doc || record ? (
-            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 14, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 14, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
               <Icon name="file-text" />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text variant="label" weight="600" numberOfLines={1}>{(doc ?? record)!.name}</Text>

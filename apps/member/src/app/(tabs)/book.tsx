@@ -2,7 +2,6 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { isLive } from '@/api/client';
 import { catalog } from '@/data/catalog';
 import type { Category, SessionType } from '@/data/types';
 import { Chip, Tag } from '@/ds/controls';
@@ -13,7 +12,7 @@ import { col, Page, useWide } from '@/ds/responsive';
 import { PhotoFill, Scrim } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { ClassRow } from '@/features/book/ClassRow';
-import { MapSketch } from '@/features/MapSketch';
+import { centerOf, Map, useMe } from '@/features/Map';
 import { eligibility, sessionsFor, timeLabel, view, type SessionView } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { addMinutes, dayOffset, shortDay } from '@/lib/dates';
@@ -23,9 +22,6 @@ import { useTheme } from '@/theme/ThemeProvider';
 const CATS: Category[] = ['Sport', 'Scent', 'Play', 'Skills'];
 const TYPES: SessionType[] = ['Class', 'Private', 'Assessment'];
 const HERO_CLASS = 'herding-livestock';
-// The map is a drawn sketch with pins placed for the five sample partners, so it only shows on sample data.
-// Live members get the list until a real map (react-native-maps and partner coordinates) is built.
-const MAP = !isLive;
 
 function Segmented({ value, onChange, float }: { value: 'List' | 'Map'; onChange: (v: 'List' | 'Map') => void; float?: boolean }) {
   const { c } = useTheme();
@@ -70,15 +66,23 @@ function WideSegmented({ value, onChange }: { value: 'List' | 'Map'; onChange: (
   );
 }
 
-// Desktop map pins, placed as fractions of the landscape map (the design's 04 Book map; East Side sits where the phone has it, lower left).
-const WIDE_PINS: { id: string; left: `${number}%`; top: `${number}%` }[] = [
-  { id: 'northside', left: '12%', top: '22%' },
-  { id: 'southfork', left: '62%', top: '44%' },
-  { id: 'eastfield', left: '70%', top: '20%' },
-  { id: 'ridgeline', left: '34%', top: '50%' },
-  { id: 'eastside', left: '8%', top: '74%' },
-];
 const pinLabel = (id: string, n: number) => (id === 'eastfield' ? 'Open field' : `${n} ${n === 1 ? 'class' : 'classes'}`);
+/** Partners with coordinates, as map pins. */
+const partnerPins = () => Object.values(catalog.partners).filter((p) => p.lat != null && p.lng != null).map((p) => ({ id: p.id, lat: p.lat!, lng: p.lng!, title: p.name }));
+
+/** Book's label pin: a pill with the class count, the picked partner in ink with a pointer under it. */
+function LabelPin({ label, on, onPress, a11y }: { label: string; on: boolean; onPress: () => void; a11y: string }) {
+  const { c } = useTheme();
+  return (
+    <Press onPress={onPress} accessibilityLabel={a11y} style={{ alignItems: 'center', marginBottom: on ? 34 : 0 }}>
+      <View style={{ height: on ? 40 : 32, paddingHorizontal: on ? 16 : 12, borderRadius: 9999, backgroundColor: on ? c.inverse : c.bg, boxShadow: c.shadowFloat, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        {on ? <Icon name="map-pin" size={16} color={c.onInverse} /> : null}
+        <Text variant={on ? 'label' : 'caption'} weight="600" color={on ? c.onInverse : c.ink} numberOfLines={1}>{label}</Text>
+      </View>
+      {on ? <View style={{ width: 10, height: 10, backgroundColor: c.inverse, transform: [{ rotate: '45deg' }], marginTop: -6 }} /> : null}
+    </Press>
+  );
+}
 
 /** 03 Book · list and 04 Book · map */
 export default function Book() {
@@ -91,11 +95,13 @@ export default function Book() {
   const [types, setTypes] = useState<SessionType[]>([]);
   const [fits, setFits] = useState(true);
   const [query, setQuery] = useState('');
-  const [partnerId, setPartnerId] = useState('ridgeline');
+  const [partnerId, setPartnerId] = useState(() => (catalog.partners.ridgeline ? 'ridgeline' : Object.keys(catalog.partners)[0]));
   const sociability = useApp((s) => s.draft.social);
   const rules = useRules();
   const dog = useDog();
   const wide = useWide();
+  const me = useMe();
+  const pins = partnerPins();
   const [gridW, setGridW] = useState(0);
 
   const fitsDog = (v: SessionView) => !(sociability === 'Prefers solo' && v.cls.sessionType === 'Class' && v.cls.groupSize > 1);
@@ -123,7 +129,7 @@ export default function Book() {
   }, [day]);
 
   if (wide) {
-    const mapMode = MAP && mode === 'Map';
+    const mapMode = mode === 'Map';
     const heroEl = hero ? eligibility(hero, rules, dog.name) : null;
     // repeat(auto-fill, minmax(380px, 1fr)) with a 24 column gap, measured so a lone last card keeps its column width.
     const cols = Math.max(1, Math.floor((gridW + 24) / (380 + 24)));
@@ -133,12 +139,12 @@ export default function Book() {
     return (
       <Page top={32}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text variant="displayXl" accessibilityRole="header">Book</Text>
-          {MAP ? <WideSegmented value={mapMode ? 'Map' : 'List'} onChange={setMode} /> : null}
+          <Text variant="pageTitle" accessibilityRole="header">Book</Text>
+          <WideSegmented value={mapMode ? 'Map' : 'List'} onChange={setMode} />
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 20 }}>
           <View style={col(1, 320)}>
-            <Field value={query} onChangeText={setQuery} placeholder="Search classes, trainers, places" left={<Icon name="search" color={c.inkMuted} />} returnKeyType="search" />
+            <Field search value={query} onChangeText={setQuery} placeholder="Search classes, trainers, places" left={<Icon name="search" size={18} color={c.inkMuted} />} returnKeyType="search" />
           </View>
           <View style={col(1, 380, { flexDirection: 'row', padding: 4, borderRadius: 9999, backgroundColor: c.surfaceRaised })}>
             {CATS.map((k) => (
@@ -164,8 +170,8 @@ export default function Book() {
 
         {mapMode ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap-reverse', gap: 20, marginTop: 24 }}>
-            <View style={col(1, 360, { maxWidth: 440, padding: 24, borderRadius: 28, backgroundColor: c.surfaceRaised })}>
-              <Text variant="wide" muted>{`${dayLabel} · ${p.distanceMi} mi · ${p.street}`}</Text>
+            <View style={col(1, 360, { maxWidth: 440, padding: 20, borderRadius: 16, boxShadow: `inset 0 0 0 1px ${c.line}` })}>
+              <Text variant="eyebrow" muted>{`${dayLabel} · ${p.distanceMi} mi · ${p.street}`}</Text>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 6 }}>
                 <Text variant="displayLg" style={{ flex: 1 }}>{p.name}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -174,27 +180,23 @@ export default function Book() {
                 </View>
               </View>
               <View style={{ gap: 14, marginTop: 20 }}>
-                {here.length ? here.map((v) => <ClassRow key={v.session.id} v={v} showPartnerAsCoach pillFill={c.bg} />) : <Text muted>Nothing on this day.</Text>}
+                {here.length ? here.map((v) => <ClassRow key={v.session.id} v={v} showPartnerAsCoach />) : <Text muted>Nothing on this day.</Text>}
               </View>
             </View>
-            <MapSketch variant="wide" style={col(999, 420, { minHeight: 560, borderRadius: 28 })}>
-              {WIDE_PINS.filter((pin) => catalog.partners[pin.id]).map((pin) => {
-                const n = byPartner[pin.id]?.length ?? 0;
-                const on = pin.id === p.id;
-                return (
-                  <Press key={pin.id} onPress={() => setPartnerId(pin.id)} accessibilityLabel={`${catalog.partners[pin.id].name}, ${n} sessions`} style={{ position: 'absolute', left: pin.left, top: pin.top, alignItems: 'center', zIndex: on ? 1 : 0 }}>
-                    <View style={{ height: on ? 40 : 32, paddingHorizontal: on ? 16 : 12, borderRadius: 9999, backgroundColor: on ? c.inverse : c.bg, boxShadow: c.shadowFloat, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      {on ? <Icon name="map-pin" size={16} color={c.onInverse} /> : null}
-                      <Text variant={on ? 'label' : 'caption'} weight="600" color={on ? c.onInverse : c.ink} style={on ? null : { fontSize: 13 }}>
-                        {on ? `${catalog.partners[pin.id].short} · ${n}` : pinLabel(pin.id, n)}
-                      </Text>
-                    </View>
-                    {on ? <View style={{ width: 10, height: 10, backgroundColor: c.inverse, transform: [{ rotate: '45deg' }], marginTop: -6 }} /> : null}
-                  </Press>
-                );
-              })}
-              <View style={{ position: 'absolute', left: '48%', top: '40%', width: 16, height: 16, borderRadius: 9999, backgroundColor: c.ink, boxShadow: `0 0 0 5px rgba(14,15,14,0.14), inset 0 0 0 2px ${c.bg}` }} accessibilityLabel="You are here" />
-            </MapSketch>
+            <Map
+              center={centerOf(pins, [30.2849, -97.719])}
+              zoom={12}
+              height={560}
+              me={me}
+              style={col(999, 420, { minHeight: 560 })}
+              pins={pins.map((pin) => ({ ...pin, active: pin.id === p.id }))}
+              renderPin={(pin) => {
+                const id = pins.find((x) => x.lat === pin.lat && x.lng === pin.lng)!.id;
+                const n = byPartner[id]?.length ?? 0;
+                const on = id === p.id;
+                return <LabelPin on={on} label={on ? `${catalog.partners[id].short} · ${n}` : pinLabel(id, n)} a11y={`${catalog.partners[id].name}, ${n} sessions`} onPress={() => setPartnerId(id)} />;
+              }}
+            />
           </View>
         ) : (
           <>
@@ -203,7 +205,7 @@ export default function Book() {
               <Text variant="caption" muted>{count === 1 ? '1 session' : `${count} sessions`}</Text>
             </View>
             {hero ? (
-              <Press onPress={() => router.push(`/class/${hero.session.id}`)} scale={false} accessibilityLabel={hero.cls.title} style={{ height: 260, borderRadius: 28, overflow: 'hidden', marginBottom: 20 }}>
+              <Press onPress={() => router.push(`/class/${hero.session.id}`)} scale={false} accessibilityLabel={hero.cls.title} style={{ height: 260, borderRadius: 16, overflow: 'hidden', marginBottom: 20 }}>
                 <PhotoFill name={hero.cls.image} />
                 <Scrim />
                 <View style={{ position: 'absolute', top: 16, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -233,46 +235,37 @@ export default function Book() {
     );
   }
 
-  if (MAP && mode === 'Map') {
+  if (mode === 'Map') {
     const p = catalog.partners[partnerId] ?? Object.values(catalog.partners)[0];
     const here = byPartner[partnerId] ?? [];
-    const PINS: { id: string; left: number; top: number; label: (n: number) => string }[] = [
-      { id: 'northside', left: 52, top: 196, label: (n) => `${n} classes` },
-      { id: 'southfork', left: 236, top: 262, label: (n) => `${n} ${n === 1 ? 'class' : 'classes'}` },
-      { id: 'eastfield', left: 264, top: 150, label: () => 'Open field' },
-      { id: 'ridgeline', left: 128, top: 318, label: (n) => `${n} classes` },
-      { id: 'eastside', left: 40, top: 420, label: (n) => `${n} classes` },
-    ];
     return (
       <Screen bleed>
-        <MapSketch variant="full" style={{ flex: 1 }}>
-          <View style={{ position: 'absolute', left: 180, top: 246, width: 16, height: 16, borderRadius: 9999, backgroundColor: c.ink, boxShadow: `0 0 0 5px rgba(14,15,14,0.14), inset 0 0 0 2px ${c.bg}` }} accessibilityLabel="You are here" />
-          {PINS.filter((pin) => catalog.partners[pin.id]).map((pin) => {
-            const n = byPartner[pin.id]?.length ?? 0;
-            const on = pin.id === partnerId;
-            return (
-              <Press key={pin.id} onPress={() => setPartnerId(pin.id)} accessibilityLabel={`${catalog.partners[pin.id].name}, ${n} sessions`} style={{ position: 'absolute', left: pin.left, top: pin.top, alignItems: 'center' }}>
-                <View style={{ height: on ? 40 : 32, paddingHorizontal: on ? 16 : 12, borderRadius: 9999, backgroundColor: on ? c.inverse : c.bg, boxShadow: c.shadowFloat, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  {on ? <Icon name="map-pin" size={16} color={c.onInverse} /> : null}
-                  <Text variant={on ? 'label' : 'caption'} weight="600" color={on ? c.onInverse : c.ink} style={on ? null : { fontSize: 13 }}>
-                    {on ? `${catalog.partners[pin.id].short} · ${n}` : pin.label(n)}
-                  </Text>
-                </View>
-                {on ? <View style={{ width: 10, height: 10, backgroundColor: c.inverse, transform: [{ rotate: '45deg' }], marginTop: -6 }} /> : null}
-              </Press>
-            );
-          })}
-          <View style={{ position: 'absolute', top: top + 8, left: 20, right: 20, flexDirection: 'row', gap: 8 }}>
+        <Map
+          center={centerOf(pins, [30.2849, -97.719])}
+          zoom={12}
+          radius={0}
+          inset={{ top: 40, bottom: 380 }}
+          me={me}
+          style={{ flex: 1 }}
+          pins={pins.map((pin) => ({ ...pin, active: pin.id === partnerId }))}
+          renderPin={(pin) => {
+            const id = pins.find((x) => x.lat === pin.lat && x.lng === pin.lng)!.id;
+            const n = byPartner[id]?.length ?? 0;
+            const on = id === partnerId;
+            return <LabelPin on={on} label={on ? `${catalog.partners[id].short} · ${n}` : pinLabel(id, n)} a11y={`${catalog.partners[id].name}, ${n} sessions`} onPress={() => setPartnerId(id)} />;
+          }}
+        >
+          <View style={{ position: 'absolute', top: top + 8, left: 20, right: 20, flexDirection: 'row', gap: 8, zIndex: 5 }}>
             <Press onPress={() => setMode('List')} style={{ flex: 1, height: 52, borderRadius: 9999, backgroundColor: c.bg, boxShadow: c.shadowFloat, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18 }}>
               <Icon name="search" color={c.inkMuted} />
               <Text color={c.inkMuted}>{`${dayLabel} · ${cat}`}</Text>
             </Press>
             <Segmented value="Map" onChange={setMode} float />
           </View>
-          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '48%', backgroundColor: c.bg, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 10, boxShadow: c.shadowFloat }}>
+          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '48%', backgroundColor: c.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 10, boxShadow: c.shadowFloat, zIndex: 5 }}>
             <Grabber />
             <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 }}>
-              <Text variant="wide" muted>{`${dayLabel} · ${p.distanceMi} mi · ${p.street}`}</Text>
+              <Text variant="eyebrow" muted>{`${dayLabel} · ${p.distanceMi} mi · ${p.street}`}</Text>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
                 <Text variant="displayLg" style={{ flex: 1 }}>{p.name}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -285,7 +278,7 @@ export default function Book() {
               </View>
             </ScrollView>
           </View>
-        </MapSketch>
+        </Map>
       </Screen>
     );
   }
@@ -296,11 +289,11 @@ export default function Book() {
     <Screen>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 14, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
         <View style={{ paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text variant="displayXl" accessibilityRole="header">Book</Text>
-          {MAP ? <Segmented value="List" onChange={setMode} /> : null}
+          <Text variant="pageTitle" accessibilityRole="header">Book</Text>
+          <Segmented value="List" onChange={setMode} />
         </View>
         <View style={{ paddingHorizontal: 20, marginTop: 18 }}>
-          <Field value={query} onChangeText={setQuery} placeholder="Search classes, trainers, places" left={<Icon name="search" color={c.inkMuted} />} returnKeyType="search" />
+          <Field search value={query} onChangeText={setQuery} placeholder="Search classes, trainers, places" left={<Icon name="search" size={18} color={c.inkMuted} />} returnKeyType="search" />
         </View>
         <View style={{ paddingHorizontal: 20, marginTop: 14 }}>
           <View style={{ flexDirection: 'row', padding: 4, borderRadius: 9999, backgroundColor: c.surfaceRaised }}>
@@ -330,7 +323,7 @@ export default function Book() {
 
         {hero ? (
           <View style={{ paddingHorizontal: 20, paddingBottom: 20 }}>
-            <Press onPress={() => router.push(`/class/${hero.session.id}`)} accessibilityLabel={hero.cls.title} style={{ height: 220, borderRadius: 28, overflow: 'hidden' }}>
+            <Press onPress={() => router.push(`/class/${hero.session.id}`)} accessibilityLabel={hero.cls.title} style={{ height: 220, borderRadius: 16, overflow: 'hidden' }}>
               <PhotoFill name={hero.cls.image} />
               <Scrim />
               <View style={{ position: 'absolute', top: 14, left: 14, right: 14, flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -338,7 +331,7 @@ export default function Book() {
                 <Tag tone="glass">{`${hero.cls.credits} credits`}</Tag>
               </View>
               <View style={{ position: 'absolute', left: 18, right: 18, bottom: 16 }}>
-                <Text variant="displayMd" color="#fff">{hero.cls.title}</Text>
+                <Text variant="title" color="#fff">{hero.cls.title}</Text>
                 <Text style={{ fontSize: 13, lineHeight: 18, marginTop: 6 }} color="rgba(255,255,255,0.85)">
                   {[timeLabel(hero), `${hero.cls.durationMin} min`, hero.partner.name, `${hero.partner.distanceMi} mi`, hero.session.spotsLeft === 0 ? 'Full. Waitlist open' : hero.session.spotsLeft === 1 ? 'Last spot' : `${hero.session.spotsLeft} spots left`].join(' · ')}
                 </Text>

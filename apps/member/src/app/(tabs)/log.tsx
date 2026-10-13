@@ -61,7 +61,7 @@ export default function Log() {
     </View>
   );
   const calendar = (
-    <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: wide ? 18 : 16 }}>
+    <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 16, padding: wide ? 18 : 16 }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 6 }}>
         {WEEKDAYS.map((w, i) => (
           <View key={i} style={{ width: `${100 / 7}%`, alignItems: 'center' }}><Text variant="caption" muted>{w}</Text></View>
@@ -88,7 +88,7 @@ export default function Log() {
     </View>
   );
   const milestoneCard = (ms: (typeof view.milestones)[number], style: ViewStyle) => (
-    <View key={ms.label} style={[{ padding: 16, borderRadius: 24, backgroundColor: c.surfaceRaised }, style]}>
+    <View key={ms.label} style={[{ padding: 16, borderRadius: 16, backgroundColor: c.surfaceRaised }, style]}>
       <Badge
         icon={ms.kind === 'on' ? 'award' : ms.kind === 'clr' ? 'shield-check' : 'lock'}
         bg={ms.kind === 'on' ? c.agility : ms.kind === 'clr' ? c.pitch : c.surfaceSunken}
@@ -132,12 +132,12 @@ export default function Log() {
 
   if (wide) {
     // 07 Log, desktop: balance and stats side by side, then the calendar and milestones beside the sessions.
-    const raised: ViewStyle = { padding: 24, borderRadius: 28, backgroundColor: c.surfaceRaised };
+    const raised: ViewStyle = { padding: 24, borderRadius: 16, backgroundColor: c.surfaceRaised };
     const msCols = Math.max(1, Math.floor((msWidth + 10) / 140));
     const msTile = msWidth ? (msWidth - 10 * (msCols - 1)) / msCols : 130;
     return (
       <Page top={32}>
-        <Text variant="displayXl" accessibilityRole="header">Log</Text>
+        <Text variant="pageTitle" accessibilityRole="header">Log</Text>
         <Columns gap={16} align="stretch" style={{ marginTop: 24 }}>
           <View style={col(2, 420, raised)}>
             {balanceHead}
@@ -147,7 +147,7 @@ export default function Log() {
           <View style={col(1, 300, { ...raised, flexDirection: 'row', gap: 16, alignItems: 'flex-end', justifyContent: 'space-between' })}>
             {view.stats.map(([n, l]) => (
               <View key={l}>
-                <Text variant="displayXl" num>{n}</Text>
+                <Text variant="statNum" num>{n}</Text>
                 <Text variant="caption" muted style={{ marginTop: 4 }}>{l}</Text>
               </View>
             ))}
@@ -171,7 +171,7 @@ export default function Log() {
                   key={s.key}
                   scale={!!s.href}
                   onPress={s.href ? () => router.push(s.href as never) : undefined}
-                  style={{ flexDirection: 'row', gap: 16, padding: 16, borderRadius: 24, backgroundColor: c.surfaceRaised }}
+                  style={{ flexDirection: 'row', gap: 16, padding: 16, borderRadius: 16, backgroundColor: c.surfaceRaised }}
                 >
                   <Photo name={s.img} style={{ width: 64, height: 64, borderRadius: 16 }} />
                   {sessionBody(s)}
@@ -188,8 +188,8 @@ export default function Log() {
     <Screen>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 14, paddingBottom: 32 }}>
         <View style={{ paddingHorizontal: 20 }}>
-          <Text variant="displayXl" accessibilityRole="header">Log</Text>
-          <View style={{ marginTop: 20, padding: 20, borderRadius: 28, backgroundColor: c.surfaceRaised }}>
+          <Text variant="pageTitle" accessibilityRole="header">Log</Text>
+          <View style={{ marginTop: 20, padding: 20, borderRadius: 16, backgroundColor: c.surfaceRaised }}>
             {balanceHead}
             {balanceRows}
             <Text variant="label" muted style={{ marginTop: 12 }}>{view.hint}</Text>
@@ -197,7 +197,7 @@ export default function Log() {
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
             {view.stats.map(([n, l]) => (
               <View key={l} style={{ flex: 1 }}>
-                <Text variant="displayXl" num>{n}</Text>
+                <Text variant="statNum" num>{n}</Text>
                 <Text variant="caption" muted style={{ marginTop: 4 }}>{l}</Text>
               </View>
             ))}

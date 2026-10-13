@@ -11,7 +11,7 @@ import { col, Columns, Page, tile, useWide, web } from '@/ds/responsive';
 import { Photo, PhotoFill, Gradient } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { WaitlistActions } from '@/features/book/Waitlist';
-import { MapSketch } from '@/features/MapSketch';
+import { Map, useMe } from '@/features/Map';
 import { assessmentFor, bookingFor, cancelRefund, checkInClosesAt, credits as creditsLabel, eligibility, view } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { cancelCopy, dayTime, monthDay, relativeDay, time } from '@/lib/dates';
@@ -24,7 +24,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 function Stat({ label, children, cell }: { label: string; children: React.ReactNode; cell?: DimensionValue }) {
   const { c } = useTheme();
   return (
-    <View style={cell !== undefined ? { width: cell, minWidth: 0, backgroundColor: c.surfaceRaised, borderRadius: 20, padding: 16 } : { flexBasis: '48%', flexGrow: 1, backgroundColor: c.surfaceRaised, borderRadius: 20, padding: 14 }}>
+    <View style={cell !== undefined ? { width: cell, minWidth: 0, backgroundColor: c.surfaceRaised, borderRadius: 12, padding: 16 } : { flexBasis: '48%', flexGrow: 1, backgroundColor: c.surfaceRaised, borderRadius: 12, padding: 14 }}>
       <Text variant="caption" muted>{label}</Text>
       {children}
     </View>
@@ -59,6 +59,7 @@ export default function ClassDetail() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const wide = useWide();
+  const me = useMe();
   const [statsW, setStatsW] = useState(0);
   const balance = useApp((s) => s.credits);
   const allowance = useAllowance();
@@ -105,7 +106,7 @@ export default function ClassDetail() {
   const notices = (
     <>
       {el.ok && el.cleared ? (
-        <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center', padding: 16, borderRadius: 20, backgroundColor: c.surfaceRaised, marginBottom: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center', padding: 16, borderRadius: 12, backgroundColor: c.surfaceRaised, marginBottom: 8 }}>
           <Badge icon="shield-check" bg={c.pitch} fg={c.onPitch} />
           <View style={{ flex: 1 }}>
             <Text variant="label" weight="600">{`${juno.name} is cleared for this.`}</Text>
@@ -114,7 +115,7 @@ export default function ClassDetail() {
         </View>
       ) : null}
       {!el.ok ? (
-        <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', padding: 16, borderRadius: 20, backgroundColor: c.surfaceRaised, marginBottom: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', padding: 16, borderRadius: 12, backgroundColor: c.surfaceRaised, marginBottom: 8 }}>
           <Badge icon="shield" bg={c.surfaceSunken} fg={c.ink} />
           <View style={{ flex: 1 }}>
             <Text variant="label" weight="600">{el.reason}</Text>
@@ -159,14 +160,16 @@ export default function ClassDetail() {
     </View>
   );
   const locationCard = (
-    <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 12 }}>
-      <MapSketch variant="detail" pin={{ left: '44%', top: '18%', size: 32 }} style={{ height: wide ? 140 : 120, borderRadius: 20 }} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 14, paddingHorizontal: 8, paddingBottom: 4 }}>
-        <View style={{ flex: 1 }}>
-          <Text variant="label" weight="600">{partner.name}</Text>
+    <View style={{ borderRadius: 16, overflow: 'hidden', boxShadow: `inset 0 0 0 1px ${c.line}` }}>
+      {partner.lat != null && partner.lng != null ? (
+        <Map center={[partner.lat, partner.lng]} zoom={15} radius={0} height={wide ? 160 : 120} me={me} pins={[{ lat: partner.lat, lng: partner.lng, active: true, title: partner.name }]} />
+      ) : null}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text variant="heading">{partner.name}</Text>
           <Text variant="caption" muted>{`${partner.address} · ${partner.distanceMi} mi · ${partner.parking}`}</Text>
         </View>
-        <Button size="sm" onPress={() => openDirections(partner)}>Directions</Button>
+        <Button size="sm" variant="outline" icon="navigation" onPress={() => openDirections(partner)}>Directions</Button>
       </View>
     </View>
   );
@@ -253,7 +256,7 @@ export default function ClassDetail() {
           <View>
             <Text variant="wide" muted>{`${relativeDay(session.startsAt)} · ${cls.openWindow ?? time(session.startsAt)}`}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 6 }}>
-              <Text variant="displayXl" num>{cls.credits}</Text>
+              <Text variant="statNum" num>{cls.credits}</Text>
               <Text variant="heading" muted>{cls.credits === 1 ? 'credit' : 'credits'}</Text>
             </View>
           </View>
@@ -277,7 +280,7 @@ export default function ClassDetail() {
           <Icon name="chevron-left" size={18} />
           <Text variant="label" weight="600">Book</Text>
         </Press>
-        <View style={{ height: 420, borderRadius: 32, overflow: 'hidden' }}>
+        <View style={{ height: 320, borderRadius: 24, overflow: 'hidden' }}>
           <PhotoFill name={cls.image} />
           <Gradient stops={[['rgba(0,0,0,0.3)', 0], ['rgba(0,0,0,0)', 0.3], ['rgba(0,0,0,0)', 0.45], ['rgba(0,0,0,0.72)', 1]]} />
           <View style={{ position: 'absolute', top: 20, right: 20, flexDirection: 'row', gap: 8 }}>
@@ -289,7 +292,7 @@ export default function ClassDetail() {
               <Tag tone="glass">{cls.discipline}</Tag>
               <Tag tone="glass">{creditsLabel(cls.credits)}</Tag>
             </View>
-            <Text variant="display2xl" color="#fff" accessibilityRole="header">{cls.title}</Text>
+            <Text variant="hero" color="#fff" accessibilityRole="header">{cls.title}</Text>
             <Text variant="label" color="rgba(255,255,255,0.85)" style={{ marginTop: 10 }}>{when}</Text>
           </View>
         </View>
@@ -301,12 +304,12 @@ export default function ClassDetail() {
               {stats}
             </View>
             {cls.dropOff ? (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
                 <Tag>Drop-off</Tag>
                 <Text variant="label">Leave your dog with the trainer. Pick up at the end.</Text>
               </View>
             ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
                 <Icon name="users" />
                 <Text variant="label" weight="600">You stay with your dog.</Text>
               </View>
@@ -333,7 +336,7 @@ export default function ClassDetail() {
             </View>
           </View>
           <View style={col(1, 320, web({ position: 'sticky', top: 24 }))}>
-            <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 24, gap: 14 }}>
+            <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 16, padding: 24, gap: 14 }}>
               {actions}
             </View>
           </View>
@@ -345,7 +348,7 @@ export default function ClassDetail() {
   return (
     <Screen bleed statusLight>
       <ScrollView style={{ flex: 1 }}>
-        <View style={{ height: 460, overflow: 'hidden' }}>
+        <View style={{ height: 320, overflow: 'hidden' }}>
           <PhotoFill name={cls.image} />
           <Gradient stops={[['rgba(0,0,0,0.4)', 0], ['rgba(0,0,0,0)', 0.24], ['rgba(0,0,0,0)', 0.4], ['rgba(0,0,0,0.72)', 1]]} />
           <View style={{ position: 'absolute', top: top + 8, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between' }}>

@@ -34,7 +34,7 @@ const dayLabel = (d: Date) => (dayOffset(d) > -7 ? weekday(d) : monthDay(d));
 function Row({ icon, label, value }: { icon: IconName; label: string; value: string }) {
   const { c } = useTheme();
   return (
-    <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center', padding: 16, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+    <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center', padding: 16, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
       <Badge icon={icon} bg={c.bg} fg={c.ink} size={48} iconSize={20} />
       <View style={{ flex: 1, gap: 2 }}>
         <Text variant="caption" muted>{label}</Text>
@@ -84,7 +84,7 @@ function MissedClass() {
 
   if (wide) {
     const fact = (icon: IconName, label: string, value: string) => (
-      <View style={tile(240, { flexDirection: 'row', gap: 14, alignItems: 'center', paddingVertical: 14, paddingLeft: 14, paddingRight: 16, borderRadius: 20, backgroundColor: c.surfaceRaised })}>
+      <View style={tile(240, { flexDirection: 'row', gap: 14, alignItems: 'center', paddingVertical: 14, paddingLeft: 14, paddingRight: 16, borderRadius: 12, backgroundColor: c.surfaceRaised })}>
         <Badge icon={icon} bg={c.bg} fg={c.ink} iconSize={18} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text variant="caption" muted>{label}</Text>
@@ -104,7 +104,7 @@ function MissedClass() {
           </View>
         </View>
         <View style={{ paddingTop: 12, paddingHorizontal: 28, paddingBottom: 28, gap: 8 }}>
-          <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', padding: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft }}>
+          <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', padding: 18, borderRadius: 12, backgroundColor: c.kennelRedSoft }}>
             <Icon name="circle-alert" size={22} color={c.kennelRed} />
             <View style={{ flex: 1 }}>
               <Text variant="label" weight="600" color={c.kennelRed}>{notReturned}</Text>
@@ -146,7 +146,7 @@ function MissedClass() {
         </View>
 
         <View style={{ paddingTop: 12, paddingHorizontal: 20, gap: 12 }}>
-          <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', padding: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft }}>
+          <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', padding: 18, borderRadius: 12, backgroundColor: c.kennelRedSoft }}>
             <Icon name="circle-alert" size={24} color={c.kennelRed} />
             <View style={{ flex: 1, gap: 4 }}>
               <Text variant="label" weight="600" color={c.kennelRed}>{notReturned}</Text>

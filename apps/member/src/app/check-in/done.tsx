@@ -49,7 +49,7 @@ function CheckedIn() {
   const done = () => router.dismissTo('/');
   const notes = `${v.trainer.name.split(' ')[0]} sends session notes after class.`;
   const row = ([icon, k, val]: [IconName, string, string], extra?: ViewStyle) => (
-    <View key={k} style={[{ flexDirection: 'row', gap: 14, alignItems: 'center', paddingVertical: 14, paddingLeft: 14, paddingRight: 16, borderRadius: 20, backgroundColor: c.surfaceRaised }, extra]}>
+    <View key={k} style={[{ flexDirection: 'row', gap: 14, alignItems: 'center', paddingVertical: 14, paddingLeft: 14, paddingRight: 16, borderRadius: 12, backgroundColor: c.surfaceRaised }, extra]}>
       <Badge icon={icon} bg={c.bg} fg={c.ink} iconSize={18} />
       <View style={{ flex: 1 }}>
         <Text variant="caption" muted>{k}</Text>
@@ -85,7 +85,7 @@ function CheckedIn() {
 
   return (
     <Screen theme="dark" bleed statusLight>
-      <View style={{ height: 420, overflow: 'hidden' }}>
+      <View style={{ height: 320, overflow: 'hidden' }}>
         <PhotoFill name={v.cls.image} />
         <Gradient stops={[['rgba(0,0,0,0.4)', 0], ['rgba(0,0,0,0)', 0.26], ['rgba(0,0,0,0.2)', 0.55], ['#0e0f0e', 1]]} />
         <View style={{ position: 'absolute', left: 20, right: 20, bottom: 20, paddingTop: top }}>

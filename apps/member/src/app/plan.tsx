@@ -74,11 +74,11 @@ export default function PlanScreen() {
     <Screen>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 40, gap: 8 }}>
         <IconButton icon="chevron-left" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/settings'))} />
-        <Text variant="displayXl" style={{ marginTop: 20, marginBottom: 20 }} accessibilityRole="header">Plan and credits</Text>
+        <Text variant="pageTitle" style={{ marginTop: 20, marginBottom: 20 }} accessibilityRole="header">Plan and credits</Text>
 
-        <View style={{ padding: 20, borderRadius: 28, backgroundColor: c.surfaceRaised, gap: 6, marginBottom: 8 }}>
+        <View style={{ padding: 20, borderRadius: 16, backgroundColor: c.surfaceRaised, gap: 6, marginBottom: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-            <Text variant="display2xl" num>{credits}</Text>
+            <Text variant="statNum" num style={{ fontSize: 40, lineHeight: 40 }}>{credits}</Text>
             <Text variant="heading" muted>{credits === 1 ? 'credit left' : 'credits left'}</Text>
           </View>
           <Text variant="caption" muted>{status}</Text>
@@ -89,7 +89,7 @@ export default function PlanScreen() {
         {PLANS.map((p) => {
           const current = paid && (m.nextPlan ?? m.plan) === p.key;
           return (
-            <View key={p.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+            <View key={p.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
               <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
                 <Text variant="label" weight="600">{`${p.name} · ${p.price}/mo`}</Text>
                 <Text variant="caption" muted>{`${p.credits} credits a month. ${p.fit}`}</Text>
@@ -107,7 +107,7 @@ export default function PlanScreen() {
         </Text>
 
         <Text variant="title" style={{ marginTop: 12, marginBottom: 6 }}>Need more this month?</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
           <View style={{ flex: 1, gap: 2 }}>
             <Text variant="label" weight="600">{`${TOP_UP.credits} credits · ${TOP_UP.price}`}</Text>
             <Text variant="caption" muted>One payment, added right away.</Text>

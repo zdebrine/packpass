@@ -1,7 +1,7 @@
 import {
   Activity, ArrowRight, Award, BatteryFull, Bell, Bookmark, Cake, Calendar, CalendarCheck, CalendarSearch, CalendarX, Camera, Check,
   ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock, Fence, FileText, Flashlight, House, Link, List, Lock, LockOpen, Map, MapPin, MessageSquare,
-  Minus, Plus, RotateCcw, Search, Settings, Share, Shield, ShieldAlert, ShieldCheck, Star, Stethoscope, Syringe, Ticket,
+  Minus, Navigation, Plus, RotateCcw, ScanLine, Search, Settings, Share, Shield, ShieldAlert, ShieldCheck, Star, Stethoscope, Syringe, Ticket,
   Trees, TrendingUp, Trophy, UserRound, Users, Wallet, X, Zap, type LucideIcon,
 } from 'lucide-react-native';
 
@@ -12,7 +12,7 @@ const ICONS = {
   cake: Cake, calendar: Calendar, 'calendar-check': CalendarCheck, 'calendar-search': CalendarSearch, 'calendar-x': CalendarX, camera: Camera,
   check: Check, 'chevron-down': ChevronDown, 'chevron-left': ChevronLeft, 'chevron-right': ChevronRight, 'circle-alert': CircleAlert, clock: Clock,
   fence: Fence, 'file-text': FileText, flashlight: Flashlight, house: House, link: Link, list: List, lock: Lock, 'lock-open': LockOpen, map: Map, 'map-pin': MapPin,
-  'message-square': MessageSquare, minus: Minus, plus: Plus, 'rotate-ccw': RotateCcw, search: Search, settings: Settings,
+  'message-square': MessageSquare, minus: Minus, navigation: Navigation, plus: Plus, 'rotate-ccw': RotateCcw, 'scan-line': ScanLine, search: Search, settings: Settings,
   share: Share, shield: Shield, 'shield-alert': ShieldAlert, 'shield-check': ShieldCheck, star: Star,
   stethoscope: Stethoscope, syringe: Syringe, ticket: Ticket, trees: Trees, 'trending-up': TrendingUp, trophy: Trophy,
   'user-round': UserRound, users: Users, wallet: Wallet, x: X, zap: Zap,

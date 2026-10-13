@@ -25,7 +25,7 @@ export interface Props extends TextProps {
 export function Text({ variant = 'body', weight, color, muted, num, center, style, ...rest }: Props) {
   const { c } = useTheme();
   const base = typeScale[variant] as TextStyle;
-  const isSans = !variant.startsWith('display') && variant !== 'wide';
+  const isSans = !variant.startsWith('display') && !['wide', 'eyebrow', 'hero', 'headline', 'statNum'].includes(variant);
   return (
     <RNText
       {...rest}
@@ -33,8 +33,8 @@ export function Text({ variant = 'body', weight, color, muted, num, center, styl
         base,
         { color: color ?? (muted ? c.inkMuted : c.ink) },
         weight && isSans ? { fontFamily: GEIST[weight] } : null,
-        variant === 'wide' && weight === '700' ? { fontFamily: fonts.wideBold } : null,
-        num ? { fontVariant: ['tabular-nums'] } : null,
+        (variant === 'wide' || variant === 'eyebrow') && weight === '700' ? { fontFamily: fonts.wideBold } : null,
+        num || variant === 'statNum' ? { fontVariant: ['tabular-nums'] } : null,
         center ? { textAlign: 'center' } : null,
         style,
       ]}
