@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { SHORT } from '@/api/errors';
 import { Button } from '@/ds/controls';
@@ -21,7 +21,7 @@ const releaseOf = (startsAt: Date) => addMinutes(startsAt, -24 * 60);
  * reserves the spot (held_spots on the server) until a day before the session. One tap books them.
  * Within a day of the first release it says so (the server sends the same reminder as a notification).
  */
-export function HeldPlan({ dogId }: { dogId: string }) {
+export function HeldPlan({ dogId, style }: { dogId: string; style?: StyleProp<ViewStyle> }) {
   const { c } = useTheme();
   const dog = useApp((s) => s.dogs.find((d) => d.id === dogId));
   const { hasSocial } = useRulesFor(dogId);
@@ -49,7 +49,7 @@ export function HeldPlan({ dogId }: { dogId: string }) {
   };
 
   return (
-    <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
+    <View style={[{ marginTop: 32, paddingHorizontal: 20 }, style]}>
       <Text variant="title" style={{ marginBottom: 14 }}>{`Rest of ${dog.name}'s month`}</Text>
       <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 12 }}>
         {result ? (

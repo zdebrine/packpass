@@ -17,15 +17,22 @@ export function BackButton() {
 
 /** Back button plus the 5-step progress bar (01e to 01i). */
 export function StepHeader({ step, showBack = true }: { step: number; showBack?: boolean }) {
-  const { c } = useTheme();
   return (
     <View style={{ paddingTop: showBack ? 6 : 14, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       {showBack ? <BackButton /> : null}
-      <View style={{ flex: 1, flexDirection: 'row', gap: 4 }}>
-        {Array.from({ length: 5 }, (_, i) => (
-          <View key={i} style={{ flex: 1, height: 4, borderRadius: 9999, backgroundColor: i < step ? c.ink : c.surfaceSunken }} />
-        ))}
-      </View>
+      <Progress step={step} />
+    </View>
+  );
+}
+
+/** The 5-step progress bars: done steps in ink. */
+export function Progress({ step }: { step: number }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ flex: 1, flexDirection: 'row', gap: 4 }}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <View key={i} style={{ flex: 1, height: 4, borderRadius: 9999, backgroundColor: i < step ? c.ink : c.surfaceSunken }} />
+      ))}
     </View>
   );
 }

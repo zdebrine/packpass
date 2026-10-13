@@ -5,7 +5,9 @@ import { View } from 'react-native';
 import { Button } from '@/ds/controls';
 import { Field, Screen, useBottom, themed } from '@/ds/layout';
 import { Press } from '@/ds/Press';
+import { tile, useWide } from '@/ds/responsive';
 import { Text } from '@/ds/Text';
+import { Split } from '@/features/desktop/Split';
 import { isLive } from '@/api/client';
 import { errorCopy } from '@/api/errors';
 import { resendCode } from '@/api/live';
@@ -29,6 +31,7 @@ const SOCIAL = !isLive;
 function SignIn() {
   const { c } = useTheme();
   const bottom = useBottom(34);
+  const wide = useWide();
   const draft = useApp((s) => s.draft);
   const update = useApp((s) => s.updateDraft);
   const signIn = useApp((s) => s.signIn);
@@ -59,20 +62,52 @@ function SignIn() {
     router.replace('/');
   };
 
+  const fields = (
+    <>
+      <Intro eyebrow="PackPass" title="Welcome back." />
+      <Field label="Email" value={draft.email} onChangeText={(email) => { update({ email }); setError(false); }} autoComplete="email" keyboardType="email-address" autoCapitalize="none" textContentType="emailAddress" />
+      <Field label="Password" value={pw} onChangeText={(v) => { setPw(v); setError(false); }} secureTextEntry autoComplete="current-password" textContentType="password" onSubmitEditing={submit} />
+      {error ? (
+        <View style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft }} accessibilityLiveRegion="polite">
+          <Text variant="label" weight="600" color={c.kennelRed}>{error === 'mismatch' ? "That email and password don't match. Try again, or use Forgot password (also if you were invited and never set one)." : error}</Text>
+        </View>
+      ) : null}
+      <TextLink onPress={() => router.push('/reset')}>Forgot password</TextLink>
+      <Button block disabled={busy} onPress={submit}>{busy ? 'Signing in…' : 'Sign in'}</Button>
+    </>
+  );
+  const newHere = (
+    <>
+      <Text variant="label" muted>New to PackPass? </Text>
+      <Press onPress={() => router.replace('/sign-up')} scale={false} accessibilityRole="link">
+        <Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Create account</Text>
+      </Press>
+    </>
+  );
+
+  if (wide) {
+    return (
+      <Split photo="dog_chilling_with_owner_on_porch" gap={18}>
+        {fields}
+        {SOCIAL ? (
+          <>
+            <Text variant="caption" muted center>Or</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <View style={tile(180)}><Button variant="quiet" block onPress={social}>Continue with Apple</Button></View>
+              <View style={tile(180)}><Button variant="quiet" block onPress={social}>Continue with Google</Button></View>
+            </View>
+          </>
+        ) : null}
+        <View style={{ marginTop: 8, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>{newHere}</View>
+      </Split>
+    );
+  }
+
   return (
     <Screen theme="dark">
       <View style={{ paddingTop: 6, paddingHorizontal: 20 }}><BackButton /></View>
       <Body top={20} gap={18}>
-        <Intro eyebrow="PackPass" title="Welcome back." />
-        <Field label="Email" value={draft.email} onChangeText={(email) => { update({ email }); setError(false); }} autoComplete="email" keyboardType="email-address" autoCapitalize="none" textContentType="emailAddress" />
-        <Field label="Password" value={pw} onChangeText={(v) => { setPw(v); setError(false); }} secureTextEntry autoComplete="current-password" textContentType="password" onSubmitEditing={submit} />
-        {error ? (
-          <View style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft }} accessibilityLiveRegion="polite">
-            <Text variant="label" weight="600" color={c.kennelRed}>{error === 'mismatch' ? "That email and password don't match. Try again, or use Forgot password (also if you were invited and never set one)." : error}</Text>
-          </View>
-        ) : null}
-        <TextLink onPress={() => router.push('/reset')}>Forgot password</TextLink>
-        <Button block disabled={busy} onPress={submit}>{busy ? 'Signing in…' : 'Sign in'}</Button>
+        {fields}
         {SOCIAL ? (
           <>
             <Text variant="caption" muted center style={{ marginTop: 6 }}>Or</Text>
@@ -84,10 +119,7 @@ function SignIn() {
         ) : null}
       </Body>
       <View style={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: bottom, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-        <Text variant="label" muted>New to PackPass? </Text>
-        <Press onPress={() => router.replace('/sign-up')} scale={false} accessibilityRole="link">
-          <Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Create account</Text>
-        </Press>
+        {newHere}
       </View>
     </Screen>
   );

@@ -8,7 +8,9 @@ import { TRAIT_GROUP_LABELS, TRAIT_SPECIAL } from '@/data/fixtures';
 import { traitLabel, useTraits } from '@/data/traits';
 import { Button, Chip } from '@/ds/controls';
 import { Footer, Screen, themed } from '@/ds/layout';
+import { useWide } from '@/ds/responsive';
 import { Text } from '@/ds/Text';
+import { Split } from '@/features/desktop/Split';
 import { BackButton, Body, ChipRow, FieldGroup, Intro, StepHeader } from '@/features/onboarding/parts';
 import { useApp, useDog } from '@/store/app';
 
@@ -33,36 +35,57 @@ function Traits() {
     setBusy(true); setError(null);
     try { await saveTraits(dog.id); router.back(); } catch (e) { setError(errorCopy(e)); } finally { setBusy(false); }
   };
+  const wide = useWide();
   const n = traits.length;
   const count =
     n === 0 ? 'Pick any that apply. You can change these later.'
       : TRAIT_SPECIAL.includes(traits[0]) ? `${traitLabel(traits[0])}. You can add traits later.`
         : `${n} selected. You can change these later.`;
 
+  const intro = (
+    <Intro
+      eyebrow={edit ? `Passport · ${name}` : `Step 4 of 5 · About ${name}`}
+      title={`Tell us about ${name}.`}
+      lede="No judgment. Every dog has a thing or two. This helps us point you to the right trainers."
+    />
+  );
+  const groups = (
+    <View style={{ gap: 22 }}>
+      {TRAIT_GROUP_LABELS.map(([grp, label]) => (
+        <FieldGroup key={grp} label={label}>
+          <ChipRow>
+            {catalog.filter((t) => t.grp === grp).map((t) => (
+              <Chip key={t.id} selected={traits.includes(t.id)} onPress={() => toggle(t.id)}>{t.label}</Chip>
+            ))}
+          </ChipRow>
+        </FieldGroup>
+      ))}
+    </View>
+  );
+  const button = <Button block disabled={busy} onPress={() => (edit ? save() : router.push('/onboarding/reveal'))}>{edit ? (busy ? 'Saving…' : 'Save') : 'Continue'}</Button>;
+
+  if (wide) {
+    return (
+      // Same as the phone: the back button only shows when editing from the Passport.
+      <Split photo="pulling_on_leash" step={edit ? undefined : 4} back={!!edit}>
+        {intro}
+        {groups}
+        <Text variant="caption" muted>{error ?? count}</Text>
+        {button}
+      </Split>
+    );
+  }
+
   return (
     <Screen theme="dark">
       {edit ? <View style={{ paddingTop: 6, paddingHorizontal: 20 }}><BackButton /></View> : <StepHeader step={4} showBack={false} />}
       <Body gap={26}>
-        <Intro
-          eyebrow={edit ? `Passport · ${name}` : `Step 4 of 5 · About ${name}`}
-          title={`Tell us about ${name}.`}
-          lede="No judgment. Every dog has a thing or two. This helps us point you to the right trainers."
-        />
-        <View style={{ gap: 22 }}>
-          {TRAIT_GROUP_LABELS.map(([grp, label]) => (
-            <FieldGroup key={grp} label={label}>
-              <ChipRow>
-                {catalog.filter((t) => t.grp === grp).map((t) => (
-                  <Chip key={t.id} selected={traits.includes(t.id)} onPress={() => toggle(t.id)}>{t.label}</Chip>
-                ))}
-              </ChipRow>
-            </FieldGroup>
-          ))}
-        </View>
+        {intro}
+        {groups}
       </Body>
       <Footer>
         <Text variant="caption" muted center>{error ?? count}</Text>
-        <Button block disabled={busy} onPress={() => (edit ? save() : router.push('/onboarding/reveal'))}>{edit ? (busy ? 'Saving…' : 'Save') : 'Continue'}</Button>
+        {button}
       </Footer>
     </Screen>
   );

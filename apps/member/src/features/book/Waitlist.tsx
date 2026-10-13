@@ -16,7 +16,7 @@ const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['
  * for the first dog in line until 12 hours before the start (so it can still be cancelled for free);
  * after that, everyone waiting is told and the first to book gets it.
  */
-export function WaitlistActions({ v, dogId, dogName }: { v: SessionView; dogId: string; dogName: string }) {
+export function WaitlistActions({ v, dogId, dogName, center = true, fill }: { v: SessionView; dogId: string; dogName: string; center?: boolean; fill?: string }) {
   const { c } = useTheme();
   const entry = useApp((s) => s.waitlist.find((w) => w.sessionId === v.session.id && w.dogId === dogId));
   const join = useApp((s) => s.joinWaitlist);
@@ -44,23 +44,23 @@ export function WaitlistActions({ v, dogId, dogName }: { v: SessionView; dogId: 
     <>
       {entry ? (
         <>
-          <Text variant="label" weight="600" center accessibilityLiveRegion="polite">{`On the waitlist · ${ordinal(entry.place)} in line`}</Text>
-          <Text variant="caption" muted center>
+          <Text variant="label" weight="600" center={center} accessibilityLiveRegion="polite">{`On the waitlist · ${ordinal(entry.place)} in line`}</Text>
+          <Text variant="caption" muted center={center}>
             {auto
               ? `If a spot opens before ${dayTimeInline(deadline)}, we'll book it for ${dogName} and use ${cost}. You can still cancel for free until then.`
               : `We'll tell you if a spot opens. The first to book it gets it.`}
           </Text>
         </>
       ) : (
-        <Text variant="caption" muted center>
+        <Text variant="caption" muted center={center}>
           {auto
             ? `This class is full. Join the waitlist and we'll book ${dogName} in if a spot opens before ${dayTimeInline(deadline)}. ${chargedThen}`
             : 'This class is full. Join the waitlist to hear if a spot opens.'}
         </Text>
       )}
-      {error ? <Text variant="caption" weight="600" center color={c.kennelRed}>{error}</Text> : null}
+      {error ? <Text variant="caption" weight="600" center={center} color={c.kennelRed}>{error}</Text> : null}
       {entry ? (
-        <Button block variant="quiet" disabled={busy} onPress={() => run(() => leave(v.session.id, dogId))}>{busy ? 'Leaving…' : 'Leave the waitlist'}</Button>
+        <Button block variant="quiet" fill={fill} disabled={busy} onPress={() => run(() => leave(v.session.id, dogId))}>{busy ? 'Leaving…' : 'Leave the waitlist'}</Button>
       ) : (
         <Button block disabled={busy} onPress={() => run(() => join(v.session.id, dogId))}>{busy ? 'Joining…' : 'Join the waitlist'}</Button>
       )}

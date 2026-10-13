@@ -1,6 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { HERO_HEADLINE, HERO_LEAD, HERO_SLIDES } from '@/data/fixtures';
@@ -8,6 +9,7 @@ import type { PhotoKey } from '@/data/types';
 import { Button, Tag } from '@/ds/controls';
 import { useBottom, useTop, Screen, themed } from '@/ds/layout';
 import { Press } from '@/ds/Press';
+import { useWide } from '@/ds/responsive';
 import { Gradient, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { motion } from '@/theme/tokens';
@@ -42,6 +44,7 @@ function Welcome() {
   const [i, setI] = useState(0);
   const top = useTop();
   const bottom = useBottom(34);
+  const wide = useWide();
 
   // Cycle only while Welcome is on screen; it stays mounted (hidden) under Sign in and Sign up.
   useFocusEffect(
@@ -51,11 +54,55 @@ function Welcome() {
     }, []),
   );
 
+  const tags = ['Agility', 'Scent work', 'Reactive-friendly', '1:1 trainers', 'Open play'];
+  const photos = HERO_SLIDES.map((s, k) => <CrossfadePhoto key={s.photo} name={s.photo} active={k === i} />);
+
+  if (wide) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0e0f0e', overflow: 'hidden' }}>
+        {photos}
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(0,0,0,0.72)', 'rgba(0,0,0,0.35)', 'rgba(0,0,0,0)']}
+          locations={[0, 0.45, 0.75]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <Gradient stops={[['rgba(0,0,0,0.35)', 0], ['rgba(0,0,0,0)', 0.2]]} />
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingTop: 36, paddingHorizontal: 56, paddingBottom: 56 }}>
+          <Text variant="wide" weight="700" color="#fff" style={{ fontSize: 15, lineHeight: 18 }}>PackPass</Text>
+          <View style={{ flex: 1, minHeight: 80 }} />
+          <View style={{ gap: 16 }}>
+            <View accessible accessibilityRole="header" accessibilityLabel={HERO_HEADLINE}>
+              {HERO_LEAD.map((l) => <Text key={l} variant="display2xl" color="#fff" style={styles.h1Wide} numberOfLines={1}>{l}</Text>)}
+              <View style={styles.lineWide}>
+                <RiseIn key={i}>
+                  <Text variant="display2xl" color="#fff" style={styles.h1Wide} numberOfLines={1}>{HERO_SLIDES[i].line}</Text>
+                </RiseIn>
+              </View>
+            </View>
+            <View style={{ maxWidth: 620, gap: 16 }}>
+              <Text color="rgba(255,255,255,0.88)" style={{ fontSize: 18, lineHeight: 26 }}>{`Drop-in classes across Austin, picked for your dog's energy and quirks.`}</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4, marginBottom: 16 }}>
+                {tags.map((t) => <Tag key={t} tone="glass">{t}</Tag>)}
+              </View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+                <Button variant="glass" wide onPress={() => router.push('/sign-up')} style={{ minWidth: 240 }}>Create account</Button>
+                <Press onPress={() => router.push('/sign-in')} scale={false} style={{ height: 52, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text weight="600" color="#fff" style={{ fontSize: 15 }}>I already have an account</Text>
+                </Press>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <Screen theme="dark" bleed statusLight>
-      {HERO_SLIDES.map((s, k) => (
-        <CrossfadePhoto key={s.photo} name={s.photo} active={k === i} />
-      ))}
+      {photos}
       <Gradient stops={[['rgba(0,0,0,0.42)', 0], ['rgba(0,0,0,0)', 0.2], ['rgba(0,0,0,0.28)', 0.42], ['rgba(0,0,0,0.85)', 1]]} />
 
       <View style={{ position: 'absolute', top: top + 14, left: 0, right: 0, alignItems: 'center' }}>
@@ -75,7 +122,7 @@ function Welcome() {
         </View>
         <Text color="rgba(255,255,255,0.88)">{`Drop-in classes across Austin, picked for your dog's energy and quirks.`}</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4, marginBottom: 14 }}>
-          {['Agility', 'Scent work', 'Reactive-friendly', '1:1 trainers', 'Open play'].map((t) => <Tag key={t} tone="glass">{t}</Tag>)}
+          {tags.map((t) => <Tag key={t} tone="glass">{t}</Tag>)}
         </View>
         <Button variant="glass" wide block onPress={() => router.push('/sign-up')}>Create account</Button>
         <Press onPress={() => router.push('/sign-in')} scale={false} style={{ height: 52, alignItems: 'center', justifyContent: 'center' }}>
@@ -90,6 +137,9 @@ const styles = StyleSheet.create({
   // The shadow keeps white type readable over bright photos (the porch).
   h1: { fontSize: 34, lineHeight: 34, letterSpacing: -0.85, textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 14 },
   line: { minHeight: 34 },
+  // Desktop: 72px over the darker left-to-right gradient, so no shadow.
+  h1Wide: { fontSize: 72, lineHeight: 70, letterSpacing: -1.8 },
+  lineWide: { minHeight: 70 },
 });
 
 export default themed('dark', Welcome);

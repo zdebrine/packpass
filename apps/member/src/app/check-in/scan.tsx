@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View, type ViewStyle } from 'react-native';
 
 import { isLive } from '@/api/client';
 import { errorCopy } from '@/api/errors';
@@ -12,6 +12,8 @@ import '@/lib/qr-decoder';
 import { now } from '@/lib/clock';
 import { Button } from '@/ds/controls';
 import { IconButton, Screen, useTop, themed } from '@/ds/layout';
+import { Overlay } from '@/ds/overlay';
+import { useWide } from '@/ds/responsive';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { QrArt } from '@/features/QrArt';
@@ -41,6 +43,7 @@ function Corners() {
  */
 function Scan() {
   const top = useTop();
+  const wide = useWide();
   const { booking: bookingId } = useLocalSearchParams<{ booking?: string }>();
   const bookings = useApp((s) => s.bookings);
   const dog = useDog();
@@ -78,16 +81,19 @@ function Scan() {
   };
 
   const live = !!perm?.granted;
+  const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  // The desktop dialog is shorter than a phone, so the frame and its copy sit higher.
+  const frameTop = wide ? 150 : 260;
 
-  return (
-    <Screen theme="dark" bleed statusLight style={{ backgroundColor: '#000' }}>
+  const scene = (
+    <>
       {live ? (
         <CameraView style={StyleSheet.absoluteFill} facing="back" enableTorch={torch} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} onBarcodeScanned={(r) => done(r.data)} />
       ) : (
         <>
           <Image source={photos.dog_chilling_with_owner_on_porch} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={2} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.2)' }]} />
-          <View style={{ position: 'absolute', left: 0, right: 0, top: 286, alignItems: 'center' }} pointerEvents="none">
+          <View style={{ position: 'absolute', left: 0, right: 0, top: frameTop + 26, alignItems: 'center' }} pointerEvents="none">
             <View style={{ padding: 14, borderRadius: 14, backgroundColor: '#fff', transform: [{ rotate: '-4deg' }, { skewX: '2deg' }], boxShadow: '0 10px 30px rgba(0,0,0,0.35)' }}>
               <QrArt size={168} />
             </View>
@@ -96,22 +102,22 @@ function Scan() {
       )}
 
       {/* Dim everything outside the frame. */}
-      <View style={{ position: 'absolute', left: 0, right: 0, top: 260, alignItems: 'center' }} pointerEvents="none">
+      <View style={{ position: 'absolute', left: 0, right: 0, top: frameTop, alignItems: 'center' }} pointerEvents="none">
         <View style={{ width: FRAME, height: FRAME, borderRadius: 28, boxShadow: '0 0 0 999px rgba(0,0,0,0.55)' }} />
       </View>
-      <View style={{ position: 'absolute', left: 0, right: 0, top: 260, alignItems: 'center' }}><Corners /></View>
+      <View style={{ position: 'absolute', left: 0, right: 0, top: frameTop, alignItems: 'center' }}><Corners /></View>
 
-      <View style={{ position: 'absolute', top: top + 8, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <IconButton glass icon="x" label="Close" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+      <View style={{ position: 'absolute', top: wide ? 20 : top + 8, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <IconButton glass icon="x" label="Close" onPress={close} />
         <Text variant="wide" color="#fff" style={{ fontSize: 13 }}>Check in</Text>
         <IconButton glass icon="flashlight" label={torch ? 'Torch off' : 'Torch on'} onPress={() => setTorch((t) => !t)} style={torch ? { backgroundColor: 'rgba(255,255,255,0.45)' } : undefined} />
       </View>
-      <Text variant="label" color="#fff" center style={{ position: 'absolute', top: 150, left: 40, right: 40 }}>
+      <Text variant="label" color="#fff" center style={{ position: 'absolute', top: wide ? 96 : 150, left: 40, right: 40 }}>
         {live ? 'Point the camera at the PackPass code at the entrance.' : 'Allow the camera to scan the PackPass code at the entrance, or enter the code instead.'}
       </Text>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ position: 'absolute', left: 12, right: 12, bottom: 12 }}>
-        <Card>
+        <Card radius={wide ? 28 : 32}>
           {target ? (
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
               <Photo name={target.v.cls.image} style={{ width: 52, height: 52, borderRadius: 12 }} />
@@ -135,13 +141,27 @@ function Scan() {
           ) : null}
         </Card>
       </KeyboardAvoidingView>
+    </>
+  );
+
+  if (wide) {
+    return (
+      <Overlay kind="dialog" width={520} dim={0.6} scroll={false} height={'min(760px, 100%)' as ViewStyle['height']} onClose={close} cardStyle={{ backgroundColor: '#000' }}>
+        {scene}
+      </Overlay>
+    );
+  }
+
+  return (
+    <Screen theme="dark" bleed statusLight style={{ backgroundColor: '#000' }}>
+      {scene}
     </Screen>
   );
 }
 
-function Card({ children }: { children: React.ReactNode }) {
+function Card({ children, radius }: { children: React.ReactNode; radius: number }) {
   const { c } = useTheme();
-  return <View style={{ padding: 20, borderRadius: 32, backgroundColor: c.bg, gap: 14 }}>{children}</View>;
+  return <View style={{ padding: 20, borderRadius: radius, backgroundColor: c.bg, gap: 14 }}>{children}</View>;
 }
 
 function CodeEntry({ code, setCode, onSubmit }: { code: string; setCode: (s: string) => void; onSubmit: () => void }) {

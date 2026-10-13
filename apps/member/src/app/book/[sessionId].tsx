@@ -8,7 +8,9 @@ import { isLive } from '@/api/client';
 import { errorCopy } from '@/api/errors';
 import { TOP_UP } from '@/data/plans';
 import { Button, Chip, Tag } from '@/ds/controls';
-import { Grabber, useBottom } from '@/ds/layout';
+import { Grabber, IconButton, useBottom } from '@/ds/layout';
+import { Overlay } from '@/ds/overlay';
+import { tile, useWide } from '@/ds/responsive';
 import { WaitlistActions } from '@/features/book/Waitlist';
 import { Photo, PhotoFill, Scrim } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
@@ -27,6 +29,7 @@ const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 /** 06 Booking sheet. "Book for 2 credits" → "Confirm booking" → "Booked." */
 export default function BookingSheet() {
   const { c } = useTheme();
+  const wide = useWide();
   const bottom = useBottom(34);
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const first = view(sessionId);
@@ -77,6 +80,99 @@ export default function BookingSheet() {
     setDone(true);
   };
 
+  const body = (
+    done ? (
+      <>
+        <View style={{ height: 260, borderRadius: 28, overflow: 'hidden', ...(wide ? { marginTop: 40 } : null) }}>
+          <PhotoFill name={cls.image} />
+          <Scrim />
+          <View style={{ position: 'absolute', top: 14, left: 14 }}><Tag tone="glass">{allowance ? `${credits} of ${allowance} credits left` : `${creditsLabel(credits)} left`}</Tag></View>
+          <View style={{ position: 'absolute', left: 20, right: 20, bottom: 18 }}>
+            <Text variant="display2xl" color="#fff" accessibilityRole="header" accessibilityLiveRegion="polite">Booked.</Text>
+            <Text color="#fff" style={{ marginTop: 8 }}>{`${cls.title}, ${dayTimeInline(session.startsAt)}.`}</Text>
+          </View>
+        </View>
+        <Text variant="caption" muted style={{ marginTop: 14, marginHorizontal: 4 }}>{`${partner.name} · ${partner.address}. ${cancelCopy(session.startsAt)}.`}</Text>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: wide ? 18 : 16 }}>
+          <Button variant="quiet" style={{ flex: 1 }} disabled={added} onPress={() => addToCalendar(v).then(setAdded).catch(() => {})}>{added ? 'Added' : 'Add to calendar'}</Button>
+          <Button style={{ flex: 1 }} onPress={() => router.dismissTo('/')}>Done</Button>
+        </View>
+      </>
+    ) : (
+      <>
+        <Text variant="wide" muted>{`${relativeDay(session.startsAt)} · ${partner.name}`}</Text>
+        <Text variant="displayLg" style={{ marginTop: 8 }}>{cls.title}</Text>
+
+        <Text variant="label" style={{ marginTop: wide ? 24 : 22, marginBottom: 10 }}>Time</Text>
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+          {sameDaySessions(v).map((s) => (
+            <Chip key={s.id} selected={s.id === session.id} onPress={() => { if (s.spotsLeft > 0) { setSelected(s.id); setError(null); } }} style={s.spotsLeft === 0 ? { opacity: 0.4 } : undefined}>
+              {cls.openWindow ? cls.openWindow : time(s.startsAt)}
+            </Chip>
+          ))}
+        </View>
+
+        <Text variant="label" style={{ marginTop: 20, marginBottom: 10 }}>Dog</Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {dogs.map((d) => (
+            <Chip key={d.id} selected={d.id === dogId} onPress={() => { setDogId(d.id); setError(null); }} leading={<Photo name={d.photo} style={{ width: 28, height: 28, borderRadius: 9999 }} />}>{d.name}</Chip>
+          ))}
+        </View>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: wide ? 24 : 22, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text>{creditsLabel(cost)}</Text>
+            {cls.dropOff ? <Tag>Drop-off</Tag> : null}
+          </View>
+          <Text variant="label" num color={short ? c.kennelRed : c.inkMuted}>
+            {short ? `You have ${creditsLabel(credits)} left` : allowance ? `${credits - cost} of ${allowance} left after booking` : `${creditsLabel(credits - cost)} left after booking`}
+          </Text>
+        </View>
+
+        {error ? (
+          <View style={{ marginTop: 16, paddingVertical: 14, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft }} accessibilityLiveRegion="polite">
+            <Text variant="label" weight="600" color={c.kennelRed}>{error}</Text>
+          </View>
+        ) : null}
+        <View style={{ gap: 8, marginTop: 16 }}>
+          {!el.ok ? (
+            <Text variant="label" muted>{el.reason}</Text>
+          ) : already ? (
+            <Button block disabled>{`${dog?.name ?? 'Your dog'} is booked for this`}</Button>
+          ) : session.spotsLeft === 0 ? (
+            <WaitlistActions v={v} dogId={dogId} dogName={dog?.name ?? 'your dog'} />
+          ) : short && wide ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <View style={tile(180)}><Button block disabled={busy} onPress={buyCredits}>{busy ? 'Opening checkout…' : `Buy ${TOP_UP.credits} credits · ${TOP_UP.price}`}</Button></View>
+              <View style={tile(180)}><Button variant="quiet" block onPress={() => router.replace('/book')}>Pick a 1-credit class</Button></View>
+            </View>
+          ) : short ? (
+            <>
+              <Button block disabled={busy} onPress={buyCredits}>{busy ? 'Opening checkout…' : `Buy ${TOP_UP.credits} credits · ${TOP_UP.price}`}</Button>
+              <Button variant="quiet" block onPress={() => router.replace('/book')}>Pick a 1-credit class</Button>
+            </>
+          ) : (
+            <Button block disabled={busy} onPress={confirm}>{busy ? 'Booking…' : 'Confirm booking'}</Button>
+          )}
+          {wide && el.ok && !already && session.spotsLeft > 0 && !short ? <Text variant="caption" muted center style={{ marginTop: 2 }}>{cancelCopy(session.startsAt)}</Text> : null}
+        </View>
+      </>
+    )
+  );
+
+  if (wide) {
+    return (
+      <Overlay kind="dialog" width={520} top={72} onClose={close}>
+        <View style={{ padding: 28 }}>
+          {body}
+          <View style={{ position: 'absolute', top: 16, right: 16 }}>
+            <IconButton icon="x" size={40} label="Close" onPress={close} />
+          </View>
+        </View>
+      </Overlay>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <Photo name={cls.image} style={{ position: 'absolute', left: 0, top: 0, right: 0, height: 460 }} />
@@ -91,77 +187,7 @@ export default function BookingSheet() {
       >
         <Grabber />
         <View style={{ height: 18 }} />
-        {done ? (
-          <>
-            <View style={{ height: 260, borderRadius: 28, overflow: 'hidden' }}>
-              <PhotoFill name={cls.image} />
-              <Scrim />
-              <View style={{ position: 'absolute', top: 14, left: 14 }}><Tag tone="glass">{allowance ? `${credits} of ${allowance} credits left` : `${creditsLabel(credits)} left`}</Tag></View>
-              <View style={{ position: 'absolute', left: 20, right: 20, bottom: 18 }}>
-                <Text variant="display2xl" color="#fff" accessibilityRole="header" accessibilityLiveRegion="polite">Booked.</Text>
-                <Text color="#fff" style={{ marginTop: 8 }}>{`${cls.title}, ${dayTimeInline(session.startsAt)}.`}</Text>
-              </View>
-            </View>
-            <Text variant="caption" muted style={{ marginTop: 14, marginHorizontal: 4 }}>{`${partner.name} · ${partner.address}. ${cancelCopy(session.startsAt)}.`}</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
-              <Button variant="quiet" style={{ flex: 1 }} disabled={added} onPress={() => addToCalendar(v).then(setAdded).catch(() => {})}>{added ? 'Added' : 'Add to calendar'}</Button>
-              <Button style={{ flex: 1 }} onPress={() => router.dismissTo('/')}>Done</Button>
-            </View>
-          </>
-        ) : (
-          <>
-            <Text variant="wide" muted>{`${relativeDay(session.startsAt)} · ${partner.name}`}</Text>
-            <Text variant="displayLg" style={{ marginTop: 8 }}>{cls.title}</Text>
-
-            <Text variant="label" style={{ marginTop: 22, marginBottom: 10 }}>Time</Text>
-            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-              {sameDaySessions(v).map((s) => (
-                <Chip key={s.id} selected={s.id === session.id} onPress={() => { if (s.spotsLeft > 0) { setSelected(s.id); setError(null); } }} style={s.spotsLeft === 0 ? { opacity: 0.4 } : undefined}>
-                  {cls.openWindow ? cls.openWindow : time(s.startsAt)}
-                </Chip>
-              ))}
-            </View>
-
-            <Text variant="label" style={{ marginTop: 20, marginBottom: 10 }}>Dog</Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {dogs.map((d) => (
-                <Chip key={d.id} selected={d.id === dogId} onPress={() => { setDogId(d.id); setError(null); }} leading={<Photo name={d.photo} style={{ width: 28, height: 28, borderRadius: 9999 }} />}>{d.name}</Chip>
-              ))}
-            </View>
-
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 22, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text>{creditsLabel(cost)}</Text>
-                {cls.dropOff ? <Tag>Drop-off</Tag> : null}
-              </View>
-              <Text variant="label" num color={short ? c.kennelRed : c.inkMuted}>
-                {short ? `You have ${creditsLabel(credits)} left` : allowance ? `${credits - cost} of ${allowance} left after booking` : `${creditsLabel(credits - cost)} left after booking`}
-              </Text>
-            </View>
-
-            {error ? (
-              <View style={{ marginTop: 16, paddingVertical: 14, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft }} accessibilityLiveRegion="polite">
-                <Text variant="label" weight="600" color={c.kennelRed}>{error}</Text>
-              </View>
-            ) : null}
-            <View style={{ gap: 8, marginTop: 16 }}>
-              {!el.ok ? (
-                <Text variant="label" muted>{el.reason}</Text>
-              ) : already ? (
-                <Button block disabled>{`${dog?.name ?? 'Your dog'} is booked for this`}</Button>
-              ) : session.spotsLeft === 0 ? (
-                <WaitlistActions v={v} dogId={dogId} dogName={dog?.name ?? 'your dog'} />
-              ) : short ? (
-                <>
-                  <Button block disabled={busy} onPress={buyCredits}>{busy ? 'Opening checkout…' : `Buy ${TOP_UP.credits} credits · ${TOP_UP.price}`}</Button>
-                  <Button variant="quiet" block onPress={() => router.replace('/book')}>Pick a 1-credit class</Button>
-                </>
-              ) : (
-                <Button block disabled={busy} onPress={confirm}>{busy ? 'Booking…' : 'Confirm booking'}</Button>
-              )}
-            </View>
-          </>
-        )}
+        {body}
       </Animated.View>
     </View>
   );

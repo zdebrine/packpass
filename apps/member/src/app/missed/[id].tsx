@@ -1,11 +1,13 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { isLive } from '@/api/client';
 import type { LogEntry } from '@/data/types';
 import { Button, Tag } from '@/ds/controls';
 import { Icon, type IconName } from '@/ds/Icon';
 import { Badge, IconButton, Screen, themed, useBottom, useTop } from '@/ds/layout';
+import { Overlay } from '@/ds/overlay';
+import { tile, useWide, web } from '@/ds/responsive';
 import { Gradient, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { checkInClosesAt, credits as creditsLabel } from '@/lib/booking';
@@ -49,6 +51,7 @@ function Row({ icon, label, value }: { icon: IconName; label: string; value: str
  */
 function MissedClass() {
   const { c } = useTheme();
+  const wide = useWide();
   const top = useTop();
   const bottom = useBottom(34);
   const active = useDog();
@@ -71,6 +74,59 @@ function MissedClass() {
     else router.replace('/');
   };
 
+  const notReturned = `${creditsLabel(e.credits)} ${e.credits === 1 ? 'was' : 'were'} not returned.`;
+  const why = `No check-in by ${time(checkInClosed)} and the booking wasn't cancelled before the window closed.`;
+  const windowValue = `Closed ${weekday(windowClosed)} ${time(windowClosed)}`;
+  const balance = allowance ? `${credits} of ${allowance} credits left` : `${creditsLabel(credits)} left`;
+  const headline = `${dog.name} missed ${e.title}.`;
+  const when = `${dayLabel(e.startsAt)} ${time(e.startsAt)} · ${e.partner}`;
+  const report = () => { see(e.bookingId); openSite('/support'); };
+
+  if (wide) {
+    const fact = (icon: IconName, label: string, value: string) => (
+      <View style={tile(240, { flexDirection: 'row', gap: 14, alignItems: 'center', paddingVertical: 14, paddingLeft: 14, paddingRight: 16, borderRadius: 20, backgroundColor: c.surfaceRaised })}>
+        <Badge icon={icon} bg={c.bg} fg={c.ink} iconSize={18} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text variant="caption" muted>{label}</Text>
+          <Text variant="label" weight="600">{value}</Text>
+        </View>
+      </View>
+    );
+    return (
+      <Overlay kind="dialog" width={640} dim={0.6} onClose={() => done()}>
+        <View style={{ height: 300, overflow: 'hidden' }}>
+          <View style={[StyleSheet.absoluteFill, web({ filter: 'grayscale(1)' })]}><PhotoFill name={e.image} /></View>
+          <Gradient stops={[['rgba(0,0,0,0.3)', 0], ['rgba(0,0,0,0)', 0.3], ['rgba(0,0,0,0.3)', 0.55], [c.bg, 1]]} />
+          <View style={{ position: 'absolute', left: 28, right: 28, bottom: 20 }}>
+            <Tag tone="glass">Missed</Tag>
+            <Text variant="displayXl" color="#fff" accessibilityRole="header" style={{ marginTop: 14 }}>{headline}</Text>
+            <Text variant="label" color="rgba(255,255,255,0.88)" style={{ marginTop: 8 }}>{when}</Text>
+          </View>
+        </View>
+        <View style={{ paddingTop: 12, paddingHorizontal: 28, paddingBottom: 28, gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', padding: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft }}>
+            <Icon name="circle-alert" size={22} color={c.kennelRed} />
+            <View style={{ flex: 1 }}>
+              <Text variant="label" weight="600" color={c.kennelRed}>{notReturned}</Text>
+              <Text variant="caption" color={c.kennelRed} style={{ marginTop: 4 }}>{why}</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {fact('clock', 'Free cancellation', windowValue)}
+            {fact('wallet', 'Balance', balance)}
+          </View>
+          <Text variant="caption" muted center style={{ marginTop: 8, marginBottom: 12, marginHorizontal: 4 }}>
+            Cancel before the window closes and the credits come back to your account.
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <View style={tile(220)}><Button block onPress={() => done('/book')}>Book another time</Button></View>
+            <View style={tile(220)}><Button variant="quiet" block onPress={report}>{`${dog.name} was there. Report a problem`}</Button></View>
+          </View>
+        </View>
+      </Overlay>
+    );
+  }
+
   return (
     <Screen bleed statusLight>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: bottom }}>
@@ -84,8 +140,8 @@ function MissedClass() {
             <View style={{ flexDirection: 'row', marginBottom: 14 }}>
               <Tag tone="glass">MISSED</Tag>
             </View>
-            <Text variant="displayXl" color="#fff" accessibilityRole="header" style={{ fontSize: 40, lineHeight: 38 }}>{`${dog.name} missed ${e.title}.`}</Text>
-            <Text variant="label" color="rgba(255,255,255,0.85)" style={{ marginTop: 10 }}>{`${dayLabel(e.startsAt)} ${time(e.startsAt)} · ${e.partner}`}</Text>
+            <Text variant="displayXl" color="#fff" accessibilityRole="header" style={{ fontSize: 40, lineHeight: 38 }}>{headline}</Text>
+            <Text variant="label" color="rgba(255,255,255,0.85)" style={{ marginTop: 10 }}>{when}</Text>
           </View>
         </View>
 
@@ -93,18 +149,18 @@ function MissedClass() {
           <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', padding: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft }}>
             <Icon name="circle-alert" size={24} color={c.kennelRed} />
             <View style={{ flex: 1, gap: 4 }}>
-              <Text variant="label" weight="600" color={c.kennelRed}>{`${creditsLabel(e.credits)} ${e.credits === 1 ? 'was' : 'were'} not returned.`}</Text>
-              <Text variant="caption" color={c.kennelRed}>{`No check-in by ${time(checkInClosed)} and the booking wasn't cancelled before the window closed.`}</Text>
+              <Text variant="label" weight="600" color={c.kennelRed}>{notReturned}</Text>
+              <Text variant="caption" color={c.kennelRed}>{why}</Text>
             </View>
           </View>
-          <Row icon="clock" label="Free cancellation" value={`Closed ${weekday(windowClosed)} ${time(windowClosed)}`} />
-          <Row icon="wallet" label="Balance" value={allowance ? `${credits} of ${allowance} credits left` : `${creditsLabel(credits)} left`} />
+          <Row icon="clock" label="Free cancellation" value={windowValue} />
+          <Row icon="wallet" label="Balance" value={balance} />
           <Text variant="caption" muted style={{ textAlign: 'center', marginTop: 8, marginHorizontal: 8 }}>
             Cancel before the window closes and the credits come back to your account.
           </Text>
           <View style={{ gap: 10, marginTop: 12 }}>
             <Button block onPress={() => done('/book')}>Book another time</Button>
-            <Button variant="quiet" block onPress={() => { see(e.bookingId); openSite('/support'); }}>{`${dog.name} was there. Report a problem`}</Button>
+            <Button variant="quiet" block onPress={report}>{`${dog.name} was there. Report a problem`}</Button>
           </View>
         </View>
       </ScrollView>

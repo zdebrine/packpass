@@ -56,7 +56,7 @@ books them once she passes (Settings › Preview states › Pass re-check).
 project `packpass-member` with root `apps/member`; `vercel.json` sets the build and sends every path to `index.html`
 so links like `/class/<id>` open directly. Like store builds, it uses the committed `.env`, so it runs on the live
 project. `public/index.html` is the page template (title, description, icons); Expo adds the scripts on export.
-Members can add it to their home screen (`public/manifest.webmanifest`), where it opens full screen. The web app gets no push notifications, and on wide screens the phone design sits in a centered column.
+Members can add it to their home screen (`public/manifest.webmanifest`), where it opens full screen. The web app gets no push notifications, and from 1024px wide it uses the desktop design: a sidebar, wide pages, and dialogs in place of sheets (`src/ds/responsive.tsx`).
 
 ## Store builds
 

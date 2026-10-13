@@ -111,7 +111,8 @@ export function AthleteCard({ name, photo, breed, age, stage, since, streak, sta
         <View style={{ width: 84, height: 84, borderRadius: radius.tile, overflow: 'hidden', backgroundColor: c.pitch, alignItems: 'center', justifyContent: 'center' }}>
           {photo ? <PhotoFill name={photo} /> : <Text style={{ fontFamily: fonts.wideBold, fontSize: 44, color: 'rgba(255,255,255,0.5)' }}>{name.charAt(0)}</Text>}
         </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
+        {/* No minWidth 0: a narrow card wraps the breed line, never the dog's name mid-word. */}
+        <View style={{ flex: 1 }}>
           <Text style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 28, letterSpacing: -0.84 }}>{name}</Text>
           <Text style={{ fontFamily: fonts.sansMedium, fontSize: 13, lineHeight: 18, marginTop: 4 }} color={c.inkMuted}>{sub}</Text>
         </View>

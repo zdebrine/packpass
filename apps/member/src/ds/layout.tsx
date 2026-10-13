@@ -8,6 +8,7 @@ import { fonts, type ThemeName } from '@/theme/tokens';
 import { Icon, type IconName } from './Icon';
 import { Press } from './Press';
 import { Glass } from './Surface';
+import { useWide } from './responsive';
 import { Text } from './Text';
 
 /** Top padding that clears the status bar (the designs draw a 50pt bar). */
@@ -35,12 +36,15 @@ interface ScreenProps {
 function ScreenInner({ children, bleed, statusLight, style }: Omit<ScreenProps, 'theme'>) {
   const { c, name } = useTheme();
   const top = useTop();
-  return (
-    <View style={[{ flex: 1, backgroundColor: c.bg, paddingTop: bleed ? 0 : top }, style]}>
+  const wide = useWide();
+  const screen = (
+    <View style={[{ flex: 1, backgroundColor: c.bg, paddingTop: bleed ? 0 : wide ? 24 : top }, wide ? { width: '100%', maxWidth: 640, alignSelf: 'center' } : null, style]}>
       <StatusBar style={statusLight || name === 'dark' ? 'light' : 'dark'} />
       {children}
     </View>
   );
+  // Desktop pages have their own layouts; a screen without one (settings, plan) keeps the phone column, centered.
+  return wide ? <View style={{ flex: 1, backgroundColor: c.bg }}>{screen}</View> : screen;
 }
 
 export function Screen({ theme, ...rest }: ScreenProps) {

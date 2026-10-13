@@ -9,6 +9,7 @@ import { AthleteCard, ClassCard } from '@/ds/cards';
 import { Button, Tag } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
 import { Bars, Screen, SectionTitle, useTop } from '@/ds/layout';
+import { col, Columns, Page, tile, useWide } from '@/ds/responsive';
 import { Press } from '@/ds/Press';
 import { Glass, HeroScrim, Photo, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
@@ -28,6 +29,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 export default function Today() {
   const { c } = useTheme();
   const top = useTop();
+  const wide = useWide();
   const bookings = useApp((s) => s.bookings);
   const credits = useApp((s) => s.credits);
   const allowance = useAllowance();
@@ -81,6 +83,193 @@ export default function Today() {
     }]),
   ];
 
+  const athlete = (
+    <Press onPress={() => router.push('/dog')} scale={false} accessibilityLabel={`${juno.name}'s profile`}>
+      <AthleteCard compact name={juno.name} photo={juno.photo} breed={juno.breed} age={juno.age} stage={juno.stage} streak={stats.streak >= 2 ? stats.streak : undefined} />
+    </Press>
+  );
+
+  const upNextActions = upNext ? (
+    <View style={{ flexDirection: 'row', gap: 8, marginTop: wide ? 0 : 16 }}>
+      <Button variant="quiet" fill={c.bg} style={{ flex: 1 }} onPress={() => openDirections(upNext.v.partner)}>Directions</Button>
+      <Button style={{ flex: 1 }} onPress={() => router.push(`/check-in/scan?booking=${upNext.booking.id}`)}>Check in</Button>
+    </View>
+  ) : null;
+  const upNextInfo = upNext ? (
+    <>
+      <Text variant="wide" muted>{`${relativeDay(upNext.v.session.startsAt)} · ${time(upNext.v.session.startsAt)} · ${upNext.v.cls.durationMin} min`}</Text>
+      <Text variant="displayMd" style={{ marginTop: 6 }}>{upNext.v.cls.title}</Text>
+      <Text variant="caption" muted style={{ marginTop: 4 }}>{`${upNext.v.partner.name} · ${upNext.v.partner.street} · ${upNext.v.partner.distanceMi} mi`}</Text>
+    </>
+  ) : null;
+  const upNextCard = !upNext ? (
+    <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: wide ? 24 : 20, ...(wide ? { flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between' } : null) }}>
+      <Text>{`Nothing booked this week. Pick a class to keep ${juno.name}'s streak going.`}</Text>
+      <View style={{ marginTop: wide ? 0 : 14, flexDirection: 'row' }}><Button onPress={() => router.push('/book')}>Find a class</Button></View>
+    </View>
+  ) : wide ? (
+    // Desktop: the map and the details side by side, wrapping under each other when the column is narrow.
+    <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 12, flexDirection: 'row', flexWrap: 'wrap', columnGap: 20, rowGap: 12, alignItems: 'stretch' }}>
+      <Press onPress={() => router.push(`/class/${upNext.v.session.id}`)} scale={false} accessibilityLabel={upNext.v.cls.title} style={col(1, 220, { minHeight: 150 })}>
+        <MapSketch variant="card" pin={{ left: '48%', top: '22%' }} style={{ flex: 1, minHeight: 150, borderRadius: 20 }} />
+      </Press>
+      <View style={col(2, 300, { paddingTop: 8, paddingHorizontal: 8, paddingBottom: 4, justifyContent: 'space-between', gap: 16 })}>
+        <Press onPress={() => router.push(`/class/${upNext.v.session.id}`)} scale={false} accessibilityLabel={upNext.v.cls.title}>{upNextInfo}</Press>
+        {upNextActions}
+      </View>
+    </View>
+  ) : (
+    <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 12, paddingBottom: 16 }}>
+      <Press onPress={() => router.push(`/class/${upNext.v.session.id}`)} scale={false} accessibilityLabel={upNext.v.cls.title}>
+        <MapSketch variant="card" pin={{ left: '48%', top: '22%' }} style={{ height: 104, borderRadius: 20 }} />
+        <View style={{ paddingTop: 14, paddingHorizontal: 8 }}>{upNextInfo}</View>
+      </Press>
+      {upNextActions}
+    </View>
+  );
+
+  const monthSection = (
+    <>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+        <Text variant="title">This month</Text>
+        <Text variant="caption" muted>{`${monthHeader().month} · resets ${monthHeader().resets}`}</Text>
+      </View>
+      <View style={wide ? { flexDirection: 'row', flexWrap: 'wrap', gap: 8 } : { gap: 8 }}>
+        {month.map((m) => (
+          <Press key={m.key} onPress={m.onPress} scale={!!m.onPress} style={[{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 10, paddingLeft: 10, paddingRight: 14, borderRadius: 20, backgroundColor: c.surfaceRaised }, wide ? tile(300) : null]}>
+            <Photo name={m.photo} style={{ width: wide ? 48 : 44, height: wide ? 48 : 44, borderRadius: 12 }} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text variant="caption" muted>{m.meta}</Text>
+              <Text variant="label" weight="600">{m.title}</Text>
+            </View>
+            {m.status ? <Tag>{m.status}</Tag> : <Button size="sm" onPress={m.onPress}>Book</Button>}
+          </Press>
+        ))}
+      </View>
+    </>
+  );
+
+  const goalSection = goal ? (
+    <>
+      <SectionTitle title="Next goal" onMore={() => router.push(`/goal/${goal.id}`)} />
+      <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 14 }}>
+        <View>
+          <Text variant="wide" muted>{`Step ${stepIndex(goal) + 1} of ${goal.steps.length} · ${goal.id === 'calm-around-dogs' ? 'Group sport ready' : 'Calm walks'}`}</Text>
+          <Text variant="displayMd" style={{ marginTop: 6 }}>{goal.title}</Text>
+        </View>
+        <Bars total={goal.steps.length} done={stepIndex(goal)} />
+        {stepView ? (
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 10, borderRadius: 20, backgroundColor: c.bg }}>
+            <Photo name={stepView.cls.image} style={{ width: 52, height: 52, borderRadius: 12 }} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text variant="label" weight="600">{step?.title}</Text>
+              <Text variant="caption" muted>{`${stepView.cls.sessionType} · ${stepView.trainer.name} · ${weekday(stepView.session.startsAt).slice(0, 3)} ${timeLabel(stepView)}`}</Text>
+            </View>
+            <Text variant="label" weight="600" num style={{ paddingRight: 6 }}>{creditsLabel(stepView.cls.credits)}</Text>
+          </View>
+        ) : null}
+        {stepView && stepBooked ? (
+          <Button block variant="quiet" fill={c.bg} onPress={() => router.push(`/goal/${goal.id}`)}>{`Step ${stepIndex(goal) + 1} booked. See the path`}</Button>
+        ) : stepView ? (
+          <Button block onPress={() => router.push(`/book/${stepView.session.id}`)}>{`Book step ${stepIndex(goal) + 1}`}</Button>
+        ) : null}
+      </View>
+    </>
+  ) : null;
+
+  const gutter = wide ? 0 : 20;
+  const recommendedSection = (
+    <>
+      <SectionTitle title={`Recommended for ${juno.name}`} onMore={() => router.push('/book')} style={{ paddingHorizontal: gutter, marginBottom: wide ? 6 : 14 }} />
+      <Text variant="caption" muted style={{ marginTop: wide ? 0 : -8, marginBottom: 14, marginHorizontal: gutter }}>{`Two sprint days this month. These add mental work and fit ${juno.name}'s clearances.`}</Text>
+      {picks.length === 0 ? <Text muted style={{ marginHorizontal: gutter }}>Nothing open to book right now.</Text> : null}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: gutter, paddingBottom: wide ? 4 : 0 }}>
+        {picks.map((v) => {
+          const id = v.session.id;
+          return (
+            <ClassCard
+              key={id}
+              image={v.cls.image}
+              discipline={v.cls.sessionType === 'Private' ? 'Private' : v.cls.discipline}
+              dropOff={v.cls.dropOff}
+              title={v.cls.title}
+              partner={v.cls.sessionType === 'Private' ? v.trainer.name : v.partner.name}
+              time={`${weekday(v.session.startsAt).slice(0, 3)} ${timeLabel(v)}`}
+              credits={v.cls.credits}
+              spotsLeft={v.session.spotsLeft}
+              onPress={() => router.push(`/class/${id}`)}
+            />
+          );
+        })}
+      </ScrollView>
+    </>
+  );
+
+  const creditsSection = (
+    <>
+      <Text variant="title" style={{ marginBottom: 14 }}>Credits</Text>
+      <Press onPress={() => router.push('/plan')} accessibilityRole="button" accessibilityLabel={`${allowance ? `${credits} of ${allowance}` : credits} credits left. Plan and credits`}
+        style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
+        <View style={{ flexShrink: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+            <Text variant="display2xl" num>{credits}</Text>
+            <Text variant="heading" muted>{allowance ? `of ${allowance}` : credits === 1 ? 'credit' : 'credits'}</Text>
+          </View>
+          <Text variant="caption" muted style={{ marginTop: 6 }}>{allowance ? `${credits} of ${allowance} credits left, resets ${monthHeader().resets}` : 'No plan yet. Choose one for credits every month.'}</Text>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 4, alignItems: 'flex-end', height: 56 }}>
+          {Array.from({ length: Math.max(allowance ?? credits, credits) }, (_, i) => (
+            <View key={i} style={{ width: 8, height: 56, borderRadius: 9999, backgroundColor: i < credits ? c.ink : c.surfaceSunken }} />
+          ))}
+        </View>
+      </Press>
+    </>
+  );
+
+  if (wide) {
+    // 02 Today, desktop: a photo header, then the plan on the left and the dog, credits and goal on the right.
+    return (
+      <Page>
+        <View style={{ height: 400, borderRadius: 32, overflow: 'hidden' }}>
+          <PhotoFill name={juno.photo ?? 'dog_and_owner_chilling'} position={{ top: '35%', left: '50%' }} />
+          <HeroScrim />
+          <View style={{ position: 'absolute', top: 20, left: 24, right: 24, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Press onPress={() => router.push('/settings')} accessibilityLabel={`Distances from ${from}. Change`}>
+              <Glass style={{ height: 44, paddingHorizontal: 16, borderRadius: 9999, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Icon name="map-pin" size={18} color="#fff" />
+                <Text variant="wide" color="#fff" style={{ fontSize: 12 }}>{from}</Text>
+              </Glass>
+            </Press>
+          </View>
+          <View style={{ position: 'absolute', left: 32, right: 32, bottom: 32, flexDirection: 'row', flexWrap: 'wrap', gap: 20, alignItems: 'flex-end', justifyContent: 'space-between' }}>
+            <View style={{ maxWidth: 640 }}>
+              <View style={{ marginBottom: 14 }}><Tag tone="glass">{`${weekday(now())} · ${monthDay(now())}`}</Tag></View>
+              <Text variant="display2xl" color="#fff" accessibilityRole="header">{`${juno.name} is due for a hard day.`}</Text>
+              <Text variant="label" color="rgba(255,255,255,0.9)" style={{ marginTop: 10 }}>{`Scent work would round out ${juno.name}'s month.`}</Text>
+            </View>
+            <Button variant="glass" wide onPress={() => router.push('/book')}>Find a class</Button>
+          </View>
+        </View>
+        <Columns style={{ marginTop: 32 }}>
+          <View style={col(999, 520, { gap: 32 })}>
+            <View>
+              <Text variant="title" style={{ marginBottom: 14 }}>Up next</Text>
+              {upNextCard}
+            </View>
+            <HeldPlan dogId={juno.id} style={{ marginTop: 0, paddingHorizontal: 0 }} />
+            <View>{monthSection}</View>
+            <View>{recommendedSection}</View>
+          </View>
+          <View style={col(1, 320, { gap: 32 })}>
+            {athlete}
+            <View>{creditsSection}</View>
+            {goalSection ? <View>{goalSection}</View> : null}
+          </View>
+        </Columns>
+      </Page>
+    );
+  }
+
   return (
     <Screen bleed statusLight>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }}>
@@ -110,127 +299,22 @@ export default function Today() {
         </View>
 
         <View style={{ marginTop: -28, backgroundColor: c.bg, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 20 }}>
-          <Press onPress={() => router.push('/dog')} scale={false} style={{ paddingHorizontal: 20 }} accessibilityLabel={`${juno.name}'s profile`}>
-            <AthleteCard compact name={juno.name} photo={juno.photo} breed={juno.breed} age={juno.age} stage={juno.stage} streak={stats.streak >= 2 ? stats.streak : undefined} />
-          </Press>
+          <View style={{ paddingHorizontal: 20 }}>{athlete}</View>
 
           <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
             <Text variant="title" style={{ marginBottom: 14 }}>Up next</Text>
-            {upNext ? (
-              <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 12, paddingBottom: 16 }}>
-                <Press onPress={() => router.push(`/class/${upNext.v.session.id}`)} scale={false} accessibilityLabel={upNext.v.cls.title}>
-                  <MapSketch variant="card" pin={{ left: '48%', top: '22%' }} style={{ height: 104, borderRadius: 20 }} />
-                  <View style={{ paddingTop: 14, paddingHorizontal: 8 }}>
-                    <Text variant="wide" muted>{`${relativeDay(upNext.v.session.startsAt)} · ${time(upNext.v.session.startsAt)} · ${upNext.v.cls.durationMin} min`}</Text>
-                    <Text variant="displayMd" style={{ marginTop: 6 }}>{upNext.v.cls.title}</Text>
-                    <Text variant="caption" muted style={{ marginTop: 4 }}>{`${upNext.v.partner.name} · ${upNext.v.partner.street} · ${upNext.v.partner.distanceMi} mi`}</Text>
-                  </View>
-                </Press>
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
-                  <Button variant="quiet" fill={c.bg} style={{ flex: 1 }} onPress={() => openDirections(upNext.v.partner)}>Directions</Button>
-                  <Button style={{ flex: 1 }} onPress={() => router.push(`/check-in/scan?booking=${upNext.booking.id}`)}>Check in</Button>
-                </View>
-              </View>
-            ) : (
-              <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20 }}>
-                <Text>{`Nothing booked this week. Pick a class to keep ${juno.name}'s streak going.`}</Text>
-                <View style={{ marginTop: 14, flexDirection: 'row' }}><Button onPress={() => router.push('/book')}>Find a class</Button></View>
-              </View>
-            )}
+            {upNextCard}
           </View>
 
           <HeldPlan dogId={juno.id} />
 
-          <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
-              <Text variant="title">This month</Text>
-              <Text variant="caption" muted>{`${monthHeader().month} · resets ${monthHeader().resets}`}</Text>
-            </View>
-            <View style={{ gap: 8 }}>
-              {month.map((m) => (
-                <Press key={m.key} onPress={m.onPress} scale={!!m.onPress} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 10, paddingLeft: 10, paddingRight: 14, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
-                  <Photo name={m.photo} style={{ width: 44, height: 44, borderRadius: 12 }} />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text variant="caption" muted>{m.meta}</Text>
-                    <Text variant="label" weight="600">{m.title}</Text>
-                  </View>
-                  {m.status ? <Tag>{m.status}</Tag> : <Button size="sm" onPress={m.onPress}>Book</Button>}
-                </Press>
-              ))}
-            </View>
-          </View>
+          <View style={{ marginTop: 32, paddingHorizontal: 20 }}>{monthSection}</View>
 
-          {goal ? (
-          <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
-            <SectionTitle title="Next goal" onMore={() => router.push(`/goal/${goal.id}`)} />
-            <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 14 }}>
-              <View>
-                <Text variant="wide" muted>{`Step ${stepIndex(goal) + 1} of ${goal.steps.length} · ${goal.id === 'calm-around-dogs' ? 'Group sport ready' : 'Calm walks'}`}</Text>
-                <Text variant="displayMd" style={{ marginTop: 6 }}>{goal.title}</Text>
-              </View>
-              <Bars total={goal.steps.length} done={stepIndex(goal)} />
-              {stepView ? (
-                <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 10, borderRadius: 20, backgroundColor: c.bg }}>
-                  <Photo name={stepView.cls.image} style={{ width: 52, height: 52, borderRadius: 12 }} />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text variant="label" weight="600">{step?.title}</Text>
-                    <Text variant="caption" muted>{`${stepView.cls.sessionType} · ${stepView.trainer.name} · ${weekday(stepView.session.startsAt).slice(0, 3)} ${timeLabel(stepView)}`}</Text>
-                  </View>
-                  <Text variant="label" weight="600" num style={{ paddingRight: 6 }}>{creditsLabel(stepView.cls.credits)}</Text>
-                </View>
-              ) : null}
-              {stepView && stepBooked ? (
-                <Button block variant="quiet" fill={c.bg} onPress={() => router.push(`/goal/${goal.id}`)}>{`Step ${stepIndex(goal) + 1} booked. See the path`}</Button>
-              ) : stepView ? (
-                <Button block onPress={() => router.push(`/book/${stepView.session.id}`)}>{`Book step ${stepIndex(goal) + 1}`}</Button>
-              ) : null}
-            </View>
-          </View>
-          ) : null}
+          {goalSection ? <View style={{ marginTop: 32, paddingHorizontal: 20 }}>{goalSection}</View> : null}
 
-          <View style={{ marginTop: 32 }}>
-            <SectionTitle title={`Recommended for ${juno.name}`} onMore={() => router.push('/book')} style={{ paddingHorizontal: 20 }} />
-            <Text variant="caption" muted style={{ marginTop: -8, marginBottom: 14, marginHorizontal: 20 }}>{`Two sprint days this month. These add mental work and fit ${juno.name}'s clearances.`}</Text>
-            {picks.length === 0 ? <Text muted style={{ marginHorizontal: 20 }}>Nothing open to book right now.</Text> : null}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}>
-              {picks.map((v) => {
-                const id = v.session.id;
-                return (
-                  <ClassCard
-                    key={id}
-                    image={v.cls.image}
-                    discipline={v.cls.sessionType === 'Private' ? 'Private' : v.cls.discipline}
-                    dropOff={v.cls.dropOff}
-                    title={v.cls.title}
-                    partner={v.cls.sessionType === 'Private' ? v.trainer.name : v.partner.name}
-                    time={`${weekday(v.session.startsAt).slice(0, 3)} ${timeLabel(v)}`}
-                    credits={v.cls.credits}
-                    spotsLeft={v.session.spotsLeft}
-                    onPress={() => router.push(`/class/${id}`)}
-                  />
-                );
-              })}
-            </ScrollView>
-          </View>
+          <View style={{ marginTop: 32 }}>{recommendedSection}</View>
 
-          <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
-            <Text variant="title" style={{ marginBottom: 14 }}>Credits</Text>
-            <Press onPress={() => router.push('/plan')} accessibilityRole="button" accessibilityLabel={`${allowance ? `${credits} of ${allowance}` : credits} credits left. Plan and credits`}
-              style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
-              <View>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-                  <Text variant="display2xl" num>{credits}</Text>
-                  <Text variant="heading" muted>{allowance ? `of ${allowance}` : credits === 1 ? 'credit' : 'credits'}</Text>
-                </View>
-                <Text variant="caption" muted style={{ marginTop: 6 }}>{allowance ? `${credits} of ${allowance} credits left, resets ${monthHeader().resets}` : 'No plan yet. Choose one for credits every month.'}</Text>
-              </View>
-              <View style={{ flexDirection: 'row', gap: 4, alignItems: 'flex-end', height: 56 }}>
-                {Array.from({ length: Math.max(allowance ?? credits, credits) }, (_, i) => (
-                  <View key={i} style={{ width: 8, height: 56, borderRadius: 9999, backgroundColor: i < credits ? c.ink : c.surfaceSunken }} />
-                ))}
-              </View>
-            </Press>
-          </View>
+          <View style={{ marginTop: 32, paddingHorizontal: 20 }}>{creditsSection}</View>
         </View>
       </ScrollView>
     </Screen>
