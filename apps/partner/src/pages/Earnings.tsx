@@ -1,11 +1,11 @@
-import { Landmark } from 'lucide-react';
+import { Download, Landmark } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { loadEarnings, loadEarningsByClass, stripeConnect, type EarningsMonth } from '@/lib/api';
 import { useData, usePartner } from '@/lib/partner';
 import { money } from '@/lib/time';
-import { Button, ErrorLine, Modal, Tag } from '@/ui/kit';
+import { Badge, Button, ErrorLine, Ico, Modal, Page, PageHead, StatGroup } from '@/ui/kit';
 import { Loading } from './Overview';
 
 // Months come back as dates ("2026-09-01"); format them without shifting time zones.
@@ -52,110 +52,114 @@ export function Earnings() {
   const held = past.filter((m) => m.amount_cents > 0).reduce((a, m) => a + m.amount_cents, 0);
   const connected = partner.payout_status === 'connected';
 
+  const payout = money(now.amount_cents + (connected ? 0 : held));
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 32, maxWidth: 1240 }}>
-      <header style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <span className="pk-wide pk-muted">{`Earnings · ${monthOf(now.month)}`}</span>
-        <h1 className="pk-display-2xl" style={{ margin: 0 }}>{money(now.amount_cents)}</h1>
-        <span className="pk-label pk-muted">{`${now.credits} credit${now.credits === 1 ? '' : 's'} redeemed at ${rate} per credit so far. Rates are set by PackPass.`}</span>
-      </header>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start' }}>
-        <div style={{ flex: '999 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 32 }}>
-          <section className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <h2 className="pk-title" style={{ margin: 0 }}>By month</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${months.length},minmax(0,1fr))`, gap: 16, alignItems: 'end', height: 200 }}>
-              {[...months].reverse().map((m) => (
-                <div key={m.month} style={{ display: 'flex', flexDirection: 'column', gap: 8, justifyContent: 'flex-end', height: '100%' }}>
-                  <span className="pk-label" style={{ fontWeight: 600 }}>{money(m.amount_cents)}</span>
-                  <span style={{ display: 'block', height: `${Math.max(4, (m.amount_cents / max) * 120)}px`, borderRadius: 12, background: m === now || !m.amount_cents ? 'var(--surface-sunken)' : 'var(--inverse)' }} />
-                  <span className="pk-caption pk-muted">{m === now ? `${monthOf(m.month, 'short')} so far` : monthOf(m.month, 'short')}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-          <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <h2 className="pk-title" style={{ margin: 0 }}>{`By class · ${monthOf(now.month)}`}</h2>
-            {byClass.length ? (
-              <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) repeat(3,minmax(0,1fr))', gap: 12, padding: '0 20px' }}>
-                  <span className="pk-caption pk-muted">Class</span><span className="pk-caption pk-muted" style={{ textAlign: 'right' }}>Dogs</span>
-                  <span className="pk-caption pk-muted" style={{ textAlign: 'right' }}>Credits</span><span className="pk-caption pk-muted" style={{ textAlign: 'right' }}>Earned</span>
-                </div>
-                {byClass.map((c) => (
-                  <div key={c.class_id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) repeat(3,minmax(0,1fr))', gap: 12, padding: '14px 20px', borderRadius: 20, background: 'var(--surface-raised)', alignItems: 'center' }}>
-                    <span className="pk-label" style={{ fontWeight: 600 }}>{c.title}</span>
-                    <span className="pk-label" style={{ textAlign: 'right' }}>{c.dogs}</span>
-                    <span className="pk-label" style={{ textAlign: 'right' }}>{c.credits}</span>
-                    <span className="pk-label" style={{ textAlign: 'right', fontWeight: 600 }}>{money(c.amount_cents)}</span>
+    <Page>
+      <PageHead title="Earnings" sub={`${monthOf(now.month)} · ${now.credits} credit${now.credits === 1 ? '' : 's'} redeemed at ${rate} per credit so far. Rates are set by PackPass.`}>
+        <Button variant="outline" icon={Download} onClick={() => download(months, partner.name, partner.payout_rate_cents)}>Download statement</Button>
+      </PageHead>
+      <StatGroup columns={3} stats={[
+        { label: `Earned in ${monthOf(now.month)}`, value: money(now.amount_cents), caption: `${now.credits} credits at ${rate} per credit` },
+        { label: 'Next payout', value: nextFirst(now.month), caption: connected ? `${payout} · Paid monthly on the 1st` : held ? `${payout} · ${money(held)} held until payouts are set up` : `${payout} · Paid once payouts are set up` },
+        { label: 'Dogs this month', value: String(now.dogs), caption: `${now.sessions} session${now.sessions === 1 ? '' : 's'} so far` },
+      ]} />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
+        <div style={{ flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <section className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <h2 className="pp-title">By month</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ height: 180, display: 'grid', gridTemplateColumns: `repeat(${months.length},minmax(0,1fr))`, gap: 24, alignItems: 'end', padding: '0 12px', boxSizing: 'border-box', boxShadow: 'inset 0 -1px 0 var(--line-strong)' }}>
+                {[...months].reverse().map((m) => (
+                  <div key={m.month} style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}>
+                    <span className="pp-label pp-num">{money(m.amount_cents)}</span>
+                    <span style={{ display: 'block', width: '100%', maxWidth: 72, height: `${Math.max(2, (m.amount_cents / max) * 130)}px`, borderRadius: '6px 6px 0 0', background: m === now || !m.amount_cents ? 'var(--surface-sunken)' : 'var(--turf)' }} />
                   </div>
                 ))}
-              </>
-            ) : <span className="pk-label pk-muted">No sessions have run this month yet.</span>}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${months.length},minmax(0,1fr))`, gap: 24, padding: '0 12px' }}>
+                {[...months].reverse().map((m) => <span key={m.month} className="pp-caption pp-muted" style={{ textAlign: 'center' }}>{m === now ? `${monthOf(m.month, 'short')} so far` : monthOf(m.month, 'short')}</span>)}
+              </div>
+            </div>
+          </section>
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <h2 className="pp-title">{`By class · ${monthOf(now.month)}`}</h2>
+            {byClass.length ? (
+              <div className="tbl">
+                <div className="tbl-head" style={{ gridTemplateColumns: BY_CLASS }}>
+                  <span>Class</span><span className="r">Dogs</span><span className="r">Credits</span><span className="r">Earned</span>
+                </div>
+                {byClass.map((c) => (
+                  <div key={c.class_id} className="tbl-row" style={{ gridTemplateColumns: BY_CLASS, minHeight: 44 }}>
+                    <span className="pp-heading ellipsis">{c.title}</span>
+                    <span className="pp-body pp-num r">{c.dogs}</span>
+                    <span className="pp-body pp-num r">{c.credits}</span>
+                    <span className="pp-label pp-num r">{money(c.amount_cents)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : <span className="pp-label pp-muted">No sessions have run this month yet.</span>}
           </section>
         </div>
 
-        <aside style={{ flex: '1 1 300px', maxWidth: 420, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div style={{ background: 'var(--pitch)', color: 'var(--on-pitch)', borderRadius: 28, padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <span className="pk-wide" style={{ color: 'var(--on-pitch-muted)' }}>{`Next payout · ${nextFirst(now.month)}`}</span>
-            <span className="pk-display-xl">{money(now.amount_cents + (connected ? 0 : held))}</span>
-            <span className="pk-label" style={{ color: 'var(--on-pitch-muted)' }}>
-              {connected ? `${monthOf(now.month)} so far. Paid monthly on the 1st.` : held ? `${monthOf(now.month)} so far, plus ${money(held)} held until payouts are set up.` : `${monthOf(now.month)} so far. Paid once payouts are set up.`}
-            </span>
-          </div>
-          <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <aside style={{ flex: '1 1 280px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <section className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-              <h2 className="pk-title" style={{ margin: 0 }}>Payout method</h2>
-              {partner.payout_status === 'pending' ? <Tag tone="warning">Verifying</Tag> : null}
+              <h2 className="pp-title" style={{ whiteSpace: 'nowrap' }}>Payout method</h2>
+              {partner.payout_status === 'pending' ? <Badge tone="warning">Verifying</Badge> : null}
             </div>
             {connected ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <span style={{ width: 44, height: 44, flex: 'none', borderRadius: 9999, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Landmark size={20} /></span>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}><span className="pk-label" style={{ fontWeight: 600 }}>Bank account on file</span><span className="pk-caption pk-muted">Through Stripe · Monthly on the 1st</span></div>
-                <Button variant="quiet" disabled={busy} onClick={() => openStripe('dashboard')}>Open Stripe</Button>
-              </div>
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ width: 32, height: 32, flex: 'none', borderRadius: 8, background: 'var(--surface-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ico icon={Landmark} /></span>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}><span className="pp-label">Bank account on file</span><span className="pp-caption pp-muted">Through Stripe · Monthly on the 1st</span></div>
+                </div>
+                <Button variant="outline" block disabled={busy} onClick={() => openStripe('dashboard')}>Open Stripe</Button>
+              </>
             ) : partner.payout_status === 'pending' ? (
               <>
-                <p className="pk-label" style={{ margin: 0, textWrap: 'pretty' }}>Stripe is checking your details. This usually takes one business day. You'll get an email when payouts are on.</p>
-                <Button variant="quiet" block disabled={busy} onClick={() => openStripe('onboard')}>Review details in Stripe</Button>
+                <p className="pp-body" style={{ textWrap: 'pretty' }}>Stripe is checking your details. This usually takes one business day. You'll get an email when payouts are on.</p>
+                <Button variant="outline" block disabled={busy} onClick={() => openStripe('onboard')}>Review details in Stripe</Button>
               </>
             ) : (
               <>
-                <p className="pk-label" style={{ margin: 0, textWrap: 'pretty' }}>Add a bank account through Stripe to get paid. Earnings are held until then.</p>
+                <p className="pp-body" style={{ textWrap: 'pretty' }}>Add a bank account through Stripe to get paid. Earnings are held until then.</p>
                 <Button block onClick={() => setSetup(true)}>Set up payouts</Button>
               </>
             )}
-          </div>
-          {setup ? null : <ErrorLine>{stripeError}</ErrorLine>}
-          <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <h2 className="pk-title" style={{ margin: 0 }}>Past months</h2>
-            {past.some((m) => m.dogs) ? null : <span className="pk-label pk-muted">{`Nothing before ${monthOf(now.month)} yet.`}</span>}
-            {past.filter((m) => m.dogs).map((m) => (
-              <div key={m.month} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderRadius: 20, background: 'var(--surface-raised)' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span className="pk-label" style={{ fontWeight: 600 }}>{monthOf(m.month)}</span>
-                  <span className="pk-caption pk-muted">{`${m.sessions} session${m.sessions === 1 ? '' : 's'} · ${m.dogs} dog${m.dogs === 1 ? '' : 's'} · ${m.credits} credits`}</span>
-                </div>
-                <span className="pk-label" style={{ fontWeight: 600 }}>{money(m.amount_cents)}</span>
-              </div>
-            ))}
           </section>
-          <Button variant="quiet" block onClick={() => download(months, partner.name, partner.payout_rate_cents)}>Download statement</Button>
+          {setup ? null : <ErrorLine>{stripeError}</ErrorLine>}
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <h2 className="pp-title">Past months</h2>
+            {past.some((m) => m.dogs) ? (
+              <div className="tbl">
+                <div className="tbl-head" style={{ gridTemplateColumns: PAST }}><span>Month</span><span>Period</span><span className="r">Amount</span></div>
+                {past.filter((m) => m.dogs).map((m) => (
+                  <div key={m.month} className="tbl-row" style={{ gridTemplateColumns: PAST, minHeight: 44 }}>
+                    <span className="pp-label">{monthOf(m.month, 'short')}</span>
+                    <span className="pp-caption pp-muted ellipsis">{`${m.sessions} session${m.sessions === 1 ? '' : 's'} · ${m.dogs} dog${m.dogs === 1 ? '' : 's'} · ${m.credits} credits`}</span>
+                    <span className="pp-label pp-num r">{money(m.amount_cents)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : <span className="pp-label pp-muted">{`Nothing before ${monthOf(now.month)} yet.`}</span>}
+          </section>
         </aside>
       </div>
 
       {setup ? (
-        <Modal eyebrow="Payouts" title="Get paid through Stripe" width={560} onClose={() => setSetup(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <p className="pk-body" style={{ margin: 0, textWrap: 'pretty' }}>PackPass pays partners through Stripe on the 1st of each month, for every credit redeemed the month before. Stripe asks for your business details and a bank account, and checks them in about a business day.</p>
-            <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>Your bank and tax details go to Stripe, not PackPass. Earnings so far stay held until Stripe turns payouts on.</p>
-            <Button disabled={busy} onClick={() => openStripe('onboard')}>{busy ? 'Opening Stripe…' : 'Continue to Stripe'}</Button>
-            <ErrorLine>{stripeError}</ErrorLine>
-          </div>
+        <Modal eyebrow="Payouts · Stripe Connect" title="Get paid through Stripe" width={480} onClose={() => setSetup(false)}
+          footer={<><ErrorLine>{stripeError}</ErrorLine><Button variant="outline" onClick={() => setSetup(false)}>Not now</Button><Button disabled={busy} onClick={() => openStripe('onboard')}>{busy ? 'Opening Stripe…' : 'Continue to Stripe'}</Button></>}>
+          <p className="pp-body" style={{ textWrap: 'pretty' }}>PackPass pays partners through Stripe on the 1st of each month, for every credit redeemed the month before. Stripe asks for your business details and a bank account, and checks them in about a business day.</p>
+          <p className="pp-caption pp-muted" style={{ margin: 0, textWrap: 'pretty' }}>Your bank and tax details go to Stripe, not PackPass. Earnings so far stay held until Stripe turns payouts on.</p>
         </Modal>
       ) : null}
-    </div>
+    </Page>
   );
 }
+
+const BY_CLASS = 'minmax(0,2fr) repeat(3,minmax(0,1fr))';
+const PAST = '48px minmax(0,1fr) 80px';
 
 /** A CSV of the months shown, for the partner's books. */
 function download(months: EarningsMonth[], name: string, rateCents: number) {

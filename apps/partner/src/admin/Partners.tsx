@@ -16,11 +16,11 @@ export function Partners() {
   const [trainer, setTrainer] = useState<{ partner: AdminPartner; t: AdminTrainer | null } | null>(null);
   if (!data) return <Loading />;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1040 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1040, margin: '0 auto', width: '100%' }}>
       <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span className="pk-wide pk-muted">PackPass · Partners</span>
-          <h1 className="pk-display-xl" style={{ margin: 0 }}>Partners</h1>
+          <span className="pp-caption pp-muted">PackPass · Partners</span>
+          <h1 className="pp-page-title" style={{ margin: 0 }}>Partners</h1>
         </div>
         <Button size="sm" onClick={() => setEditing('new')}>Add partner</Button>
       </header>
@@ -29,8 +29,8 @@ export function Partners() {
           <div key={p.id} className="card" style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <Row gap={12} wrap={false} style={{ justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                <Row gap={8}><span className="pk-title">{p.name}</span><Tag>{typeLabel(p.type)}</Tag>{p.in_review ? <Tag tone="warning">{`${p.in_review} to review`}</Tag> : null}</Row>
-                <span className="pk-caption pk-muted">{`${p.address} · ${p.live_classes} live classes · ${p.staff} staff · ${money(p.payout_rate_cents)} a credit`}</span>
+                <Row gap={8}><span className="pp-title">{p.name}</span><Tag>{typeLabel(p.type)}</Tag>{p.in_review ? <Tag tone="warning">{`${p.in_review} to review`}</Tag> : null}</Row>
+                <span className="pp-caption pp-muted">{`${p.address} · ${p.live_classes} live classes · ${p.staff} staff · ${money(p.payout_rate_cents)} a credit`}</span>
               </div>
               <Row gap={8} wrap={false}>
                 <Button size="sm" variant="quiet" style={{ background: 'var(--bg)' }} onClick={() => setTrainer({ partner: p, t: null })}>Add trainer</Button>
@@ -41,7 +41,7 @@ export function Partners() {
               {data.trainers.filter((t) => t.partner_id === p.id).map((t) => (
                 <Chip key={t.id} onClick={() => setTrainer({ partner: p, t })}>{`${t.name}${t.classes ? ` · ${t.classes}` : ''}`}</Chip>
               ))}
-              {data.trainers.some((t) => t.partner_id === p.id) ? null : <span className="pk-caption pk-muted">No trainers yet.</span>}
+              {data.trainers.some((t) => t.partner_id === p.id) ? null : <span className="pp-caption pp-muted">No trainers yet.</span>}
             </Row>
           </div>
         ))}

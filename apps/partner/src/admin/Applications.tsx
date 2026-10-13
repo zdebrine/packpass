@@ -25,27 +25,27 @@ export function Applications() {
   const waiting = data.filter((a) => a.status === 'submitted');
   const decided = data.filter((a) => a.status !== 'submitted');
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1040 }}>
-      <header style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <span className="pk-wide pk-muted">PackPass · Applications</span>
-        <h1 className="pk-display-xl" style={{ margin: 0 }}>Partner applications</h1>
-        <span className="pk-label pk-muted">Check the documents, then approve or ask for changes. Approving creates the partner and opens their dashboard.</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1040, margin: '0 auto', width: '100%' }}>
+      <header style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span className="pp-caption pp-muted">PackPass · Applications</span>
+        <h1 className="pp-page-title" style={{ margin: 0 }}>Partner applications</h1>
+        <span className="pp-label pp-muted">Check the documents, then approve or ask for changes. Approving creates the partner and opens their dashboard.</span>
       </header>
       {waiting.length ? waiting.map((a) => <ApplicationCard key={a.id} a={a} onDone={reload} />) : <Empty>No applications waiting. New ones from the dashboard’s Apply to partner show up here.</Empty>}
       <Leads />
       <FoundingPack />
       {decided.length ? (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <h2 className="pk-title" style={{ margin: 0 }}>Decided in the last 30 days</h2>
+          <h2 className="pp-title" style={{ margin: 0 }}>Decided in the last 30 days</h2>
           {decided.map((a) => (
-            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderRadius: 20, background: 'var(--surface-raised)', flexWrap: 'wrap' }}>
+            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, boxShadow: 'inset 0 0 0 1px var(--line)', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span className="pk-label" style={{ fontWeight: 600 }}>{a.business_name}</span>
-                <span className="pk-caption pk-muted">{[a.contact_name, a.email].filter(Boolean).join(' · ')}</span>
+                <span className="pp-label" style={{ fontWeight: 600 }}>{a.business_name}</span>
+                <span className="pp-caption pp-muted">{[a.contact_name, a.email].filter(Boolean).join(' · ')}</span>
               </div>
               {a.status === 'approved'
-                ? <><Tag tone="signal">Approved</Tag>{a.partner_id ? <Link to="/admin/partners" className="pk-caption">Set its map location on Partners</Link> : null}</>
-                : <><Tag tone="warning">Changes asked</Tag><span className="pk-caption pk-muted" style={{ maxWidth: 380 }}>{a.decline_reason}</span></>}
+                ? <><Tag tone="signal">Approved</Tag>{a.partner_id ? <Link to="/admin/partners" className="pp-caption">Set its map location on Partners</Link> : null}</>
+                : <><Tag tone="warning">Changes asked</Tag><span className="pp-caption pp-muted" style={{ maxWidth: 380 }}>{a.decline_reason}</span></>}
             </div>
           ))}
         </section>
@@ -72,34 +72,34 @@ function ApplicationCard({ a, onDone }: { a: AdminApplication; onDone: () => voi
   return (
     <section className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
       <Row gap={10} style={{ justifyContent: 'space-between' }}>
-        <Row gap={10}><h2 className="pk-title" style={{ margin: 0 }}>{a.business_name}</h2>{a.partner_type ? <Tag>{TYPE[a.partner_type]}</Tag> : null}</Row>
-        {a.submitted_at ? <span className="pk-caption pk-muted">{`Sent ${monthDay(new Date(a.submitted_at))}`}</span> : null}
+        <Row gap={10}><h2 className="pp-title" style={{ margin: 0 }}>{a.business_name}</h2>{a.partner_type ? <Tag>{TYPE[a.partner_type]}</Tag> : null}</Row>
+        {a.submitted_at ? <span className="pp-caption pp-muted">{`Sent ${monthDay(new Date(a.submitted_at))}`}</span> : null}
       </Row>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px 24px' }}>
         {facts.filter(([, v]) => v).map(([k, v]) => (
           <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span className="pk-caption pk-muted">{k}</span>
-            <span className="pk-label" style={{ textWrap: 'pretty' }}>{v}</span>
+            <span className="pp-caption pp-muted">{k}</span>
+            <span className="pp-label" style={{ textWrap: 'pretty' }}>{v}</span>
           </div>
         ))}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <span className="pk-label" style={{ fontWeight: 600 }}>{`Documents · ${a.docs.length}`}</span>
+        <span className="pp-label" style={{ fontWeight: 600 }}>{`Documents · ${a.docs.length}`}</span>
         {a.docs.map((d) => (
-          <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 14, background: 'var(--surface-raised)' }}>
+          <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, boxShadow: 'inset 0 0 0 1px var(--line)' }}>
             <FileText size={16} color="var(--ink-muted)" />
-            <span className="pk-caption pk-muted" style={{ width: 170, flex: 'none' }}>{DOC[d.kind]}</span>
-            <span className="pk-label" style={{ flex: 1, minWidth: 0, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.file_name}</span>
-            {urls[d.path] ? <a href={urls[d.path]} target="_blank" rel="noreferrer" className="pk-label" style={{ fontWeight: 600 }}>Open</a> : null}
+            <span className="pp-caption pp-muted" style={{ width: 170, flex: 'none' }}>{DOC[d.kind]}</span>
+            <span className="pp-label" style={{ flex: 1, minWidth: 0, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.file_name}</span>
+            {urls[d.path] ? <a href={urls[d.path]} target="_blank" rel="noreferrer" className="pp-label" style={{ fontWeight: 600 }}>Open</a> : null}
           </div>
         ))}
       </div>
       {asking ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <span className="pk-label" style={{ fontWeight: 600 }}>What needs to change?</span>
+            <span className="pp-label" style={{ fontWeight: 600 }}>What needs to change?</span>
             <textarea className="area" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="The insurance certificate expired in March. Upload the current one." />
-            <span className="pk-caption pk-muted">They see this when they sign in, edit the application and send it again.</span>
+            <span className="pp-caption pp-muted">They see this when they sign in, edit the application and send it again.</span>
           </label>
           <Row gap={10}>
             <Button disabled={busy || reason.trim().length < 3} onClick={() => decide(false)}>{busy ? 'Sending…' : 'Send it back'}</Button>
@@ -123,16 +123,16 @@ function Leads() {
   if (!data?.length) return null;
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <h2 className="pk-title" style={{ margin: 0 }}>{`From the website · ${data.length}`}</h2>
-      <span className="pk-label pk-muted">People who opened the earnings calculator on the partner page in the last 90 days.</span>
+      <h2 className="pp-title" style={{ margin: 0 }}>{`From the website · ${data.length}`}</h2>
+      <span className="pp-label pp-muted">People who opened the earnings calculator on the partner page in the last 90 days.</span>
       {data.map((l) => (
-        <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderRadius: 20, background: 'var(--surface-raised)', flexWrap: 'wrap' }}>
+        <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, boxShadow: 'inset 0 0 0 1px var(--line)', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span className="pk-label" style={{ fontWeight: 600 }}>{l.business_name}</span>
-            <span className="pk-caption pk-muted">{`${l.name} · ${l.business_type} · ${l.zip}`}</span>
+            <span className="pp-label" style={{ fontWeight: 600 }}>{l.business_name}</span>
+            <span className="pp-caption pp-muted">{`${l.name} · ${l.business_type} · ${l.zip}`}</span>
           </div>
-          <a href={`mailto:${l.email}`} className="pk-label">{l.email}</a>
-          <span className="pk-caption pk-muted">{monthDay(new Date(l.created_at))}</span>
+          <a href={`mailto:${l.email}`} className="pp-label">{l.email}</a>
+          <span className="pp-caption pp-muted">{monthDay(new Date(l.created_at))}</span>
           {l.applied ? <Tag tone="signal">Applied</Tag> : null}
         </div>
       ))}
@@ -147,17 +147,17 @@ function FoundingPack() {
   if (!data?.length) return null;
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <h2 className="pk-title" style={{ margin: 0 }}>{`Founding pack · ${data.length}`}</h2>
-      <span className="pk-label pk-muted">Dog owners who joined the founding pack on the owner page. Signing up again with the same email updates their answers.</span>
+      <h2 className="pp-title" style={{ margin: 0 }}>{`Founding pack · ${data.length}`}</h2>
+      <span className="pp-label pp-muted">Dog owners who joined the founding pack on the owner page. Signing up again with the same email updates their answers.</span>
       {data.map((w) => (
-        <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderRadius: 20, background: 'var(--surface-raised)', flexWrap: 'wrap' }}>
+        <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, boxShadow: 'inset 0 0 0 1px var(--line)', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <a href={`mailto:${w.email}`} className="pk-label" style={{ fontWeight: 600 }}>{w.email}</a>
-            <span className="pk-caption pk-muted">{[w.zip, w.energy && ENERGY[w.energy], ...w.traits.map((t) => traitLabel(t))].filter(Boolean).join(' · ')}</span>
+            <a href={`mailto:${w.email}`} className="pp-label" style={{ fontWeight: 600 }}>{w.email}</a>
+            <span className="pp-caption pp-muted">{[w.zip, w.energy && ENERGY[w.energy], ...w.traits.map((t) => traitLabel(t))].filter(Boolean).join(' · ')}</span>
           </div>
           {w.founding_paid_at ? <Tag tone="premium">Paid</Tag> : null}
           {w.plan ? <Tag tone="signal">{PLAN[w.plan] ?? w.plan}</Tag> : null}
-          <span className="pk-caption pk-muted">{monthDay(new Date(w.created_at))}</span>
+          <span className="pp-caption pp-muted">{monthDay(new Date(w.created_at))}</span>
         </div>
       ))}
     </section>

@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { loadApplications, loadReviewQueue, loadVetRecords, signOut } from '@/lib/api';
-import { navStyle } from '@/Shell';
+import { navClass, Wordmark } from '@/Shell';
+import { Ico } from '@/ui/kit';
 
 /** The PackPass section of the sidebar: admin pages, with badges for classes, applications and vet records waiting. */
 export function AdminNav() {
@@ -21,34 +22,32 @@ export function AdminNav() {
     ['/admin/partners', 'Partners', Building2], ['/admin/staff', 'Staff', KeyRound],
   ];
   return (
-    <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span className="pk-wide pk-muted" style={{ padding: '0 14px 6px', fontSize: 11 }}>PackPass</span>
+    <>
+      <div className="pp-sidebar-group">PackPass</div>
       {links.map(([to, label, Icon, badge]) => (
-        <NavLink key={to} to={to} end={to === '/admin'} style={({ isActive }) => navStyle(isActive)}>
-          <Icon size={18} />
-          <span style={{ flex: 1, textAlign: 'left' }}>{label}</span>
-          {badge ? (
-            <span style={{ minWidth: 22, height: 22, padding: '0 7px', boxSizing: 'border-box', borderRadius: 9999, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--agility)', color: 'var(--on-agility)' }}>{badge}</span>
-          ) : null}
+        <NavLink key={to} to={to} end={to === '/admin'} className={({ isActive }) => navClass(isActive)}>
+          <Ico icon={Icon} />
+          <span className="pp-nav-label">{label}</span>
+          {badge ? <span className="pp-nav-count pp-nav-count-signal">{badge}</span> : null}
         </NavLink>
       ))}
-    </nav>
+    </>
   );
 }
 
 /** For a PackPass admin who isn't staff at a partner: only the admin pages. */
 export function AdminShell() {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
-      <aside style={{ width: 248, flex: 'none', boxSizing: 'border-box', padding: '28px 16px 20px', display: 'flex', flexDirection: 'column', gap: 28, position: 'sticky', top: 0, height: '100vh', background: 'var(--surface-raised)' }}>
-        <div style={{ padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span className="pk-wide" style={{ fontSize: 15, fontWeight: 700 }}>PackPass</span>
-          <span className="pk-caption pk-muted">Admin</span>
+    <div data-density="compact" style={{ display: 'flex', alignItems: 'flex-start', minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
+      <aside className="pp-sidebar" style={{ position: 'sticky', top: 0, height: '100vh' }}>
+        <div style={{ padding: '4px 10px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <Wordmark />
+          <span className="pp-caption pp-muted">Admin</span>
         </div>
         <AdminNav />
-        <div style={{ marginTop: 'auto', padding: '0 10px' }}><button className="link" onClick={() => signOut()}>Sign out</button></div>
+        <div className="pp-sidebar-foot" style={{ padding: '12px 10px 0', boxShadow: 'inset 0 1px 0 var(--line)' }}><button className="link" onClick={() => signOut()}>Sign out</button></div>
       </aside>
-      <main style={{ flex: 1, minWidth: 0, padding: '36px 48px 64px', boxSizing: 'border-box' }}><Outlet /></main>
+      <main style={{ flex: 1, minWidth: 0, padding: '24px 32px 64px', boxSizing: 'border-box' }}><Outlet /></main>
     </div>
   );
 }

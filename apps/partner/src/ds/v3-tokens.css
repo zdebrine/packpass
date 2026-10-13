@@ -1,0 +1,55 @@
+/* PackPass Design System v3: tokens. Palette and fonts are unchanged from v2 (colors.css). */
+
+:root{
+--font-sans:"Geist Variable","Geist",system-ui,-apple-system,sans-serif;
+--font-display:"Archivo Variable","Archivo",system-ui,sans-serif;
+/* Radius: 6 badge · 8 compact field · 12 field/thumb · 16 card · 24 photo/hero card · pill controls. 28 only on the Athlete Card. */
+--r-badge:6px;--r-field-sm:8px;--r-field:12px;--r-thumb:12px;--r-card:16px;--r-photo:24px;--r-athlete:28px;--r-pill:9999px;
+--s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:20px;--s-6:24px;--s-8:32px;--s-10:40px;--s-12:48px;--s-16:64px;
+--content-max:1200px;--gutter-desktop:24px;--gutter-mobile:20px;--sidebar-w:220px;--sidebar-row:36px;
+--hover:rgba(14,15,14,.04);--line-strong:#d6d6d2;
+--shadow-menu:0 12px 32px -12px rgba(14,15,14,.22),0 0 0 1px rgba(14,15,14,.06);
+--shadow-modal:0 32px 64px -24px rgba(14,15,14,.35);
+--ease-out:cubic-bezier(.2,.8,.2,1);--dur-fast:140ms;--dur-base:300ms;--dur-slow:480ms;
+--icon-stroke:1.75;
+}
+[data-theme="dark"]{--hover:rgba(255,255,255,.05);--line-strong:#3a3c3a;--shadow-menu:0 12px 32px -12px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.08);--shadow-modal:0 32px 64px -24px rgba(0,0,0,.8)}
+
+/* Density tiers. Default (no attribute) = comfortable. */
+:root,[data-density="comfortable"]{
+--t-hero:34px;--t-hero-lh:38px;--t-page:28px;--t-page-lh:34px;--t-headline:26px;--t-headline-lh:28px;--t-stat:28px;
+--t-title:17px;--t-title-lh:22px;--t-heading:16px;--t-heading-lh:22px;--t-body:16px;--t-body-lh:24px;
+--t-label:15px;--t-label-lh:20px;--t-caption:13px;--t-caption-lh:18px;--t-eyebrow:10px;
+--c-btn:48px;--c-btn-sm:36px;--c-field:48px;--c-field-r:var(--r-field);--c-search:44px;--c-chip:34px;--c-icon-btn:44px;--c-row:60px;--c-icon:20px;--c-badge:22px;--c-pad-x:20px;
+}
+[data-density="display"]{
+--t-hero:64px;--t-hero-lh:60px;--t-page:34px;--t-page-lh:40px;--t-headline:44px;--t-headline-lh:44px;--t-stat:40px;
+--t-title:22px;--t-title-lh:28px;--t-heading:18px;--t-heading-lh:24px;--t-body:18px;--t-body-lh:28px;
+--t-label:15px;--t-label-lh:20px;--t-caption:13px;--t-caption-lh:18px;--t-eyebrow:11px;
+--c-btn:52px;--c-btn-sm:44px;--c-field:52px;--c-field-r:var(--r-field);--c-search:52px;--c-chip:40px;--c-icon-btn:44px;--c-row:64px;--c-icon:20px;--c-badge:22px;--c-pad-x:24px;
+}
+[data-density="compact"]{
+--t-hero:40px;--t-hero-lh:44px;--t-page:24px;--t-page-lh:30px;--t-headline:28px;--t-headline-lh:32px;--t-stat:24px;
+--t-title:16px;--t-title-lh:22px;--t-heading:14px;--t-heading-lh:20px;--t-body:14px;--t-body-lh:20px;
+--t-label:13px;--t-label-lh:18px;--t-caption:12px;--t-caption-lh:16px;--t-eyebrow:10px;
+--c-btn:36px;--c-btn-sm:30px;--c-field:36px;--c-field-r:var(--r-field-sm);--c-search:36px;--c-chip:30px;--c-icon-btn:32px;--c-row:44px;--c-icon:16px;--c-badge:20px;--c-pad-x:16px;
+}
+
+/* Base */
+body{margin:0;font-family:var(--font-sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+a{color:var(--ink);text-underline-offset:3px}a:hover{color:var(--ink-muted)}
+.pp-hero,.pp-headline,.pp-stat-num{font-family:var(--font-display);font-variation-settings:"wdth" 112;font-stretch:112%;font-weight:800;letter-spacing:-.025em;text-wrap:balance;margin:0}
+.pp-hero{font-size:var(--t-hero);line-height:var(--t-hero-lh)}
+.pp-headline{font-size:var(--t-headline);line-height:var(--t-headline-lh)}
+.pp-stat-num{font-size:var(--t-stat);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.pp-page-title{margin:0;font-size:var(--t-page);line-height:var(--t-page-lh);font-weight:600;letter-spacing:-.02em}
+.pp-title{margin:0;font-size:var(--t-title);line-height:var(--t-title-lh);font-weight:600;letter-spacing:-.01em}
+.pp-heading{margin:0;font-size:var(--t-heading);line-height:var(--t-heading-lh);font-weight:500}
+.pp-body{margin:0;font-size:var(--t-body);line-height:var(--t-body-lh);font-weight:400;text-wrap:pretty}
+.pp-label{font-size:var(--t-label);line-height:var(--t-label-lh);font-weight:500}
+.pp-caption{font-size:var(--t-caption);line-height:var(--t-caption-lh);font-weight:400}
+.pp-eyebrow{font-family:var(--font-display);font-variation-settings:"wdth" 125;font-stretch:125%;font-weight:600;font-size:var(--t-eyebrow);line-height:14px;letter-spacing:.08em;text-transform:uppercase}
+.pp-muted{color:var(--ink-muted)}
+.pp-faint{color:var(--ink-faint)}
+.pp-num{font-variant-numeric:tabular-nums}
+.pp-divider{height:1px;background:var(--line);border:0;margin:0}

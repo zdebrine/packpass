@@ -1,4 +1,4 @@
-import { NotebookPen, ShieldCheck, Syringe, Users } from 'lucide-react';
+import { CalendarDays, NotebookPen, Plus, QrCode, ShieldCheck, Syringe, Users, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -6,7 +6,7 @@ import { loadAssessments, loadEarnings, loadNotes, loadRoster, loadSessions } fr
 import { useData, usePartner } from '@/lib/partner';
 import { credits, fillLabel, statusOf, withClasses, type SessionView } from '@/lib/sessions';
 import { addDays, austin, mondayOf, money, monthDay, monthName, time, weekday, ymd } from '@/lib/time';
-import { Button, Tag, photoUrl } from '@/ui/kit';
+import { Badge, Button, Ico, Page, PageHead, ProgressBar, StatGroup, photoUrl, type BadgeTone } from '@/ui/kit';
 
 /** 01 Overview: today's sessions, the week in numbers, and what needs attention. */
 export function Overview() {
@@ -39,14 +39,14 @@ export function Overview() {
 
   const notesDue = notes.filter((n) => !n.note);
   const assessDue = assess.filter((a) => !a.outcome && new Date(a.starts_at) < now);
-  const attention: { icon: ReactNode; text: string; action: string; go: () => void }[] = [];
-  if (notesDue.length) attention.push({ icon: <NotebookPen size={20} />, text: `${notesDue.length} session note${notesDue.length > 1 ? 's' : ''} due${new Set(notesDue.map((n) => n.session_id)).size === 1 ? ` from ${notesDue[0].class_title}` : ` from ${new Set(notesDue.map((n) => n.session_id)).size} sessions`}.`, action: 'Write notes', go: () => nav('/notes') });
-  if (assessDue.length) attention.push({ icon: <ShieldCheck size={20} />, text: `${assessDue.length} assessment result${assessDue.length > 1 ? 's' : ''} to record. ${listNames(assessDue.map((a) => a.dog_name))}${assessDue.length > 1 ? '’s owners are' : '’s owner is'} waiting.`, action: 'Record results', go: () => nav('/assessments') });
+  const attention: { icon: LucideIcon; warn?: boolean; text: string; action: string; go: () => void }[] = [];
+  if (notesDue.length) attention.push({ icon: NotebookPen, text: `${notesDue.length} session note${notesDue.length > 1 ? 's' : ''} due${new Set(notesDue.map((n) => n.session_id)).size === 1 ? ` from ${notesDue[0].class_title}` : ` from ${new Set(notesDue.map((n) => n.session_id)).size} sessions`}.`, action: 'Write notes', go: () => nav('/notes') });
+  if (assessDue.length) attention.push({ icon: ShieldCheck, text: `${assessDue.length} assessment result${assessDue.length > 1 ? 's' : ''} to record. ${listNames(assessDue.map((a) => a.dog_name))}${assessDue.length > 1 ? '’s owners are' : '’s owner is'} waiting.`, action: 'Record results', go: () => nav('/assessments') });
   for (const s of live.filter((x) => x.spots_left <= 0 && !x.waitlist_open && x.start > now).slice(0, 2))
-    attention.push({ icon: <Users size={20} />, text: `${s.cls.title} on ${weekday(s.start)} is full. The waitlist is closed.`, action: 'Adjust capacity', go: () => nav(`/schedule?s=${s.id}`) });
+    attention.push({ icon: Users, text: `${s.cls.title} on ${weekday(s.start)} is full. The waitlist is closed.`, action: 'Adjust capacity', go: () => nav(`/schedule?s=${s.id}`) });
   for (const { s, dogs } of rosters)
     for (const d of dogs.filter((x) => /expire|missing/i.test(x.vaccine_line)).slice(0, 2))
-      attention.push({ icon: <Syringe size={20} color="var(--kennel-red)" />, text: `${d.dog_name}: ${d.vaccine_line.toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}. ${d.dog_name} is booked for ${s.cls.title} today.`, action: 'View roster', go: () => nav(`/roster?s=${s.id}`) });
+      attention.push({ icon: Syringe, warn: true, text: `${d.dog_name}: ${d.vaccine_line.toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}. ${d.dog_name} is booked for ${s.cls.title} today.`, action: 'View roster', go: () => nav(`/roster?s=${s.id}`) });
 
   const stats = [
     { label: 'Dogs booked this week', value: String(live.reduce((a, s) => a + s.booked, 0)), sub: `${live.length} sessions` },
@@ -57,65 +57,69 @@ export function Overview() {
     { label: gym ? 'Average rating' : 'Your rating', value: ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : '–', sub: gym ? `${trainers.length} trainers` : partner.name },
   ];
 
+  const status = (s: SessionView) => (statusOf(s, now) === 'Upcoming' && s === next ? 'Next up' : statusOf(s, now));
+  const minsTo = next ? Math.round((+next.start - +now) / 60_000) : 0;
+  const nextWhen = next ? `${time(next.start)} · ${next.start <= now ? 'in session' : minsTo < 60 ? `in ${minsTo} min` : `in ${Math.round(minsTo / 60)} hr`}` : '';
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 32, maxWidth: 1240 }}>
-      <header style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <span className="pk-wide pk-muted">{`${weekday(now)} · ${monthDay(now)} · ${time(now)}`}</span>
-        <h1 className="pk-display-xl" style={{ margin: 0 }}>{todays.length ? `${todays.length} session${todays.length > 1 ? 's' : ''} today. ${dogsToday} dog${dogsToday === 1 ? '' : 's'} booked.` : 'No sessions today.'}</h1>
-      </header>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16 }}>
-        {stats.map((s) => (
-          <div key={s.label} style={{ background: 'var(--surface-raised)', borderRadius: 28, padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <span className="pk-caption pk-muted">{s.label}</span>
-            <span className="pk-display-lg pk-num">{s.value}</span>
-            <span className="pk-caption pk-muted">{s.sub}</span>
-          </div>
-        ))}
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start' }}>
-        <section style={{ flex: '999 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <h2 className="pk-title" style={{ margin: 0 }}>Today</h2>
+    <Page>
+      <PageHead title="Overview" sub={`${weekday(now)} · ${monthDay(now)} · ${time(now)} · ${todays.length ? `${todays.length} session${todays.length > 1 ? 's' : ''} today · ${dogsToday} dog${dogsToday === 1 ? '' : 's'} booked` : 'No sessions today'}`}>
+        <Button variant="outline" icon={CalendarDays} onClick={() => nav('/schedule')}>Schedule</Button>
+        <Button icon={Plus} onClick={() => nav('/schedule?add=1')}>Add session</Button>
+      </PageHead>
+      <StatGroup columns={4} stats={stats.map((s) => ({ label: s.label, value: s.value, caption: s.sub }))} />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
+        <section style={{ flex: '999 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <h2 className="pp-title">Today's sessions</h2>
           {todays.length ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="tbl">
+              <div className="tbl-head" style={{ gridTemplateColumns: TODAY_COLS, minWidth: 680 }}>
+                <span>Time</span><span>Class</span><span>Booked</span><span className="r">Credits</span><span>Status</span><span />
+              </div>
               {todays.map((s) => (
-                <div key={s.id} style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 20px', alignItems: 'center', padding: '18px 20px', borderRadius: 20, background: 'var(--surface-raised)' }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontStretch: '112%', fontSize: 20, letterSpacing: '-.02em', width: 92, flex: 'none' }}>{time(s.start)}</span>
-                  <div style={{ flex: '1 1 200px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="pk-heading">{s.cls.title}</span>{s.cls.premium ? <Tag tone="premium">Premium</Tag> : null}</div>
-                    <span className="pk-caption pk-muted">{meta(s)}</span>
+                <div key={s.id} className="tbl-row" style={{ gridTemplateColumns: TODAY_COLS, minWidth: 680 }}>
+                  <span className="pp-label pp-num">{time(s.start)}</span>
+                  <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}><span className="pp-heading ellipsis">{s.cls.title}</span>{s.cls.premium ? <Badge tone="cleared">Premium</Badge> : null}</div>
+                    <span className="pp-caption pp-muted ellipsis">{meta(s)}</span>
                   </div>
                   <FillBar s={s} />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'flex-end', marginLeft: 'auto' }}>
-                    <Tag>{statusOf(s, now) === 'Upcoming' && s === next ? 'Next up' : statusOf(s, now)}</Tag>
-                    <Button variant="quiet" size="sm" onClick={() => nav(`/roster?s=${s.id}`)}>Roster</Button>
-                  </div>
+                  <span className="pp-label pp-num r">{s.cls.credits ?? '–'}</span>
+                  <div><Badge tone={STATUS_TONE[status(s)] ?? 'neutral'}>{status(s)}</Badge></div>
+                  <Button variant="outline" size="sm" onClick={() => nav(`/roster?s=${s.id}`)}>Roster</Button>
                 </div>
               ))}
             </div>
           ) : <Empty>Nothing on the schedule today. Add a session from Schedule.</Empty>}
         </section>
-        <aside style={{ flex: '1 1 300px', maxWidth: 420, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <aside style={{ flex: '1 1 280px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24 }}>
           {next ? (
-            <div style={{ position: 'relative', height: 340, borderRadius: 28, overflow: 'hidden', color: '#fff' }}>
-              <img src={photoUrl(next.cls.image)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'var(--scrim)' }} />
-              <div style={{ position: 'absolute', top: 18, left: 18, display: 'flex', gap: 6 }}><Tag tone="glass">{`Next up · ${time(next.start)}`}</Tag></div>
-              <div style={{ position: 'absolute', left: 22, right: 22, bottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <h2 className="pk-display-lg" style={{ margin: 0 }}>{next.cls.title}</h2>
-                  <span className="pk-label" style={{ opacity: 0.92 }}>{`${meta(next)} · ${next.booked} of ${next.packpass_spots} booked`}</span>
+            <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <h2 className="pp-title">Next up</h2>
+              <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <img src={photoUrl(next.cls.image)} alt="" style={{ width: 56, height: 56, borderRadius: 12, flex: 'none', objectFit: 'cover', background: 'var(--surface-raised)' }} />
+                  <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span className="pp-caption pp-muted">{nextWhen}</span>
+                    <span className="pp-title">{next.cls.title}</span>
+                  </div>
                 </div>
-                <Button variant="glass" onClick={() => nav(`/roster?s=${next.id}`)} style={{ alignSelf: 'flex-start' }}>Open roster</Button>
+                <span className="pp-caption pp-muted" style={{ textWrap: 'pretty' }}>{`${meta(next)} · ${next.booked} of ${next.packpass_spots} booked`}</span>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <Button size="sm" onClick={() => nav(`/roster?s=${next.id}`)}>Open roster</Button>
+                  <Button variant="outline" size="sm" icon={QrCode} onClick={() => nav('/locations?qr=1')}>Check-in QR</Button>
+                </div>
               </div>
-            </div>
+            </section>
           ) : null}
-          <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <h2 className="pk-title" style={{ margin: 0 }}>Needs attention</h2>
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <h2 className="pp-title" style={{ marginBottom: 8 }}>Needs attention</h2>
             {attention.length ? attention.map((a, i) => (
-              <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '16px 18px', borderRadius: 20, background: 'var(--surface-raised)' }}>
-                <span style={{ flex: 'none', display: 'flex' }}>{a.icon}</span>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <span className="pk-label" style={{ textWrap: 'pretty' }}>{a.text}</span>
+              <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 0', boxShadow: 'inset 0 -1px 0 var(--line)' }}>
+                <span style={{ width: 28, height: 28, flex: 'none', borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: a.warn ? 'var(--kennel-red-soft)' : 'var(--surface-raised)', color: a.warn ? 'var(--kennel-red)' : 'var(--ink)' }}><Ico icon={a.icon} /></span>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span className="pp-body" style={{ textWrap: 'pretty' }}>{a.text}</span>
                   <button className="link" onClick={a.go}>{a.action}</button>
                 </div>
               </div>
@@ -123,23 +127,24 @@ export function Overview() {
           </section>
         </aside>
       </div>
-    </div>
+    </Page>
   );
 }
 
-export function FillBar({ s, width = 150 }: { s: SessionView; width?: number }) {
+const TODAY_COLS = '72px minmax(180px,1fr) 150px 56px 92px 76px';
+const STATUS_TONE: Record<string, BadgeTone> = { 'In session': 'signal', 'Next up': 'neutral', Upcoming: 'needs', Done: 'neutral', Cancelled: 'warning' };
+
+export function FillBar({ s, width }: { s: SessionView; width?: number }) {
   return (
-    <div style={{ width, flex: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span className="pk-caption" style={{ fontWeight: 600 }}>{fillLabel(s)}</span>
-      <span style={{ height: 6, borderRadius: 9999, background: 'var(--surface-sunken)', overflow: 'hidden', display: 'block' }}>
-        <span style={{ display: 'block', height: '100%', width: `${Math.min(100, (s.booked / Math.max(1, s.packpass_spots)) * 100)}%`, background: 'var(--turf)', borderRadius: 9999 }} />
-      </span>
+    <div style={{ width, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span className="pp-caption pp-num">{fillLabel(s)}</span>
+      <ProgressBar value={s.booked} max={Math.max(1, s.packpass_spots)} tone="turf" />
     </div>
   );
 }
 
 const listNames = (n: string[]) => (n.length <= 2 ? n.join(' and ') : `${n.slice(0, 2).join(', ')} and ${n.length - 2} more`);
-export const Loading = () => <span className="pk-label pk-muted">Loading…</span>;
+export const Loading = () => <span className="pp-label pp-muted">Loading…</span>;
 export const Empty = ({ children }: { children: ReactNode }) => (
-  <div style={{ padding: '18px 20px', borderRadius: 20, background: 'var(--surface-raised)' }}><span className="pk-label pk-muted">{children}</span></div>
+  <div className="card" style={{ padding: '14px 16px' }}><span className="pp-label pp-muted">{children}</span></div>
 );
