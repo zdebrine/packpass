@@ -31,7 +31,7 @@ export function Owners() {
         <Heading eyebrow={c.how.eyebrow} title={c.how.title} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16, marginTop: 40 }}>
           {c.how.steps.map(({ title, body }, k) => (
-            <div key={k} style={{ background: 'var(--surface-raised)', borderRadius: 28, padding: 28, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 240, boxSizing: 'border-box' }}>
+            <div key={k} style={{ background: 'var(--surface-raised)', borderRadius: 24, padding: 28, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 240, boxSizing: 'border-box' }}>
               <span className="pk-display-2xl" style={{ fontSize: 64, lineHeight: 1 }}>{String(k + 1).padStart(2, '0')}</span>
               <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <h3 className="pk-title" style={{ margin: 0 }}>{title}</h3>
@@ -61,9 +61,9 @@ export function Owners() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16, marginTop: 40 }}>
           {c.plans.items.map(({ name, price, credits, fit, key, popular }) => {
             return (
-              <div key={name} data-theme={popular ? 'dark' : 'light'} style={{ background: 'var(--surface-raised)', color: 'var(--ink)', borderRadius: 28, padding: 28, display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <div key={name} data-theme={popular ? 'dark' : 'light'} style={{ background: 'var(--surface-raised)', color: 'var(--ink)', borderRadius: 24, padding: 28, display: 'flex', flexDirection: 'column', gap: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 24 }}>
-                  <span className="pk-wide">{name}</span>
+                  <span className="pp-title">{name}</span>
                   {popular ? <Tag tone="signal">{c.plans.popularTag}</Tag> : null}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -111,28 +111,28 @@ function Hero() {
   return (
     <section style={{ padding: '0 16px' }}>
       {/* The photos cross-fade inside the panel, so the shade comes after them. */}
-      <PhotoPanel className="pp-hero" minHeight="min(820px, calc(100vh - 88px))" shade="transparent">
+      <PhotoPanel className="site-hero" minHeight="min(820px, calc(100vh - 88px))" shade="transparent" style={{ borderRadius: 32 }}>
         {HERO.map((p, k) => (
           <Img key={k} photo={p} alt={k === i ? p.alt : ''} aria-hidden={k !== i}
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, opacity: k === i ? 1 : 0, transform: k === i ? 'scale(1)' : 'scale(1.03)', transition: 'opacity 1100ms cubic-bezier(.2,.8,.2,1), transform 3400ms ease-out' }} />
         ))}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,.04) 24%,rgba(0,0,0,.32) 50%,rgba(0,0,0,.8) 100%)' }} />
-        <div className="pp-hero-copy" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <span className="pk-wide pp-hero-eyebrow" style={{ opacity: 0.92 }}>{hero.eyebrow}</span>
+        <div className="site-hero-copy" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <span className="pk-wide site-hero-eyebrow" style={{ opacity: 0.92 }}>{hero.eyebrow}</span>
           {hero.variant === 'static' ? (
-            <h1 className="pk-display-2xl pp-hero-title" style={{ margin: 0, maxWidth: 1000, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94, textWrap: 'balance' }}>{hero.headline}</h1>
+            <h1 className="pk-display-2xl site-hero-title" style={{ margin: 0, maxWidth: 1000, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94, textWrap: 'balance' }}>{hero.headline}</h1>
           ) : (
             // Screen readers and search get the full headline; the lead and the line for the current photo are visual.
-            <h1 className="pk-display-2xl pp-hero-title pp-hero-rotating" style={{ margin: 0, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94 }}>
+            <h1 className="pk-display-2xl site-hero-title site-hero-rotating" style={{ margin: 0, fontSize: 'clamp(30px,6.4vw,112px)', lineHeight: 0.94 }}>
               <span className="pp-sr-only">{hero.headline}</span>
               <span aria-hidden style={{ display: 'block', whiteSpace: 'nowrap' }}>{hero.lead}</span>
               <span aria-hidden key={i} style={{ display: 'block', whiteSpace: 'nowrap', animation: 'ppWordIn 800ms cubic-bezier(.2,.8,.2,1) both' }}>{HERO[i]?.line}</span>
             </h1>
           )}
-          <p className="pk-body pp-hero-body" style={{ margin: 0, maxWidth: 520, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>{hero.body}</p>
-          <div className="pp-hero-ctas" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
+          <p className="pk-body site-hero-body" style={{ margin: 0, maxWidth: 520, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>{hero.body}</p>
+          <div className="site-hero-ctas" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
             {APP_LIVE ? <StoreButtons /> : <Button href="#get" style={{ minWidth: 200 }}>{hero.cta}</Button>}
-            <a href="#match" className="pp-glass pp-hero-match" style={{ flex: 'none', marginLeft: 'auto', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 12, height: 52, padding: '0 8px 0 20px', borderRadius: 9999, color: '#fff', textDecoration: 'none' }}>
+            <a href="#match" className="pp-glass site-hero-match" style={{ flex: 'none', marginLeft: 'auto', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 12, height: 52, padding: '0 8px 0 20px', borderRadius: 9999, color: '#fff', textDecoration: 'none' }}>
               <span className="pk-label" style={{ fontWeight: 600 }}>{hero.matchCta}</span>
               <span style={{ width: 36, height: 36, borderRadius: 9999, background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ArrowDown size={18} /></span>
             </a>
@@ -191,23 +191,23 @@ function Match({ plans, cat, energy, setEnergy, traits, setTraits }: {
     <section id="match" className="pp-section">
       <Heading eyebrow={match.eyebrow} title={match.title} />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 40 }}>
-        <div style={{ flex: '3 1 480px', minWidth: 0, boxSizing: 'border-box', background: 'var(--surface-raised)', borderRadius: 28, padding: 'clamp(24px,3vw,36px)', display: 'flex', flexDirection: 'column', gap: 32 }}>
+        <div style={{ flex: '3 1 480px', minWidth: 0, boxSizing: 'border-box', background: 'var(--surface-raised)', borderRadius: 24, padding: 'clamp(24px,3vw,36px)', display: 'flex', flexDirection: 'column', gap: 32 }}>
           <Pick n="01" title="Energy">{ENERGIES.map(([k, label]) => <Chip key={k} on={energy === k} onClick={() => setEnergy(k)}>{label}</Chip>)}</Pick>
           <Pick n="02" title="Traits, up to three" right={`${traits.length} of 3`}>{TRAIT_CHIPS.map((t) => <Chip key={t} on={traits.includes(t)} onClick={() => toggle(t)}>{traitLabel(t)}</Chip>)}</Pick>
           <Pick n="03" title="Neighborhood">{AREAS.map((a) => <Chip key={a.label} on={hood === a.label} onClick={() => setHood(a.label)}>{a.label}</Chip>)}</Pick>
         </div>
-        <div data-theme="dark" style={{ flex: '2 1 300px', minWidth: 0, boxSizing: 'border-box', background: 'var(--surface-raised)', color: 'var(--ink)', borderRadius: 28, padding: 'clamp(24px,3vw,32px)', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div data-theme="dark" style={{ flex: '2 1 300px', minWidth: 0, boxSizing: 'border-box', background: 'var(--surface-raised)', color: 'var(--ink)', borderRadius: 24, padding: 'clamp(24px,3vw,32px)', display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span className="pk-wide pk-muted">{`Sample month · ${hood}`}</span>
             <span className="pk-display-md">{`${total} of ${plan.credits} credits`}</span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-live="polite">
+          <div style={{ display: 'flex', flexDirection: 'column' }} aria-live="polite">
             {month.map(({ c, p }, i) => {
               const mi = p ? miles(area, p) : null;
               const why = payoff(c.discipline);
               return (
-                <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'center', padding: '14px 16px', borderRadius: 20, background: 'var(--bg)' }}>
-                  <span className="pk-wide" style={{ width: 44, flex: 'none' }}>{`Wk ${Math.floor((i * 4) / month.length) + 1}`}</span>
+                <div key={i} style={{ display: 'flex', gap: 14, alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--line)' }}>
+                  <span className="pk-label pk-muted" style={{ width: 44, flex: 'none' }}>{`Wk ${Math.floor((i * 4) / month.length) + 1}`}</span>
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <span className="pk-heading">{c.title}</span>
                     <span className="pk-caption pk-muted">{[p?.short_name, why ? `“${why}”` : BALANCE[c.category], mi != null ? `${mi < 10 ? mi.toFixed(1) : Math.round(mi)} mi` : null].filter(Boolean).join(' · ')}</span>
@@ -258,8 +258,8 @@ function Partners({ cat }: { cat: Catalog }) {
       </Heading>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16, marginTop: 40 }}>
         {picks.map(({ p, c, at }) => (
-          <article key={p.id} style={{ background: 'var(--surface-raised)', borderRadius: 28, padding: '10px 10px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <div style={{ position: 'relative', height: 260, borderRadius: 20, overflow: 'hidden' }}>
+          <article key={p.id} style={{ background: 'var(--surface-raised)', borderRadius: 24, padding: '10px 10px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div style={{ position: 'relative', height: 260, borderRadius: 12, overflow: 'hidden' }}>
               <img src={photoSrc(c?.image)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'var(--scrim-top)' }} />
               <div style={{ position: 'absolute', top: 14, left: 14 }}><Tag tone="glass">Verified</Tag></div>
@@ -269,7 +269,7 @@ function Partners({ cat }: { cat: Catalog }) {
               <span className="pk-label pk-muted">{`${PARTNER_TYPE[p.type] ?? 'Partner'} · ${p.street}`}</span>
             </div>
             {c ? (
-              <div style={{ margin: '0 14px', padding: '14px 16px', borderRadius: 20, background: 'var(--bg)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ margin: '0 14px', padding: '14px 0 0', borderTop: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <span className="pk-caption pk-muted">{at ? 'Next session' : 'Classes'}</span>
                   <span className="pk-label" style={{ fontWeight: 600 }}>{at ? `${when(at)} · ${c.title}` : c.title}</span>
@@ -290,12 +290,12 @@ function Passport() {
   const balance: [string, number, number, string][] = [['Physical', 3, 4, 'var(--agility)'], ['Mental', 2, 3, 'var(--turf)'], ['Social', 1, 2, 'var(--pitch)']];
   return (
     <section id="passport" className="pp-section">
-      <div style={{ background: 'var(--surface-raised)', borderRadius: 32, padding: 'clamp(28px,5vw,64px)', display: 'flex', flexWrap: 'wrap', gap: 48, alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: 'var(--surface-raised)', borderRadius: 24, padding: 'clamp(28px,5vw,64px)', display: 'flex', flexWrap: 'wrap', gap: 48, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ flex: '1 1 420px', maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 28 }}>
           <Heading eyebrow={pp.eyebrow} title={pp.title}>
             <p className="pk-body pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>{pp.body}</p>
           </Heading>
-          <div style={{ background: 'var(--bg)', borderRadius: 20, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ background: 'var(--bg)', borderRadius: 12, padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}><span className="pk-heading">This month’s balance</span><span className="pk-caption pk-muted">Resets on the 1st</span></div>
             {balance.map(([label, n, of, c]) => (
               <div key={label} style={{ display: 'grid', gridTemplateColumns: '72px minmax(0,1fr) 48px', gap: 12, alignItems: 'center' }}>
@@ -307,7 +307,7 @@ function Passport() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {pp.rows.map(({ icon: name, title, body }) => { const Icon = icon(name); return (
-              <div key={title} style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '14px 18px', borderRadius: 20, background: 'var(--bg)' }}>
+              <div key={title} style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '14px 18px', borderRadius: 12, background: 'var(--bg)' }}>
                 <span style={{ width: 44, height: 44, flex: 'none', borderRadius: 9999, background: 'var(--surface-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={20} /></span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span className="pk-heading">{title}</span><span className="pk-label pk-muted">{body}</span></div>
               </div>
@@ -378,16 +378,16 @@ function FoundingSignup({ energy, traits, plan }: { energy: Energy; traits: stri
       {done ? (
         <p className="pk-heading" role="status" style={{ margin: 0, display: 'flex', gap: 10, alignItems: 'center' }}><Check size={20} />{done}</p>
       ) : (
-        <form onSubmit={submit} noValidate className="pp-glass" style={{ width: '100%', maxWidth: 640, borderRadius: 28, padding: 'clamp(16px,2.4vw,24px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <form onSubmit={submit} noValidate className="pp-glass" style={{ width: '100%', maxWidth: 640, borderRadius: 24, padding: 'clamp(16px,2.4vw,24px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             {chips.map((c) => <Tag key={c} tone="glass">{c}</Tag>)}
             <a href="#match" className="pk-label" style={{ color: '#fff', fontWeight: 600 }}>Change</a>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><span className="pk-label" style={{ fontWeight: 600 }}>Email</span>
-              <input className="pp-field" type="email" autoComplete="email" value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }} /></label>
+              <input className="site-field" type="email" autoComplete="email" value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }} /></label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><span className="pk-label" style={{ fontWeight: 600 }}>ZIP code</span>
-              <input className="pp-field" inputMode="numeric" autoComplete="postal-code" maxLength={5} value={zip} onChange={(e) => { setZip(e.target.value); setError(''); }} /></label>
+              <input className="site-field" inputMode="numeric" autoComplete="postal-code" maxLength={5} value={zip} onChange={(e) => { setZip(e.target.value); setError(''); }} /></label>
           </div>
           {error ? <span className="pk-label" role="alert" style={{ color: '#fff', fontWeight: 600 }}>{error}</span> : null}
           <Button type="submit" variant="signal" block disabled={busy}>{busy ? 'Saving…' : paid ? 'Claim my founding spot' : 'Join the waitlist'}</Button>

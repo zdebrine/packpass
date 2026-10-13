@@ -27,7 +27,7 @@ export function Site() {
     <div data-theme={partners ? 'dark' : 'light'} style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
       <nav style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg)', display: 'flex', alignItems: 'center', gap: '12px 28px', padding: '14px clamp(16px,3vw,32px)', boxSizing: 'border-box' }}>
         <Link to="/" className="pk-wide" style={{ fontSize: 16, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>PackPass</Link>
-        <span data-pp-hide-sm="" className="pk-wide" style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 9999, background: 'var(--surface-raised)', fontSize: 11, whiteSpace: 'nowrap' }}>
+        <span data-pp-hide-sm="" style={{ display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 12px', borderRadius: 9999, background: 'var(--surface-raised)', fontSize: 12, lineHeight: '16px', fontWeight: 500, whiteSpace: 'nowrap' }}>
           <span style={{ width: 6, height: 6, borderRadius: 9999, background: 'var(--agility)' }} />Now in Austin
         </span>
         <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 9999, background: 'var(--surface-raised)' }}>

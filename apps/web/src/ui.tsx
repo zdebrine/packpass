@@ -50,15 +50,15 @@ export function Faq({ id, eyebrow, rows }: { id: string; eyebrow: string; rows: 
         <span className="pk-wide pk-muted">{eyebrow}</span>
         <h2 className="pk-display-xl pp-h2">Questions.</h2>
       </div>
-      <div style={{ flex: '2 1 560px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ flex: '2 1 560px', display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--line)' }}>
         {rows.map(({ question: q, answer: a }, i) => (
-          <div key={q} style={{ background: 'var(--surface-raised)', borderRadius: 28 }}>
+          <div key={q} style={{ borderBottom: '1px solid var(--line)' }}>
             <button type="button" onClick={() => setOpen((o) => ({ ...o, [i]: !o[i] }))} aria-expanded={!!open[i]}
-              style={{ width: '100%', border: 0, background: 'none', color: 'var(--ink)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16, padding: '22px 24px' }}>
+              style={{ width: '100%', border: 0, background: 'none', color: 'var(--ink)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 16, padding: '22px 0' }}>
               <span className="pk-heading" style={{ flex: 1 }}>{q}</span>
               {open[i] ? <Minus size={20} /> : <Plus size={20} />}
             </button>
-            {open[i] ? <p className="pk-body pk-muted" style={{ margin: 0, padding: '0 24px 24px', maxWidth: 640, textWrap: 'pretty' }}>{a}</p> : null}
+            {open[i] ? <p className="pk-body pk-muted" style={{ margin: 0, padding: '0 0 24px', maxWidth: 640, textWrap: 'pretty' }}>{a}</p> : null}
           </div>
         ))}
       </div>
@@ -69,7 +69,7 @@ export function Faq({ id, eyebrow, rows }: { id: string; eyebrow: string; rows: 
 /** A full-bleed photo panel with a bottom-weighted shade, for the hero and closing sections. */
 export function PhotoPanel({ children, photo, minHeight, shade, style, className }: { children: ReactNode; photo?: Photo; minHeight: string | number; shade: string; style?: CSSProperties; className?: string }) {
   return (
-    <div data-theme="dark" className={className} style={{ position: 'relative', minHeight, borderRadius: 32, overflow: 'hidden', color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 'clamp(24px,4vw,56px)', boxSizing: 'border-box', ...style }}>
+    <div data-theme="dark" className={className} style={{ position: 'relative', minHeight, borderRadius: 24, overflow: 'hidden', color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 'clamp(24px,4vw,56px)', boxSizing: 'border-box', ...style }}>
       {photo ? <Img photo={photo} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
       <div style={{ position: 'absolute', inset: 0, background: shade }} />
       {children}
