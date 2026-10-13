@@ -104,7 +104,7 @@ export default function GoalDetail() {
     </View>
   ) : null;
   const behaviorCard = (
-    <View style={{ padding: 18, borderRadius: 20, backgroundColor: c.surfaceRaised, flexDirection: 'row', gap: 14, alignItems: 'flex-start' }}>
+    <View style={{ padding: 18, borderRadius: 12, backgroundColor: c.surfaceRaised, flexDirection: 'row', gap: 14, alignItems: 'flex-start' }}>
       <Icon name="stethoscope" />
       <Text variant="label" style={{ flex: 1 }}>Some of this can need more than a trainer. {`A certified behaviorist works with ${dog.name}'s vet on a plan, and can join the path at any step.`}</Text>
     </View>
@@ -129,7 +129,7 @@ export default function GoalDetail() {
         </View>
         <View style={{ maxWidth: 720, marginTop: 24 }}>
           <Text variant="wide" muted>Training path · From you</Text>
-          <Text variant="display2xl" style={{ marginTop: 10 }} accessibilityRole="header">{`${g.title}.`}</Text>
+          <Text variant="hero" style={{ marginTop: 10 }} accessibilityRole="header">{`${g.title}.`}</Text>
           <Text style={{ marginTop: 12 }}>{g.lede}</Text>
           <Bars total={g.steps.length} done={done ? g.steps.length : i} style={{ marginTop: 20 }} />
           <Text variant="caption" muted style={{ marginTop: 8 }}>{done || notStarted ? g.updated : `Step ${i + 1} of ${g.steps.length} · ${g.updated}`}</Text>

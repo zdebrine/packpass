@@ -52,7 +52,7 @@ export function Overlay({ children, onClose, kind = 'dialog', width, dim = 0.4, 
         <View pointerEvents="box-none" style={{ flex: 1, paddingTop: top, paddingBottom: 40, paddingHorizontal: 24, alignItems: 'center' }}>
           <Animated.View
             entering={FadeIn.duration(motion.base)}
-            style={[{ width: '100%', maxWidth: width, maxHeight: '100%', height, borderRadius: 32, overflow: 'hidden', backgroundColor: c.bg, boxShadow: c.shadowFloat }, cardStyle]}
+            style={[{ width: '100%', maxWidth: width, maxHeight: '100%', height, borderRadius: 24, overflow: 'hidden', backgroundColor: c.bg, boxShadow: c.shadowFloat }, cardStyle]}
           >
             {body}
           </Animated.View>

@@ -121,7 +121,7 @@ function Month() {
           {booked.length === 0 ? 'Nothing booked yet.' : held.length ? `Week 1 is booked.` : `Booked ${booked.length} of ${results.length}.`}
         </Text>
         {results.map((r, i) => (
-          <View key={i} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+          <View key={i} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
             <Icon name={!r.error ? 'check' : r.error === 'after' ? 'clock' : 'x'} color={!r.error ? c.turf : c.inkMuted} />
             <View style={{ flex: 1 }}>
               <Text variant="label" weight="600">{r.title}</Text>
@@ -174,7 +174,7 @@ function Month() {
       <View style={{ gap: 8, marginTop: 20 }}>
         {rows.map((r) =>
           r.v ? (
-            <View key={r.key} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 10, paddingLeft: 10, paddingRight: 12, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+            <View key={r.key} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 10, paddingLeft: 10, paddingRight: 12, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
               <Photo name={r.v.cls.image} style={{ width: 52, height: 52, borderRadius: 12 }} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text variant="caption" muted>{`Week ${Math.floor(r.day / 7) + 1} · ${weekday(r.v.session.startsAt).slice(0, 3)} ${time(r.v.session.startsAt)}`}</Text>
@@ -195,7 +195,7 @@ function Month() {
         )}
       </View>
 
-      <View style={{ gap: 10, marginTop: 16, padding: 16, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+      <View style={{ gap: 10, marginTop: 16, padding: 16, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
           <Text variant="label" weight="600">{adding ? `${used} of the ${balance0} credits left this month` : `${used} of ${tier.credits} credits on ${tier.name}`}</Text>
           <Text variant="caption" muted>{`${left} ${left === 1 ? 'credit' : 'credits'} left for anything`}</Text>
@@ -209,7 +209,7 @@ function Month() {
       </View>
 
       {goals.map((g) => (
-        <View key={g.title} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', marginTop: 16, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 20, boxShadow: `inset 0 0 0 1px ${c.surfaceSunken}` }}>
+        <View key={g.title} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', marginTop: 16, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, boxShadow: `inset 0 0 0 1px ${c.surfaceSunken}` }}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text variant="caption" muted>{`Optional add-on · ${g.trait}`}</Text>
             <Text variant="label" weight="600">{g.title}</Text>

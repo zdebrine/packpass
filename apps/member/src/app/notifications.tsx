@@ -68,7 +68,7 @@ export default function Notifications() {
       <View style={{ marginTop: 28, paddingHorizontal: pad }}>
         <Text variant="title" style={{ marginBottom: 14 }}>New</Text>
         {showCard ? (
-          <View style={{ borderRadius: 28, overflow: 'hidden', backgroundColor: c.surfaceRaised }}>
+          <View style={{ borderRadius: 16, overflow: 'hidden', backgroundColor: c.surfaceRaised }}>
             <View style={{ height: 200 }}>
               <PhotoFill name="dogs_meeting_on_leash" />
               <Gradient stops={[['rgba(0,0,0,0.25)', 0], ['rgba(0,0,0,0)', 0.35], ['rgba(0,0,0,0.66)', 1]]} />
@@ -111,7 +111,7 @@ export default function Notifications() {
       <Overlay kind="panel" width={460} onClose={close}>
         <View style={{ paddingTop: 28, paddingHorizontal: 24, paddingBottom: 40 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-            <Text variant="displayLg" accessibilityRole="header">Notifications</Text>
+            <Text variant="pageTitle" accessibilityRole="header">Notifications</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <Press onPress={markAll} scale={false}>
                 <Text variant="label" weight="600" numberOfLines={1}>Mark all read</Text>
@@ -138,7 +138,7 @@ export default function Notifications() {
           </Press>
         </View>
         <View style={{ paddingTop: 20, paddingHorizontal: 20 }}>
-          <Text variant="displayXl" accessibilityRole="header">Notifications</Text>
+          <Text variant="pageTitle" accessibilityRole="header">Notifications</Text>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingTop: 18, paddingHorizontal: 20 }}>
           {FILTERS.map((f) => <Chip key={f} selected={filter === f} onPress={() => setFilter(f)}>{f}</Chip>)}

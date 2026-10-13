@@ -28,7 +28,7 @@ function sectionOf(path: string): Section | null {
   return null;
 }
 
-function NavItem({ label, active, onPress, children }: { label: string; active: boolean; onPress: () => void; children: React.ReactNode }) {
+function NavItem({ label, active, onPress, count, children }: { label: string; active: boolean; onPress: () => void; count?: number; children: React.ReactNode }) {
   const { c } = useTheme();
   return (
     <Press
@@ -37,11 +37,16 @@ function NavItem({ label, active, onPress, children }: { label: string; active: 
       accessibilityRole="link"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
-      style={{ height: 48, borderRadius: 9999, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: active ? c.surfaceRaised : 'transparent' }}
-      activeStyle={active ? null : { backgroundColor: c.surfaceRaised }}
+      style={{ height: 36, borderRadius: 8, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: active ? c.surfaceRaised : 'transparent' }}
+      activeStyle={active ? null : { backgroundColor: c.hover }}
     >
       {children}
-      <Text style={{ fontSize: 15, lineHeight: 20 }} weight={active ? '600' : '500'} color={active ? c.ink : c.inkMuted}>{label}</Text>
+      <Text style={{ flex: 1, fontSize: 13, lineHeight: 18 }} weight="500" color={active ? c.ink : c.inkMuted} numberOfLines={1}>{label}</Text>
+      {count ? (
+        <View style={{ minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9999, backgroundColor: c.agility, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 11, lineHeight: 14 }} weight="600" color={c.onAgility} num>{count}</Text>
+        </View>
+      ) : null}
     </Press>
   );
 }
@@ -54,13 +59,13 @@ export function Sidebar() {
   const credits = useApp((s) => s.credits);
   const allowance = useAllowance();
   const read = useApp((s) => s.readNotifications);
-  const unread = useNotifications().some((n) => n.isNew && !read.includes(n.id));
+  const unread = useNotifications().filter((n) => n.isNew && !read.includes(n.id)).length;
   const section = sectionOf(path);
   const bars = Math.max(allowance ?? credits, credits);
 
   return (
-    <View style={{ width: 232, height: '100%', paddingTop: 28, paddingHorizontal: 14, paddingBottom: 20, gap: 4, borderRightWidth: 1, borderRightColor: c.line, backgroundColor: c.bg }}>
-      <View style={{ paddingTop: 4, paddingHorizontal: 14, paddingBottom: 28 }}>
+    <View style={{ width: 220, height: '100%', paddingTop: 20, paddingHorizontal: 12, paddingBottom: 16, gap: 2, borderRightWidth: 1, borderRightColor: c.line, backgroundColor: c.surface }}>
+      <View style={{ paddingTop: 4, paddingHorizontal: 10, paddingBottom: 20 }}>
         <Text variant="wide" weight="700" style={{ fontSize: 15, lineHeight: 20 }}>PackPass</Text>
       </View>
       {NAV.map((n) => {
@@ -68,37 +73,34 @@ export function Sidebar() {
         const color = active ? c.ink : c.inkMuted;
         return (
           <NavItem key={n.key} label={n.icon ? n.label : dog.name} active={active} onPress={() => router.navigate(n.href as never)}>
-            {n.icon ? <Icon name={n.icon} size={22} color={color} /> : <Photo name={dog.photo} style={{ width: 24, height: 24, borderRadius: 9999 }} />}
+            {n.icon ? <Icon name={n.icon} size={16} color={color} /> : <Photo name={dog.photo} style={{ width: 18, height: 18, borderRadius: 9999 }} />}
           </NavItem>
         );
       })}
-      <NavItem label="Notifications" active={path === '/notifications'} onPress={() => router.push('/notifications')}>
-        <View style={{ width: 22, height: 22 }}>
-          <Icon name="bell" size={22} color={path === '/notifications' ? c.ink : c.inkMuted} />
-          {unread ? <View style={{ position: 'absolute', top: -1, right: -1, width: 8, height: 8, borderRadius: 9999, backgroundColor: c.agility, boxShadow: `0 0 0 2px ${c.bg}` }} /> : null}
-        </View>
+      <NavItem label="Notifications" active={path === '/notifications'} count={unread} onPress={() => router.push('/notifications')}>
+        <Icon name="bell" size={16} color={path === '/notifications' ? c.ink : c.inkMuted} />
       </NavItem>
       <View style={{ flex: 1 }} />
       <Press
         onPress={() => router.push('/plan')}
         scale={false}
         accessibilityLabel={`${allowance ? `${credits} of ${allowance}` : credits} credits left. Plan and credits`}
-        style={{ padding: 16, borderRadius: 24, backgroundColor: c.surfaceRaised, gap: 12 }}
-        activeStyle={{ backgroundColor: c.surfaceSunken }}
+        style={{ padding: 12, borderRadius: 12, boxShadow: `inset 0 0 0 1px ${c.line}`, gap: 8 }}
+        activeStyle={{ backgroundColor: c.hover }}
       >
+        <Text variant="eyebrow" muted>Credits left</Text>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-          <Text variant="displayLg" num>{credits}</Text>
-          <Text variant="label" muted>{allowance ? `of ${allowance}` : credits === 1 ? 'credit' : 'credits'}</Text>
+          <Text variant="statNum" style={{ fontSize: 24, lineHeight: 24 }}>{credits}</Text>
+          <Text variant="caption" muted>{allowance ? `of ${allowance} · resets ${monthHeader().resets}` : 'No plan yet'}</Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 3 }}>
           {Array.from({ length: bars }, (_, i) => (
-            <View key={i} style={{ flex: 1, height: 6, borderRadius: 9999, backgroundColor: i < credits ? c.ink : c.surfaceSunken }} />
+            <View key={i} style={{ flex: 1, height: 4, borderRadius: 9999, backgroundColor: i < credits ? c.ink : c.surfaceSunken }} />
           ))}
         </View>
-        <Text variant="caption" muted>{allowance ? `Credits left · resets ${monthHeader().resets}` : 'No plan yet'}</Text>
       </Press>
       <View style={{ marginTop: 8 }}>
-        <Button block onPress={() => router.push('/check-in/scan')}>Check in</Button>
+        <Button block size="sm" icon="scan-line" onPress={() => router.push('/check-in/scan')}>Check in</Button>
       </View>
     </View>
   );

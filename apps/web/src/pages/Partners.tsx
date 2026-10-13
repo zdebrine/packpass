@@ -22,20 +22,20 @@ export function Partners() {
   return (
     <>
       <section style={{ padding: '0 16px' }}>
-        <PhotoPanel className="pp-hero" photo={hero.photo} minHeight="min(820px, calc(100vh - 88px))" shade="linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 24%,rgba(0,0,0,.1) 48%,rgba(0,0,0,.8) 100%)">
+        <PhotoPanel className="site-hero" photo={hero.photo} minHeight="min(820px, calc(100vh - 88px))" shade="linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 24%,rgba(0,0,0,.1) 48%,rgba(0,0,0,.8) 100%)">
           <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: 40, alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            <div className="pp-hero-copy" style={{ flex: '1 1 520px', maxWidth: 780, display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <span className="pk-wide pp-hero-eyebrow" style={{ opacity: 0.92 }}>{hero.eyebrow}</span>
-              <h1 className="pk-display-2xl pp-hero-title" style={{ margin: 0, fontSize: 'clamp(52px,7.4vw,112px)', lineHeight: 0.92 }}>{hero.headline}</h1>
-              <p className="pk-body pp-hero-body" style={{ margin: 0, maxWidth: 540, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>{hero.body}</p>
-              <div className="pp-hero-ctas" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 6 }}>
+            <div className="site-hero-copy" style={{ flex: '1 1 480px', maxWidth: 780, display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <span className="pk-wide site-hero-eyebrow" style={{ opacity: 0.92 }}>{hero.eyebrow}</span>
+              <h1 className="pk-display-2xl site-hero-title" style={{ margin: 0, fontSize: 'clamp(40px,7.4vw,112px)', lineHeight: 0.92 }}>{hero.headline}</h1>
+              <p className="pk-body site-hero-body" style={{ margin: 0, maxWidth: 540, fontSize: 18, lineHeight: '26px', color: 'rgba(255,255,255,.9)', textWrap: 'pretty' }}>{hero.body}</p>
+              <div className="site-hero-ctas" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 6 }}>
                 <Button href={APPLY_URL} style={{ minWidth: 200 }}>{hero.cta}</Button>
-                <span className="pk-label pp-hero-note" style={{ color: 'rgba(255,255,255,.85)' }}>{hero.ctaNote}</span>
+                <span className="pk-label site-hero-note" style={{ color: 'rgba(255,255,255,.85)' }}>{hero.ctaNote}</span>
               </div>
             </div>
-            <div className="pp-hero-values" style={{ flex: '0 1 380px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="site-hero-values" style={{ flex: '0 1 380px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {withIcons(hero.values).map(([Icon, title, body]) => (
-                <div key={title} className="pp-glass" style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '18px 20px', borderRadius: 28 }}>
+                <div key={title} className="pp-glass" style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '18px 20px', borderRadius: 24 }}>
                   <span style={{ width: 40, height: 40, flex: 'none', borderRadius: 9999, background: 'rgba(255,255,255,.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={18} /></span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span className="pk-heading">{title}</span><span className="pk-label" style={{ color: 'rgba(255,255,255,.85)', textWrap: 'pretty' }}>{body}</span></div>
                 </div>
@@ -63,7 +63,7 @@ export function Partners() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 12, marginTop: 40 }}>
           {withIcons(c.control.items).map(([Icon, title, body]) => (
-            <div key={title} style={{ background: 'var(--surface-raised)', borderRadius: 28, padding: 24, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+            <div key={title} style={{ background: 'var(--surface-raised)', borderRadius: 24, padding: 24, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
               <span style={{ width: 44, height: 44, flex: 'none', borderRadius: 9999, background: 'var(--surface-sunken)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={20} /></span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><h3 className="pk-heading" style={{ margin: 0 }}>{title}</h3><p className="pk-label pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>{body}</p></div>
             </div>
@@ -74,9 +74,9 @@ export function Partners() {
       <section id="join" className="pp-section">
         <Heading eyebrow={c.join.eyebrow} title={c.join.title} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 40 }}>
-          <div style={{ flex: '1 1 440px', background: 'var(--surface-raised)', borderRadius: 28, padding: 12, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ flex: '1 1 440px', background: 'var(--surface-raised)', borderRadius: 24, padding: 12, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {c.join.steps.map(({ title, body }, i) => (
-              <div key={title} style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '14px 16px', borderRadius: 20 }}>
+              <div key={title} style={{ display: 'flex', gap: 16, alignItems: 'center', padding: '14px 16px', borderRadius: 12 }}>
                 <span className="pk-label pk-num" style={{ width: 36, height: 36, flex: 'none', borderRadius: 9999, background: 'var(--surface-sunken)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>{i + 1}</span>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}><span className="pk-heading">{title}</span><span className="pk-label pk-muted">{body}</span></div>
               </div>
@@ -108,7 +108,7 @@ export function Partners() {
 const withIcons = (rows: IconCard[]) => rows.map(({ icon: name, title, body }) => [icon(name), title, body] as [LucideIcon, string, string]);
 
 const Reqs = ({ title, icon: Icon, rows, muted }: { title: string; icon: LucideIcon; rows: Card[]; muted?: boolean }) => (
-  <div style={{ background: 'var(--surface-raised)', borderRadius: 28, padding: 28, display: 'flex', flexDirection: 'column', gap: 18 }}>
+  <div style={{ background: 'var(--surface-raised)', borderRadius: 24, padding: 28, display: 'flex', flexDirection: 'column', gap: 18 }}>
     <span className={`pk-wide${muted ? ' pk-muted' : ''}`}>{title}</span>
     {rows.map(({ title: t, body: b }) => (
       <div key={t} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -137,7 +137,7 @@ function Earnings() {
         </Heading>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, marginTop: 40 }}>
           {withIcons(payouts.steps).map(([Icon, title, body], k) => (
-            <div key={title} style={{ background: 'var(--surface-raised)', borderRadius: 28, padding: 24, display: 'flex', flexDirection: 'column', gap: 40 }}>
+            <div key={title} style={{ background: 'var(--surface-raised)', borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', gap: 40 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ width: 44, height: 44, borderRadius: 9999, background: 'var(--surface-sunken)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={20} /></span>
                 <span className="pk-wide pk-muted">{`0${k + 1}`}</span>
@@ -146,7 +146,7 @@ function Earnings() {
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 12, background: 'var(--pitch)', color: 'var(--on-pitch)', borderRadius: 28, padding: '24px 28px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div style={{ marginTop: 12, background: 'var(--pitch)', color: 'var(--on-pitch)', borderRadius: 24, padding: '24px 28px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <span className="pk-heading">{payouts.example}</span>
           <span className="pk-display-md pk-num">{payouts.exampleMath}</span>
         </div>
@@ -158,7 +158,7 @@ function Earnings() {
           <section className="pp-section">
             <Heading eyebrow={calculator.eyebrow} title={calculator.title} />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 40 }}>
-              <div style={{ flex: '3 1 460px', background: 'var(--surface-raised)', borderRadius: 28, padding: 'clamp(24px,3vw,36px)', display: 'flex', flexDirection: 'column', gap: 32 }}>
+              <div style={{ flex: '3 1 460px', background: 'var(--surface-raised)', borderRadius: 24, padding: 'clamp(24px,3vw,36px)', display: 'flex', flexDirection: 'column', gap: 32 }}>
                 {([['Sessions per week', sessions, setSessions, 1, 30], ['PackPass dogs per session', dogs, setDogs, 1, 16], ['Credits per session', credits, setCredits, 1, 4]] as const).map(([label, value, set, min, max]) => (
                   <label key={label} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}><span className="pk-heading">{label}</span><span className="pk-display-md pk-num">{value}</span></div>
@@ -167,7 +167,7 @@ function Earnings() {
                   </label>
                 ))}
               </div>
-              <div style={{ flex: '2 1 320px', background: 'var(--agility)', color: 'var(--on-agility)', borderRadius: 28, padding: 'clamp(24px,3vw,36px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 32 }}>
+              <div style={{ flex: '2 1 320px', background: 'var(--agility)', color: 'var(--on-agility)', borderRadius: 24, padding: 'clamp(24px,3vw,36px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 32 }}>
                 <span className="pk-wide">Estimated monthly payout</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-live="polite">
                   <span className="pk-display-2xl pk-num" style={{ fontSize: 'clamp(56px,6vw,88px)', lineHeight: 1 }}>{usd(monthly)}</span>
@@ -207,11 +207,11 @@ function Gate({ onDone }: { onDone: () => void }) {
     onDone();
   };
   const input = (k: keyof typeof f, label: string, extra: Partial<React.InputHTMLAttributes<HTMLInputElement>>) => (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}><span className="pk-label" style={{ fontWeight: 600 }}>{label}</span><input className="pp-field" value={f[k]} onChange={set(k)} {...extra} /></label>
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}><span className="pk-label" style={{ fontWeight: 600 }}>{label}</span><input className="site-field" value={f[k]} onChange={set(k)} {...extra} /></label>
   );
   return (
     <div style={{ gridArea: '1 / 1', position: 'relative', zIndex: 5, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 'clamp(72px,9vw,120px) clamp(20px,4vw,40px) 0', boxSizing: 'border-box', background: 'linear-gradient(180deg,rgba(14,15,14,.55) 0%,rgba(14,15,14,.35) 60%,var(--bg) 100%)' }}>
-      <form onSubmit={submit} style={{ width: '100%', maxWidth: 560, background: 'var(--surface)', borderRadius: 32, boxShadow: 'var(--shadow-float)', padding: 'clamp(24px,4vw,40px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <form onSubmit={submit} style={{ width: '100%', maxWidth: 560, background: 'var(--surface)', borderRadius: 24, boxShadow: 'var(--shadow-float)', padding: 'clamp(24px,4vw,40px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <span className="pk-wide pk-muted">{calculator.eyebrow}</span>
           <h2 className="pk-display-xl" style={{ margin: 0, fontSize: 'clamp(32px,3.6vw,44px)', lineHeight: 1 }}>{calculator.title}</h2>

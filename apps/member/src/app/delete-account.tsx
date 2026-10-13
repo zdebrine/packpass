@@ -51,7 +51,7 @@ export default function DeleteAccount() {
           <Text variant="displayLg" style={{ marginTop: 10 }} accessibilityRole="header">Delete your account?</Text>
           <Text muted style={{ marginTop: 10 }}>This deletes your PackPass account and everything in it, straight away. It can’t be undone.</Text>
         </View>
-        <View style={{ gap: 12, padding: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+        <View style={{ gap: 12, padding: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
           {items.map((t) => (
             <View key={t} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
               <Icon name="x" size={18} color={c.kennelRed} />

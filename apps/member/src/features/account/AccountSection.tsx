@@ -56,7 +56,7 @@ export function AccountSection() {
   };
 
   const row = (title: string, sub: string, action: React.ReactNode) => (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
       <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
         <Text variant="label" weight="600">{title}</Text>
         <Text variant="caption" muted numberOfLines={1}>{sub}</Text>
@@ -69,7 +69,7 @@ export function AccountSection() {
     <View style={{ gap: 8, marginBottom: 24 }}>
       <Text variant="title" style={{ marginBottom: -2 }}>Account</Text>
       {editing === 'name' ? (
-        <View style={{ gap: 10, padding: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+        <View style={{ gap: 10, padding: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
           <Field fill={c.bg} label="Your name" value={value} onChangeText={setValue} autoComplete="name" textContentType="name" autoFocus />
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Button size="sm" disabled={busy || !value.trim()} onPress={save}>{busy ? 'Saving…' : 'Save'}</Button>
@@ -78,7 +78,7 @@ export function AccountSection() {
         </View>
       ) : row('Name', account.name || 'Not set', <Button size="sm" variant="quiet" fill={c.bg} onPress={() => open('name')}>Edit</Button>)}
       {editing === 'email' ? (
-        <View style={{ gap: 10, padding: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+        <View style={{ gap: 10, padding: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
           {sentTo ? (
             <>
               <Text variant="label" weight="600">{needsCurrent ? 'One more code' : 'Enter the code'}</Text>
@@ -107,7 +107,7 @@ export function AccountSection() {
         </View>
       ) : row('Email', account.email || '—', <Button size="sm" variant="quiet" fill={c.bg} onPress={() => open('email')}>Change</Button>)}
       {editing === 'password' ? (
-        <View style={{ gap: 10, padding: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+        <View style={{ gap: 10, padding: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
           <Field fill={c.bg} label="New password" value={value} onChangeText={setValue} secureTextEntry autoComplete="new-password" textContentType="newPassword" autoFocus />
           <Text variant="caption" muted>At least 8 characters.</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>

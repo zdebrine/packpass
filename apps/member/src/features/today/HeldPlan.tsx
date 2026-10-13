@@ -51,7 +51,7 @@ export function HeldPlan({ dogId, style }: { dogId: string; style?: StyleProp<Vi
   return (
     <View style={[{ marginTop: 32, paddingHorizontal: 20 }, style]}>
       <Text variant="title" style={{ marginBottom: 14 }}>{`Rest of ${dog.name}'s month`}</Text>
-      <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 12 }}>
+      <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 16, padding: 20, gap: 12 }}>
         {result ? (
           <Text variant="label" accessibilityLiveRegion="polite">{result}</Text>
         ) : (

@@ -15,12 +15,12 @@ export function useWide() {
 /** Web-only style keys React Native's types don't know (sticky, fixed, grid-free wrapping). */
 export const web = (s: Record<string, unknown>) => s as ViewStyle;
 
-/** A desktop page: scrolls, centered at 1280 max with the design's 32pt gutters. */
+/** A desktop page: scrolls, centred at 1200 max with v3's 24pt gutters. */
 export function Page({ children, top = 24, style }: { children: ReactNode; top?: number; style?: StyleProp<ViewStyle> }) {
   const { c } = useTheme();
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingTop: top, paddingHorizontal: 32, paddingBottom: 64 }}>
-      <View style={[{ width: '100%', maxWidth: 1216, alignSelf: 'center' }, style]}>{children}</View>
+    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingTop: top, paddingHorizontal: 24, paddingBottom: 64 }}>
+      <View style={[{ width: '100%', maxWidth: 1200, alignSelf: 'center' }, style]}>{children}</View>
     </ScrollView>
   );
 }

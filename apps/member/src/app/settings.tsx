@@ -18,7 +18,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 function Row({ title, sub, right }: { title: string; sub?: string; right: React.ReactNode }) {
   const { c } = useTheme();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
       <View style={{ flex: 1, gap: 2 }}>
         <Text variant="label" weight="600">{title}</Text>
         {sub ? <Text variant="caption" muted>{sub}</Text> : null}
@@ -53,7 +53,7 @@ export default function Settings() {
     <Screen>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 40, gap: 8 }}>
         <IconButton icon="chevron-left" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/dog'))} />
-        <Text variant="displayXl" style={{ marginTop: 20, marginBottom: 20 }} accessibilityRole="header">Settings</Text>
+        <Text variant="pageTitle" style={{ marginTop: 20, marginBottom: 20 }} accessibilityRole="header">Settings</Text>
 
         <AccountSection />
 

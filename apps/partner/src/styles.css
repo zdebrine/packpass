@@ -5,15 +5,36 @@
 @import './ds/spacing.css';
 @import './ds/base.css';
 @import './ds/pack-components.css';
+@import './ds/v3-tokens.css';
+@import './ds/v3-components.css';
 
-/* From the prototype's page styles. */
+/* Page styles. Sizes follow the density tier ([data-density]) on an ancestor. */
 body { margin: 0; background: var(--bg); }
 a { color: var(--ink); }
 a:hover { color: var(--ink-muted); }
 input, textarea, select { font: inherit; color: inherit; }
 input:focus, textarea:focus, select:focus { outline: none; box-shadow: var(--focus-ring); }
 button { font: inherit; }
-.field { box-sizing: border-box; width: 100%; height: 52px; padding: 0 20px; border: 0; border-radius: 9999px; background: var(--surface-raised); font-size: 16px; }
-.area { box-sizing: border-box; width: 100%; padding: 14px 18px; border: 0; border-radius: 20px; background: var(--surface-raised); font-size: 15px; line-height: 22px; resize: vertical; }
-.link { align-self: flex-start; border: 0; background: none; padding: 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.card { background: var(--surface-raised); border-radius: 28px; }
+/* Hairline inputs (v3). .field is a bare input, .area a bare textarea. */
+.field { box-sizing: border-box; width: 100%; height: var(--c-field); padding: 0 12px; border: 0; border-radius: var(--c-field-r); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-strong); font-size: var(--t-body); transition: box-shadow var(--dur-fast); }
+.field:hover { box-shadow: inset 0 0 0 1px var(--ink-faint); }
+.field:focus, .area:focus { box-shadow: inset 0 0 0 1.5px var(--ink), 0 0 0 3px var(--hover); }
+.area { box-sizing: border-box; width: 100%; padding: 10px 12px; border: 0; border-radius: var(--c-field-r); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-strong); font-size: var(--t-body); line-height: var(--t-body-lh); resize: vertical; }
+select.field { appearance: none; cursor: pointer; padding-right: 32px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236a6d6b' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+.link { align-self: flex-start; border: 0; background: none; padding: 0; font: inherit; font-size: var(--t-caption); font-weight: 500; color: var(--ink); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+/* Cards are a hairline on white (v3: never a fill inside a fill). */
+.card { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); border-radius: var(--r-card); }
+.card-fill { background: var(--surface-raised); border-radius: var(--r-card); }
+/* Hairline table built from grid rows (the dashboard's record lists). */
+.tbl { border-radius: var(--r-card); box-shadow: inset 0 0 0 1px var(--line); overflow-x: auto; }
+.tbl-head, .tbl-row { display: grid; gap: 12px; align-items: center; padding: 0 16px; box-sizing: border-box; box-shadow: inset 0 -1px 0 var(--line); }
+.tbl-head { height: 36px; }
+.tbl-head > * { font-size: var(--t-caption); line-height: var(--t-caption-lh); color: var(--ink-muted); }
+.tbl-row { min-height: 52px; padding-top: 6px; padding-bottom: 6px; transition: background-color var(--dur-fast); }
+.tbl-row:last-child { box-shadow: none; }
+.tbl-row:hover { background: var(--hover); }
+.tbl-click { cursor: pointer; }
+.tbl-on, .tbl-on:hover { background: var(--surface-raised); }
+.r { text-align: right; justify-self: end; }
+.ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+a.pp-nav { text-decoration: none; }

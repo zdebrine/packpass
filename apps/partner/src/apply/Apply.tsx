@@ -6,7 +6,7 @@ import {
   type Application, type DocKind, type PartnerType,
 } from '@/lib/api';
 import { SITE_URL } from '@/lib/supabase';
-import { Button, Chip, ErrorLine, Tag, photoUrl } from '@/ui/kit';
+import { Badge, Button, Chip, ErrorLine, photoUrl } from '@/ui/kit';
 
 /**
  * Partner application (project/Pack Partner Onboarding.dc.html). Step 1, the account, happens on the sign-in
@@ -45,7 +45,7 @@ const docsFor = (type: PartnerType | null) => DOCS.filter((d) => !(type === 'out
     : { ...d, req: d.kind === 'license' || d.kind === 'insurance' || d.kind === 'certs' });
 
 const glass = { background: 'var(--glass)', backdropFilter: 'blur(20px) saturate(1.4)', WebkitBackdropFilter: 'blur(20px) saturate(1.4)' } as const;
-const inputStyle = { height: 52, border: 0, borderRadius: 9999, background: 'var(--surface-raised)', padding: '0 20px', fontSize: 16, boxSizing: 'border-box', width: '100%', color: 'var(--ink)' } as const;
+const inputStyle = { height: 40, border: 0, borderRadius: 8, background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--line-strong)', padding: '0 14px', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', width: '100%', color: 'var(--ink)' } as const;
 const kb = (n: number | null) => (n == null ? '' : n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 
 /** The full-photo welcome: shown signed out (from the sign-in page) and to a signed-in account with no application. */
@@ -57,8 +57,8 @@ export function ApplyWelcome({ onStart, onSignIn, signedIn }: { onStart: () => v
     [Banknote, '$9.50 per credit', 'No-shows included, paid on the 1st. On top of what your direct clients pay you.'],
   ];
   return (
-    <div data-theme="dark" style={{ minHeight: '100vh', padding: 16, boxSizing: 'border-box', display: 'flex', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ position: 'relative', flex: 1, minHeight: 640, borderRadius: 32, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 32, padding: '32px 40px 40px', boxSizing: 'border-box', color: '#fff' }}>
+    <div data-theme="dark" data-density="display" style={{ minHeight: '100vh', padding: 16, boxSizing: 'border-box', display: 'flex', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
+      <div style={{ position: 'relative', flex: 1, minHeight: 640, borderRadius: 24, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 32, padding: '32px 40px 40px', boxSizing: 'border-box', color: '#fff' }}>
         <img src={photoUrl('dog_getting_pets_at_park')} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,.1) 45%,rgba(0,0,0,.8) 100%)' }} />
         <header style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
@@ -67,20 +67,20 @@ export function ApplyWelcome({ onStart, onSignIn, signedIn }: { onStart: () => v
         </header>
         <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: 40, alignItems: 'flex-end', justifyContent: 'space-between' }}>
           <div style={{ flex: '1 1 520px', maxWidth: 680, display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <span className="pk-wide" style={{ opacity: 0.9 }}>Trainers · Sport clubs · Behavior specialists · Outdoor spaces</span>
-            <h1 className="pk-display-2xl" style={{ margin: 0, fontSize: 'clamp(48px, 7vw, 84px)', lineHeight: 0.94, textWrap: 'balance' }}>Fill the empty spots in your classes.</h1>
-            <p className="pk-body" style={{ margin: 0, maxWidth: 520, color: 'rgba(255,255,255,.88)', textWrap: 'pretty' }}>Vetted local dogs, matched to your classes, for the spots you’d otherwise leave empty. You set the rules. We handle booking and pay you every month.</p>
+            <span className="pp-eyebrow" style={{ opacity: 0.9 }}>Trainers · Sport clubs · Behavior specialists · Outdoor spaces</span>
+            <h1 className="pp-hero" style={{ margin: 0, fontSize: 'clamp(40px, 5vw, 56px)', lineHeight: 0.98, textWrap: 'balance' }}>Fill the empty spots in your classes.</h1>
+            <p className="pp-body" style={{ margin: 0, maxWidth: 520, color: 'rgba(255,255,255,.88)', textWrap: 'pretty' }}>Vetted local dogs, matched to your classes, for the spots you’d otherwise leave empty. You set the rules. We handle booking and pay you every month.</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 8 }}>
               <Button onClick={onStart} style={{ minWidth: 220 }}>Apply to partner</Button>
-              <span className="pk-label" style={{ color: 'rgba(255,255,255,.82)' }}>About 10 minutes. Have your license and insurance ready.</span>
+              <span className="pp-label" style={{ color: 'rgba(255,255,255,.82)' }}>About 10 minutes. Have your license and insurance ready.</span>
             </div>
-            {signedIn ? <span className="pk-caption" style={{ color: 'rgba(255,255,255,.75)' }}>Added to a team instead? This account isn’t on it yet. Ask the owner to check they used this account’s email.</span> : null}
+            {signedIn ? <span className="pp-caption" style={{ color: 'rgba(255,255,255,.75)' }}>Added to a team instead? This account isn’t on it yet. Ask the owner to check they used this account’s email.</span> : null}
           </div>
           <div style={{ flex: '0 1 380px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {values.map(([Icon, title, body]) => (
-              <div key={title} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '18px 20px', borderRadius: 28, ...glass }}>
+              <div key={title} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', padding: '18px 20px', borderRadius: 16, ...glass }}>
                 <span style={{ width: 40, height: 40, flex: 'none', borderRadius: 9999, background: 'rgba(255,255,255,.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={18} /></span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span className="pk-heading">{title}</span><span className="pk-label" style={{ color: 'rgba(255,255,255,.82)', textWrap: 'pretty' }}>{body}</span></div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span className="pp-heading">{title}</span><span className="pp-label" style={{ color: 'rgba(255,255,255,.82)', textWrap: 'pretty' }}>{body}</span></div>
               </div>
             ))}
           </div>
@@ -91,9 +91,9 @@ export function ApplyWelcome({ onStart, onSignIn, signedIn }: { onStart: () => v
 }
 
 const Brand = () => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-    <span className="pk-wide" style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap' }}>PackPass</span>
-    <span className="pk-wide" style={{ height: 28, padding: '0 12px', borderRadius: 9999, ...glass, display: 'flex', alignItems: 'center', fontSize: 11, whiteSpace: 'nowrap' }}>For partners</span>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px 14px', flexWrap: 'wrap' }}>
+    <span className="pp-eyebrow" style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap' }}>PackPass</span>
+    <span className="pp-eyebrow" style={{ height: 28, padding: '0 12px', borderRadius: 9999, ...glass, display: 'flex', alignItems: 'center', fontSize: 11, whiteSpace: 'nowrap', flex: 'none' }}>For partners</span>
   </div>
 );
 
@@ -160,20 +160,20 @@ function Flow({ app, name, step, setStep, reload }: { app: Application | null; n
   const submitted = step === 6;
   return (
     <div data-theme="dark" style={{ minHeight: '100vh', padding: 16, boxSizing: 'border-box', display: 'flex', gap: 16, background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font-sans)' }}>
-      <aside style={{ flex: '0 0 40%', maxWidth: 600, position: 'sticky', top: 16, height: 'calc(100vh - 32px)', minHeight: 640, borderRadius: 32, overflow: 'hidden', color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '28px 32px 32px', boxSizing: 'border-box' }}>
+      <aside data-density="comfortable" style={{ flex: '0 0 36%', maxWidth: 540, position: 'sticky', top: 16, height: 'calc(100vh - 32px)', minHeight: 640, borderRadius: 24, overflow: 'hidden', color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '28px 32px 32px', boxSizing: 'border-box' }}>
         <div style={{ position: 'absolute', inset: 0, background: `#222322 center/cover no-repeat url("${photoUrl(PHOTOS[step])}")` }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.42) 0%,rgba(0,0,0,0) 24%,rgba(0,0,0,0) 40%,rgba(0,0,0,.72) 100%)' }} />
         <div style={{ position: 'relative' }}><Brand /></div>
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <h2 className="pk-display-lg" style={{ margin: 0, textWrap: 'balance' }}>{SIDE[step]}</h2>
-          <div style={{ padding: 10, borderRadius: 28, ...glass, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <h2 className="pp-headline" style={{ margin: 0, textWrap: 'balance' }}>{SIDE[step]}</h2>
+          <div style={{ padding: 10, borderRadius: 16, ...glass, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {STEPS.map((label, i) => {
               const n = i + 1, done = step > n || submitted, cur = step === n;
               return (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9999, background: cur ? 'rgba(255,255,255,.18)' : 'transparent', opacity: done || cur ? 1 : 0.72 }}>
                   <span style={{ width: 26, height: 26, flex: 'none', borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, background: done || cur ? '#fff' : 'rgba(255,255,255,.18)', color: done || cur ? '#0e0f0e' : '#fff' }}>{done ? <Check size={14} /> : n}</span>
-                  <span className="pk-label" style={{ flex: 1, fontWeight: 600 }}>{label}</span>
-                  <span className="pk-caption" style={{ opacity: 0.8 }}>{done ? 'Done' : cur ? 'Now' : ''}</span>
+                  <span className="pp-label" style={{ flex: 1, fontWeight: 600 }}>{label}</span>
+                  <span className="pp-caption" style={{ opacity: 0.8 }}>{done ? 'Done' : cur ? 'Now' : ''}</span>
                 </div>
               );
             })}
@@ -181,24 +181,27 @@ function Flow({ app, name, step, setStep, reload }: { app: Application | null; n
         </div>
       </aside>
 
-      <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', padding: '12px 32px 0' }}>
+      <main data-density="compact" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', padding: '12px 32px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, height: 56 }}>
           {step > 2 && !submitted ? (
-            <button type="button" onClick={() => setStep(step - 1)} aria-label="Back" style={{ width: 44, height: 44, flex: 'none', border: 0, borderRadius: 9999, background: 'var(--surface-raised)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ChevronLeft size={20} /></button>
+            <button type="button" onClick={() => setStep(step - 1)} aria-label="Back" style={{ width: 32, height: 32, flex: 'none', border: 0, borderRadius: 9999, background: 'var(--surface-raised)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ChevronLeft size={20} /></button>
           ) : null}
           {!submitted ? (
-            <div style={{ flex: 1, maxWidth: 360, display: 'flex', gap: 4 }}>
-              {STEPS.map((s, i) => <span key={s} style={{ flex: 1, height: 4, borderRadius: 9999, background: i < step ? 'var(--ink)' : 'var(--surface-sunken)', transition: 'background 260ms' }} />)}
+            <div style={{ flex: 1, maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span className="pp-caption pp-muted">{`Step ${step} of 5`}</span>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {STEPS.map((s, i) => <span key={s} style={{ flex: 1, height: 4, borderRadius: 9999, background: i < step ? 'var(--ink)' : 'var(--surface-sunken)', transition: 'background 260ms' }} />)}
+              </div>
             </div>
           ) : null}
-          <button type="button" className="link" onClick={later} disabled={busy} style={{ marginLeft: 'auto', fontSize: 14, fontWeight: 600 }}>{submitted ? 'Sign out' : 'Save and finish later'}</button>
+          <button type="button" className="link" onClick={later} disabled={busy} style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 500 }}>{submitted ? 'Sign out' : 'Save and finish later'}</button>
         </div>
 
-        <div style={{ flex: 1, width: '100%', maxWidth: 580, margin: '0 auto', padding: '48px 0 40px', display: 'flex', flexDirection: 'column', gap: 28 }}>
+        <div style={{ flex: 1, width: '100%', maxWidth: 520, margin: '0 auto', padding: '40px 0 40px', display: 'flex', flexDirection: 'column', gap: 28 }}>
           {app?.decline_reason && (app.status === 'declined' || app.status === 'draft') ? (
-            <div style={{ padding: '16px 18px', borderRadius: 20, background: 'var(--kennel-red-soft)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span className="pk-label" style={{ fontWeight: 600, color: 'var(--kennel-red)' }}>PackPass asked for a change</span>
-              <span className="pk-label" style={{ textWrap: 'pretty' }}>{app.decline_reason}</span>
+            <div style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--kennel-red-soft)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span className="pp-label" style={{ fontWeight: 600, color: 'var(--kennel-red)' }}>PackPass asked for a change</span>
+              <span className="pp-label" style={{ textWrap: 'pretty' }}>{app.decline_reason}</span>
             </div>
           ) : null}
 
@@ -222,9 +225,9 @@ function Flow({ app, name, step, setStep, reload }: { app: Application | null; n
               <Chips label="Services" right={`${f.services.length} selected`} options={OFFERS.map((o) => [o, o])} isOn={(k) => f.services.includes(k)} pick={(k) => toggle('services', k)} />
               <Chips label="Session formats" options={FORMATS.map((o) => [o, o])} isOn={(k) => f.formats.includes(k)} pick={(k) => toggle('formats', k)} />
               <Chips label="Typical group size" options={SIZES.map((o) => [o, o])} isOn={(k) => f.group_size === k} pick={(k) => set('group_size', k)} />
-              <div style={{ padding: '18px 20px', borderRadius: 20, background: 'var(--surface-raised)', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <div style={{ padding: '18px 20px', borderRadius: 12, background: 'var(--surface-raised)', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                 <CalendarPlus size={20} style={{ flex: 'none', marginTop: 1 }} />
-                <span className="pk-label" style={{ textWrap: 'pretty' }}>You’ll build individual classes, set times and choose credits per session in your dashboard after approval.</span>
+                <span className="pp-label" style={{ textWrap: 'pretty' }}>You’ll build individual classes, set times and choose credits per session in your dashboard after approval.</span>
               </div>
             </Section>
           ) : null}
@@ -232,27 +235,27 @@ function Flow({ app, name, step, setStep, reload }: { app: Application | null; n
           {step === 4 ? (
             <Section eyebrow="Step 4 of 5 · Credentials" title="Upload your credentials." lede="PackPass checks every partner before classes go live. Verified credentials show as a badge on your profile and every class.">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
-                <h2 className="pk-title" style={{ margin: 0 }}>Documents</h2>
-                <span className="pk-label pk-muted">{`${reqDone} of ${reqDocs.length} required`}</span>
+                <h2 className="pp-title" style={{ margin: 0 }}>Documents</h2>
+                <span className="pp-label pp-muted">{`${reqDone} of ${reqDocs.length} required`}</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: -12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', marginTop: -16, boxShadow: 'inset 0 1px 0 var(--line)' }}>
                 {docs.map((d) => <DocRow key={d.kind} d={d} files={(app?.docs ?? []).filter((x) => x.kind === d.kind)} onChange={reload} />)}
               </div>
-              <p className="pk-caption pk-muted" style={{ margin: 0, textWrap: 'pretty' }}>PDF, JPG or PNG, up to 10 MB each. Documents are only seen by the PackPass partner team. Add each trainer’s certifications from Team once you’re approved.</p>
+              <p className="pp-caption pp-muted" style={{ margin: 0, textWrap: 'pretty' }}>PDF, JPG or PNG, up to 10 MB each. Documents are only seen by the PackPass partner team. Add each trainer’s certifications from Team once you’re approved.</p>
             </Section>
           ) : null}
 
           {step === 5 ? (
             <Section eyebrow="Step 5 of 5 · Payouts" title="Get paid for every booking.">
-              <div style={{ background: 'var(--pitch)', color: 'var(--on-pitch)', borderRadius: 28, padding: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <span className="pk-wide" style={{ color: 'var(--on-pitch-muted)' }}>Partner rate</span>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}><span className="pk-display-xl">$9.50</span><span className="pk-label" style={{ color: 'var(--on-pitch-muted)' }}>per credit redeemed</span></div>
-                <span className="pk-label" style={{ color: 'var(--on-pitch-muted)', textWrap: 'pretty' }}>Members spend 1 to 4 credits per session, so a typical 2-credit class pays $19 a dog. Payouts go out on the 1st of each month. Rates are set by PackPass.</span>
+              <div style={{ background: 'var(--pitch)', color: 'var(--on-pitch)', borderRadius: 16, padding: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <span className="pp-eyebrow" style={{ color: 'var(--on-pitch-muted)' }}>Partner rate</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}><span className="pp-stat-num" style={{ fontSize: 40 }}>$9.50</span><span className="pp-label" style={{ color: 'var(--on-pitch-muted)' }}>per credit redeemed</span></div>
+                <span className="pp-label" style={{ color: 'var(--on-pitch-muted)', textWrap: 'pretty' }}>Members spend 1 to 4 credits per session, so a typical 2-credit class pays $19 a dog. Payouts go out on the 1st of each month. Rates are set by PackPass.</span>
               </div>
               <Input label="Legal business name" value={f.legal_name} onChange={(v) => set('legal_name', v)} placeholder={f.business_name ? `${f.business_name} LLC` : ''} />
-              <div style={{ padding: '18px 20px', borderRadius: 20, background: 'var(--surface-raised)', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <div style={{ padding: '18px 20px', borderRadius: 12, background: 'var(--surface-raised)', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                 <Banknote size={20} style={{ flex: 'none', marginTop: 1 }} />
-                <span className="pk-label" style={{ textWrap: 'pretty' }}>Once you’re approved, Payouts in your dashboard connects your bank account and tax details through Stripe. PackPass never sees your account number or tax ID.</span>
+                <span className="pp-label" style={{ textWrap: 'pretty' }}>Once you’re approved, Payouts in your dashboard connects your bank account and tax details through Stripe. PackPass never sees your account number or tax ID.</span>
               </div>
             </Section>
           ) : null}
@@ -262,10 +265,10 @@ function Flow({ app, name, step, setStep, reload }: { app: Application | null; n
 
         {!submitted ? (
           <div style={{ position: 'sticky', bottom: 0, background: 'var(--bg)', padding: '16px 0 28px' }}>
-            <div style={{ maxWidth: 580, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <ErrorLine>{error}</ErrorLine>
               <Button block disabled={busy || blocked} onClick={next}>{busy ? 'Saving…' : step === 5 ? 'Submit application' : 'Continue'}</Button>
-              <p className="pk-caption pk-muted" style={{ margin: 0, textAlign: 'center', textWrap: 'pretty' }}>
+              <p className="pp-caption pp-muted" style={{ margin: 0, textAlign: 'center', textWrap: 'pretty' }}>
                 {notes[step]}
                 {step === 5 ? <> Submitting means you agree to the <a href={`${SITE_URL}/terms#partner-terms`} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>partner terms</a>.</> : null}
               </p>
@@ -287,9 +290,9 @@ function InReview({ app }: { app: Application | null }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
       <div>
-        <p className="pk-wide pk-muted" style={{ margin: 0 }}>{approved ? 'Approved' : 'Application sent'}</p>
-        <h1 className="pk-display-xl" style={{ margin: '10px 0 0' }}>{`${app?.business_name ?? 'Your business'} is ${approved ? 'approved' : 'in review'}.`}</h1>
-        <p className="pk-body pk-muted" style={{ margin: '10px 0 0', textWrap: 'pretty' }}>
+        <p className="pp-eyebrow pp-muted" style={{ margin: 0 }}>{approved ? 'Approved' : 'Application sent'}</p>
+        <h1 className="pp-headline" style={{ margin: '10px 0 0' }}>{`${app?.business_name ?? 'Your business'} is ${approved ? 'approved' : 'in review'}.`}</h1>
+        <p className="pp-body pp-muted" style={{ margin: '10px 0 0', textWrap: 'pretty' }}>
           {approved ? 'Sign in again and your dashboard opens.' : 'The partner team checks every document by hand. Sign in here any time to see where it’s up to.'}
         </p>
       </div>
@@ -302,8 +305,8 @@ function InReview({ app }: { app: Application | null }) {
               <span style={{ width: 2, flex: 1, minHeight: 16, background: i < steps.length - 1 ? 'var(--surface-sunken)' : 'transparent' }} />
             </div>
             <div style={{ flex: 1, padding: '4px 0 26px', display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span className="pk-heading">{title}</span>
-              <span className="pk-label pk-muted" style={{ textWrap: 'pretty' }}>{sub}</span>
+              <span className="pp-heading">{title}</span>
+              <span className="pp-label pp-muted" style={{ textWrap: 'pretty' }}>{sub}</span>
             </div>
           </div>
         ))}
@@ -331,42 +334,41 @@ function DocRow({ d, files, onChange }: { d: ReturnType<typeof docsFor>[number];
   };
   const Icon = error ? X : done ? Check : FileUp;
   return (
-    <div style={{ padding: '18px 20px', borderRadius: 20, background: 'var(--surface-raised)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ padding: '14px 0', boxShadow: 'inset 0 -1px 0 var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
         <span style={{ width: 40, height: 40, flex: 'none', borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: error ? 'var(--kennel-red)' : done ? 'var(--turf)' : 'var(--surface-sunken)', color: error ? 'var(--bg)' : done ? 'var(--on-turf)' : 'var(--ink)' }}><Icon size={18} /></span>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><span className="pk-heading">{d.name}</span>{d.req ? <Tag>Required</Tag> : null}</div>
-          <span className="pk-caption pk-muted" style={{ textWrap: 'pretty' }}>{d.desc}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><span className="pp-heading">{d.name}</span>{d.req ? <Badge tone="needs">Required</Badge> : null}</div>
+          <span className="pp-caption pp-muted" style={{ textWrap: 'pretty' }}>{d.desc}</span>
         </div>
         <input ref={input} type="file" accept="application/pdf,image/jpeg,image/png" multiple={d.multi} hidden onChange={(e) => upload(e.target.files)} aria-label={`Upload ${d.name}`} />
         {!done || d.multi ? (
-          <Button size="sm" variant={done ? 'quiet' : 'primary'} disabled={busy} onClick={() => input.current?.click()} style={done ? { background: 'var(--bg)' } : undefined}>
+          <Button size="sm" variant={done ? 'quiet' : 'primary'} disabled={busy} onClick={() => input.current?.click()}>
             {busy ? <><Upload size={14} /> Uploading…</> : done ? 'Add another' : 'Upload'}
           </Button>
         ) : null}
       </div>
       {files.map((x) => (
-        <div key={x.id} style={{ marginLeft: 54, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 10px 10px 14px', borderRadius: 14, background: 'var(--bg)' }}>
+        <div key={x.id} style={{ marginLeft: 54, display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px 8px 12px', borderRadius: 8, background: 'var(--surface-raised)' }}>
           <FileText size={16} color="var(--ink-muted)" style={{ flex: 'none' }} />
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span className="pk-label" style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.file_name}</span>
-            <span className="pk-caption pk-muted">{[kb(x.size_bytes), 'Uploaded'].filter(Boolean).join(' · ')}</span>
+            <span className="pp-label" style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.file_name}</span>
+            <span className="pp-caption pp-muted">{[kb(x.size_bytes), 'Uploaded'].filter(Boolean).join(' · ')}</span>
           </div>
           <button type="button" onClick={() => remove(x.id)} aria-label={`Remove ${x.file_name}`} style={{ width: 32, height: 32, flex: 'none', border: 0, borderRadius: 9999, background: 'none', color: 'var(--ink-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={16} /></button>
         </div>
       ))}
-      {error ? <div style={{ marginLeft: 54, padding: '12px 16px', borderRadius: 14, background: 'var(--kennel-red-soft)' }}><span className="pk-label" style={{ color: 'var(--kennel-red)', fontWeight: 600 }}>{error}</span></div> : null}
+      {error ? <div style={{ marginLeft: 54, padding: '8px 12px', borderRadius: 8, background: 'var(--kennel-red-soft)' }}><span className="pp-label" style={{ color: 'var(--kennel-red)', fontWeight: 600 }}>{error}</span></div> : null}
     </div>
   );
 }
 
-const Section = ({ eyebrow, title, lede, children }: { eyebrow: string; title: string; lede?: string; children: ReactNode }) => (
+const Section = ({ title, lede, children }: { eyebrow?: string; title: string; lede?: string; children: ReactNode }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
     <div>
-      <p className="pk-wide pk-muted" style={{ margin: 0 }}>{eyebrow}</p>
-      <h1 className="pk-display-xl" style={{ margin: '10px 0 0' }}>{title}</h1>
-      {lede ? <p className="pk-body pk-muted" style={{ margin: '10px 0 0', textWrap: 'pretty' }}>{lede}</p> : null}
+      <h1 className="pp-headline" style={{ margin: 0 }}>{title}</h1>
+      {lede ? <p className="pp-body pp-muted" style={{ margin: '10px 0 0', textWrap: 'pretty' }}>{lede}</p> : null}
     </div>
     {children}
   </div>
@@ -376,9 +378,9 @@ const Row2 = ({ children }: { children: ReactNode }) => <div style={{ display: '
 function Input({ label, value, onChange, note, optional, ...rest }: { label: string; value: string; onChange: (v: string) => void; note?: string; optional?: boolean; type?: string; autoComplete?: string; placeholder?: string }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <span className="pk-label" style={{ fontWeight: 600 }}>{label}{optional ? <span className="pk-muted" style={{ fontWeight: 400 }}> · Optional</span> : null}</span>
+      <span className="pp-label">{label}{optional ? <span className="pp-muted" style={{ fontWeight: 400 }}> · Optional</span> : null}</span>
       <input value={value} onChange={(e) => onChange(e.target.value)} style={inputStyle} {...rest} />
-      {note ? <span className="pk-caption pk-muted">{note}</span> : null}
+      {note ? <span className="pp-caption pp-muted">{note}</span> : null}
     </label>
   );
 }
@@ -386,7 +388,7 @@ function Input({ label, value, onChange, note, optional, ...rest }: { label: str
 function Chips({ label, right, options, isOn, pick }: { label: string; right?: string; options: string[][]; isOn: (k: string) => boolean; pick: (k: string) => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}><span className="pk-label" style={{ fontWeight: 600 }}>{label}</span>{right ? <span className="pk-caption pk-muted">{right}</span> : null}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}><span className="pp-label">{label}</span>{right ? <span className="pp-caption pp-muted">{right}</span> : null}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{options.map(([k, l]) => <Chip key={k} on={isOn(k)} onClick={() => pick(k)}>{l}</Chip>)}</div>
     </div>
   );

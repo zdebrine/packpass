@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { cancelInvite, errorCopy, inviteToTeam, loadTeam, removeFromTeam, type TeamRow } from '@/lib/api';
 import { useData, usePartner } from '@/lib/partner';
-import { Avatar, Button, Chip, ErrorLine, Field, Row, Tag } from '@/ui/kit';
+import { Avatar, Badge, Button, Chip, ErrorLine, Field, Page, PageHead, Row, Segmented } from '@/ui/kit';
 import { Loading } from '@/pages/Overview';
 
 const NEW = '__new';
@@ -43,23 +43,16 @@ export function Team() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1040 }}>
-      <header style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <span className="pk-wide pk-muted">{`Team · ${staff.length}`}</span>
-        <h1 className="pk-display-xl" style={{ margin: 0 }}>Your team</h1>
-        <span className="pk-label pk-muted">Everyone who can open {partner.name}’s dashboard. Trainers run sessions, rosters, notes and results; owners also see earnings and manage the team.</span>
-      </header>
+    <Page>
+      <PageHead title="Your team" sub={`Everyone who can open ${partner.name}’s dashboard. Trainers run sessions, rosters, notes and results; owners also see earnings and manage the team.`} />
 
-      <section className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <h2 className="pk-title" style={{ margin: 0 }}>Add someone</h2>
+      <section className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 640 }}>
+        <h2 className="pp-title">Add someone</h2>
         <Field label="Email">
-          <input className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ana@example.com" style={{ background: 'var(--bg)' }} />
+          <input className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ana@example.com" />
         </Field>
         <Field label="Role">
-          <Row gap={6}>
-            <Chip on={role === 'trainer'} onClick={() => setRole('trainer')}>Trainer</Chip>
-            <Chip on={role === 'owner'} onClick={() => setRole('owner')}>Owner</Chip>
-          </Row>
+          <Segmented label="Role" value={role} onChange={setRole} options={[{ value: 'trainer', label: 'Trainer' }, { value: 'owner', label: 'Owner' }]} />
         </Field>
         <Field label="Their trainer profile" note={role === 'owner' ? 'Notes and results they send are signed with this name. Leave as None for an owner who doesn’t train.' : 'Notes and results they send are signed with this name. A new profile shows to members once it teaches a class; PackPass adds credentials.'}>
           <Row gap={6}>
@@ -68,7 +61,7 @@ export function Team() {
             <Chip on={trainer === NEW} onClick={() => setTrainer(NEW)}>New profile</Chip>
           </Row>
           {trainer === NEW ? (
-            <input className="field" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Their name, as members will see it" style={{ background: 'var(--bg)' }} aria-label="New trainer's name" />
+            <input className="field" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Their name, as members will see it" aria-label="New trainer's name" />
           ) : null}
         </Field>
         <Row gap={12}>
@@ -77,27 +70,27 @@ export function Team() {
         </Row>
         {done ? (
           done.result === 'linked'
-            ? <span className="pk-label" style={{ color: 'var(--turf)', fontWeight: 600 }}>{`${done.email} is on the team. The dashboard opens for them next time they sign in.`}</span>
+            ? <span className="pp-label" style={{ color: 'var(--turf)', fontWeight: 600 }}>{`${done.email} is on the team. The dashboard opens for them next time they sign in.`}</span>
             : <InviteMessage email={done.email} partnerName={partner.name} lead="Invite saved. They join the team when they create an account with this email. Send them this:" />
         ) : null}
       </section>
 
-      <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <h2 className="pk-title" style={{ margin: 0 }}>On the team</h2>
-        {staff.map((s) => <StaffRow key={s.id} s={s} onDone={reload} />)}
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <h2 className="pp-title">{`On the team · ${staff.length}`}</h2>
+        <div style={{ borderTop: '1px solid var(--line)' }}>{staff.map((s) => <StaffRow key={s.id} s={s} onDone={reload} />)}</div>
       </section>
 
       {invites.length ? (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <h2 className="pk-title" style={{ margin: 0 }}>{`Waiting to join · ${invites.length}`}</h2>
-          {invites.map((i) => <InviteRow key={i.id} i={i} partnerName={partner.name} onDone={reload} />)}
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <h2 className="pp-title">{`Waiting to join · ${invites.length}`}</h2>
+          <div style={{ borderTop: '1px solid var(--line)' }}>{invites.map((i) => <InviteRow key={i.id} i={i} partnerName={partner.name} onDone={reload} />)}</div>
         </section>
       ) : null}
-    </div>
+    </Page>
   );
 }
 
-const rowStyle = { display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderRadius: 20, background: 'var(--surface-raised)', flexWrap: 'wrap' } as const;
+const rowStyle = { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' } as const;
 
 function StaffRow({ s, onDone }: { s: TeamRow; onDone: () => void }) {
   const [confirm, setConfirm] = useState(false);
@@ -109,20 +102,20 @@ function StaffRow({ s, onDone }: { s: TeamRow; onDone: () => void }) {
   };
   return (
     <div style={rowStyle}>
-      <Avatar name={s.name || s.email} size={40} />
+      <Avatar name={s.name || s.email} size={32} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 160 }}>
-        <span className="pk-label" style={{ fontWeight: 600 }}>{`${s.name || s.email}${s.is_me ? ' (you)' : ''}`}</span>
-        <span className="pk-caption pk-muted">{[s.email, s.trainer_name ? `signs as ${s.trainer_name}` : null].filter(Boolean).join(' · ')}</span>
+        <span className="pp-label" style={{ fontWeight: 600 }}>{`${s.name || s.email}${s.is_me ? ' (you)' : ''}`}</span>
+        <span className="pp-caption pp-muted">{[s.email, s.trainer_name ? `signs as ${s.trainer_name}` : null].filter(Boolean).join(' · ')}</span>
       </div>
-      <Tag>{s.role === 'owner' ? 'Owner' : 'Trainer'}</Tag>
+      <Badge>{s.role === 'owner' ? 'Owner' : 'Trainer'}</Badge>
       {s.is_me ? null : confirm ? (
         <Row gap={8} wrap={false}>
-          <span className="pk-caption pk-muted">They keep their PackPass account.</span>
-          <Button size="sm" disabled={busy} onClick={remove} style={{ background: 'var(--kennel-red)', color: '#fff' }}>{busy ? 'Removing…' : 'Remove'}</Button>
-          <Button size="sm" variant="quiet" style={{ background: 'var(--bg)' }} onClick={() => setConfirm(false)}>Keep</Button>
+          <span className="pp-caption pp-muted">They keep their PackPass account.</span>
+          <Button size="sm" variant="danger" disabled={busy} onClick={remove}>{busy ? 'Removing…' : 'Remove'}</Button>
+          <Button size="sm" variant="outline" onClick={() => setConfirm(false)}>Keep</Button>
         </Row>
       ) : (
-        <Button size="sm" variant="quiet" style={{ background: 'var(--bg)' }} onClick={() => setConfirm(true)}>Remove</Button>
+        <Button size="sm" variant="outline" onClick={() => setConfirm(true)}>Remove</Button>
       )}
       {error ? <div style={{ flexBasis: '100%' }}><ErrorLine>{error}</ErrorLine></div> : null}
     </div>
@@ -139,16 +132,16 @@ function InviteRow({ i, partnerName, onDone }: { i: TeamRow; partnerName: string
   };
   return (
     <div style={{ ...rowStyle, alignItems: 'flex-start' }}>
-      <Avatar name={i.email} size={40} />
+      <Avatar name={i.email} size={32} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 160 }}>
-        <span className="pk-label" style={{ fontWeight: 600 }}>{i.email}</span>
-        <span className="pk-caption pk-muted">{['Hasn’t created an account yet', i.trainer_name ? `will sign as ${i.trainer_name}` : null].filter(Boolean).join(' · ')}</span>
+        <span className="pp-label" style={{ fontWeight: 600 }}>{i.email}</span>
+        <span className="pp-caption pp-muted">{['Hasn’t created an account yet', i.trainer_name ? `will sign as ${i.trainer_name}` : null].filter(Boolean).join(' · ')}</span>
         {open ? <div style={{ marginTop: 10 }}><InviteMessage email={i.email} partnerName={partnerName} /></div> : null}
         <ErrorLine>{error}</ErrorLine>
       </div>
-      <Tag>{i.role === 'owner' ? 'Owner' : 'Trainer'}</Tag>
-      <Button size="sm" variant="quiet" style={{ background: 'var(--bg)' }} onClick={() => setOpen(!open)}>{open ? 'Hide message' : 'Message'}</Button>
-      <Button size="sm" variant="quiet" style={{ background: 'var(--bg)' }} disabled={busy} onClick={cancel}>Cancel invite</Button>
+      <Badge tone="needs">{i.role === 'owner' ? 'Owner' : 'Trainer'}</Badge>
+      <Button size="sm" variant="outline" onClick={() => setOpen(!open)}>{open ? 'Hide message' : 'Message'}</Button>
+      <Button size="sm" variant="outline" disabled={busy} onClick={cancel}>Cancel invite</Button>
     </div>
   );
 }
@@ -162,10 +155,10 @@ function InviteMessage({ email, partnerName, lead }: { email: string; partnerNam
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {lead ? <span className="pk-label" style={{ fontWeight: 600 }}>{lead}</span> : null}
-      <div className="pk-body" style={{ padding: '14px 18px', borderRadius: 16, background: 'var(--bg)', textWrap: 'pretty' }}>{text}</div>
+      {lead ? <span className="pp-label" style={{ fontWeight: 600 }}>{lead}</span> : null}
+      <div className="pp-body" style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface-raised)', textWrap: 'pretty' }}>{text}</div>
       <Row gap={10}>
-        <Button size="sm" variant="quiet" style={{ background: 'var(--bg)' }} onClick={copy}>{copied ? 'Copied' : 'Copy message'}</Button>
+        <Button size="sm" variant="outline" onClick={copy}>{copied ? 'Copied' : 'Copy message'}</Button>
       </Row>
     </div>
   );

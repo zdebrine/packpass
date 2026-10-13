@@ -1,4 +1,4 @@
-// Ported from the Pack Athletic Club v2 design system (tokens/*.css).
+// Ported from the PackPass v3 design system (tokens.css), comfortable density unless noted.
 
 export type ThemeName = 'light' | 'dark';
 
@@ -8,6 +8,8 @@ const light = {
   surfaceRaised: '#f3f3f1',
   surfaceSunken: '#ebebe8',
   line: '#e6e6e3',
+  lineStrong: '#d6d6d2',
+  hover: 'rgba(14,15,14,0.04)',
   ink: '#0e0f0e',
   inkMuted: '#6a6d6b',
   inkFaint: '#a3a6a4',
@@ -37,6 +39,8 @@ const dark: Palette = {
   surfaceRaised: '#222322',
   surfaceSunken: '#2c2d2c',
   line: '#2e302e',
+  lineStrong: '#3a3c3a',
+  hover: 'rgba(255,255,255,0.05)',
   ink: '#f4f4f2',
   inkMuted: '#9c9f9d',
   inkFaint: '#5f625f',
@@ -69,7 +73,8 @@ export const fonts = {
   wideBold: 'ArchivoWideBold', // Archivo 700, width 125
 } as const;
 
-export const radius = { sm: 12, tile: 20, card: 28, sheet: 32, pill: 9999 } as const;
+/** v3 radius scale. `tile` and `sm` are the old names for 12; `sheet` is a bottom sheet's top corners. */
+export const radius = { badge: 6, fieldSm: 8, field: 12, thumb: 12, sm: 12, tile: 12, card: 16, photo: 24, sheet: 24, athlete: 28, pill: 9999 } as const;
 
 export const space = { gutter: 20, section: 32 } as const;
 
@@ -84,16 +89,23 @@ export const motion = {
 
 // Text variants. Letter spacing is in px here (em * size).
 export const type = {
+  // v3 roles. `hero`, `headline` and `statNum` are Archivo display; the rest are Geist.
+  hero: { fontFamily: fonts.display, fontSize: 34, lineHeight: 38, letterSpacing: -0.85 },
+  headline: { fontFamily: fonts.display, fontSize: 26, lineHeight: 28, letterSpacing: -0.65 },
+  statNum: { fontFamily: fonts.display, fontSize: 28, lineHeight: 28, letterSpacing: -0.56 },
+  pageTitle: { fontFamily: fonts.sansSemibold, fontSize: 28, lineHeight: 34, letterSpacing: -0.56 },
+  eyebrow: { fontFamily: fonts.wide, fontSize: 10, lineHeight: 14, letterSpacing: 0.8, textTransform: 'uppercase' },
   display2xl: { fontFamily: fonts.display, fontSize: 64, lineHeight: 58, letterSpacing: -1.6 },
-  displayXl: { fontFamily: fonts.display, fontSize: 44, lineHeight: 42, letterSpacing: -1.1 },
-  displayLg: { fontFamily: fonts.display, fontSize: 32, lineHeight: 32, letterSpacing: -0.8 },
+  // v2 names kept for photo headers: displayXl is now the v3 hero size, displayLg the headline size.
+  displayXl: { fontFamily: fonts.display, fontSize: 34, lineHeight: 38, letterSpacing: -0.85 },
+  displayLg: { fontFamily: fonts.display, fontSize: 26, lineHeight: 28, letterSpacing: -0.65 },
   displayMd: { fontFamily: fonts.display, fontSize: 22, lineHeight: 24, letterSpacing: -0.33 },
   wide: { fontFamily: fonts.wide, fontSize: 11, lineHeight: 14, letterSpacing: 0.88, textTransform: 'uppercase' },
-  title: { fontFamily: fonts.sansSemibold, fontSize: 20, lineHeight: 26, letterSpacing: -0.2 },
-  heading: { fontFamily: fonts.sansSemibold, fontSize: 17, lineHeight: 22, letterSpacing: -0.085 },
-  body: { fontFamily: fonts.sans, fontSize: 16, lineHeight: 23 },
-  label: { fontFamily: fonts.sansMedium, fontSize: 14, lineHeight: 20 },
-  caption: { fontFamily: fonts.sansMedium, fontSize: 12, lineHeight: 16 },
+  title: { fontFamily: fonts.sansSemibold, fontSize: 17, lineHeight: 22, letterSpacing: -0.17 },
+  heading: { fontFamily: fonts.sansMedium, fontSize: 16, lineHeight: 22 },
+  body: { fontFamily: fonts.sans, fontSize: 16, lineHeight: 24 },
+  label: { fontFamily: fonts.sansMedium, fontSize: 15, lineHeight: 20 },
+  caption: { fontFamily: fonts.sans, fontSize: 13, lineHeight: 18 },
 } as const;
 
 export type TypeVariant = keyof typeof type;

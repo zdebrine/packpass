@@ -1,3 +1,4 @@
+import { ImageIcon, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -6,7 +7,7 @@ import { formOf, payloadOf, pricingChanged, type ClassForm } from '@/lib/classFo
 import { useData, usePartner } from '@/lib/partner';
 import { credits } from '@/lib/sessions';
 import { addDays, austin, mondayOf } from '@/lib/time';
-import { Button, ClassCard, Chip, ErrorLine, Field, Modal, Row, Tag, photoUrl } from '@/ui/kit';
+import { Badge, Button, ClassCard, Chip, EmptyState, ErrorLine, Field, Modal, Page, PageHead, Row, Tag, photoUrl } from '@/ui/kit';
 import { Clearance, Description, Discipline, DropOff, Duration, Energy, Group, Intensity, Name, PhotoGrid, Requirements, Social, TypeChips, typeLabel, type Patch } from './classParts';
 
 const STATUS: Record<ClassType['status'], string> = { live: 'Live', in_review: 'In review', paused: 'Paused' };
@@ -22,47 +23,49 @@ export function Classes() {
   const selected = classes.find((c) => c.id === params.get('c')) ?? classes[0];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1240 }}>
-      <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span className="pk-wide pk-muted">Offering</span>
-          <h1 className="pk-display-xl" style={{ margin: 0 }}>Classes</h1>
-        </div>
-        <Button size="sm" onClick={() => nav('/classes/new')}>New class</Button>
-      </header>
+    <Page>
+      <PageHead title="Classes" sub="What you offer on PackPass. Credit costs are set by PackPass.">
+        <Button icon={Plus} onClick={() => nav('/classes/new')}>New class</Button>
+      </PageHead>
       {!selected ? (
-        <div className="card" style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
-          <span className="pk-title">No classes yet</span>
-          <span className="pk-body pk-muted">Create your first class. PackPass sets the credit cost, then it opens on Book.</span>
-          <Button onClick={() => nav('/classes/new')}>Create a class</Button>
+        <div className="card">
+          <EmptyState title="No classes yet" body="Create your first class. PackPass sets the credit cost, then it opens on Book."><Button variant="outline" size="sm" onClick={() => nav('/classes/new')}>Create a class</Button></EmptyState>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start' }}>
-          <div style={{ flex: '1 1 280px', maxWidth: 380, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <>
+          <div className="tbl">
+            <div className="tbl-head" style={{ gridTemplateColumns: CLASS_COLS, minWidth: 640 }}>
+              <span /><span>Class</span><span>Type</span><span className="r">Per week</span><span className="r">Credits</span><span>Status</span>
+            </div>
             {classes.map((c) => {
               const on = c.id === selected.id;
-              const meta = [c.session_type === 'class' ? c.discipline : typeLabel(c.session_type), gym ? trainerName(c.trainer_id) : null, `${perWeek(c.id)} this week`].filter(Boolean).join(' · ');
+              const kind = [c.session_type === 'class' ? c.discipline : typeLabel(c.session_type), gym ? trainerName(c.trainer_id) : null].filter(Boolean).join(' · ');
               return (
-                <button key={c.id} type="button" onClick={() => setParams({ c: c.id })} aria-current={on}
-                  style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 16px 10px 10px', border: 0, borderRadius: 20, cursor: 'pointer', background: on ? 'var(--inverse)' : 'var(--surface-raised)', color: on ? 'var(--on-inverse)' : 'var(--ink)' }}>
-                  <img src={photoUrl(c.image)} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover', flex: 'none' }} />
-                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3, textAlign: 'left' }}>
-                    <span style={{ fontSize: 15, fontWeight: 600 }}>{c.title}</span>
-                    <span style={{ fontSize: 12, opacity: 0.7 }}>{meta}</span>
-                    {c.drop_off && c.session_type === 'class' ? <span style={{ alignSelf: 'flex-start', marginTop: 2 }}><Tag tone="signal">Drop-off</Tag></span> : null}
-                  </span>
-                  <span style={{ fontSize: 12, opacity: 0.7 }}>{c.credit_review ? 'Credit review' : STATUS[c.status]}</span>
-                </button>
+                <div key={c.id} role="button" tabIndex={0} aria-current={on} onClick={() => setParams({ c: c.id })} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setParams({ c: c.id })}
+                  className="tbl-row tbl-click" style={{ gridTemplateColumns: CLASS_COLS, minWidth: 640, minHeight: 44, background: on ? 'var(--hover)' : undefined, boxShadow: on ? 'inset 2px 0 0 var(--ink),inset 0 -1px 0 var(--line)' : undefined }}>
+                  <img src={photoUrl(c.image)} alt="" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', background: 'var(--surface-raised)' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                    <span className="pp-heading ellipsis">{c.title}</span>
+                    {c.premium ? <Badge tone="cleared">Premium</Badge> : null}
+                    {c.drop_off && c.session_type === 'class' ? <Badge>Drop-off</Badge> : null}
+                  </div>
+                  <span className="pp-caption pp-muted ellipsis">{kind}</span>
+                  <span className="pp-label pp-num r">{perWeek(c.id)}</span>
+                  <span className="pp-label pp-num r">{c.credits ?? 'Pending'}</span>
+                  <div>{c.credit_review ? <Badge tone="needs">Credit review</Badge> : c.status === 'live' ? <Badge dot>Live</Badge> : <Badge tone="needs">{STATUS[c.status]}</Badge>}</div>
+                </div>
               );
             })}
           </div>
           {/* Keyed so switching classes resets the editor. */}
           <Editor key={selected.id} cls={selected} partnerName={partner.short_name || partner.name} gym={gym} trainers={trainers} />
-        </div>
+        </>
       )}
-    </div>
+    </Page>
   );
 }
+
+const CLASS_COLS = '36px minmax(0,1.6fr) minmax(0,1fr) 80px 64px 104px';
 
 function Editor({ cls, partnerName, gym, trainers }: { cls: ClassType; partnerName: string; gym: boolean; trainers: { id: string; name: string }[] }) {
   const { reloadCatalog } = usePartner();
@@ -94,70 +97,69 @@ function Editor({ cls, partnerName, gym, trainers }: { cls: ClassType; partnerNa
   };
 
   return (
-    <div style={{ flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 28 }}>
-      <div style={{ position: 'relative', height: 260, borderRadius: 28, overflow: 'hidden', color: '#fff' }}>
-        <img src={photoUrl(f.image)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'var(--scrim)' }} />
-        <div style={{ position: 'absolute', top: 18, left: 18, right: 18, display: 'flex', justifyContent: 'space-between' }}>
-          <Row gap={6}>
+    <section style={{ display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start' }}>
+      <div style={{ flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <h2 className="pp-title">{`Edit ${cls.title}`}</h2>
+          <Row gap={8}>
+            {done && !dirty ? <span className="pp-caption pp-muted">Saved. Members see the changes on Book now.</span> : null}
+            <ErrorLine>{error}</ErrorLine>
+            <Button variant="outline" onClick={() => setPreview(true)}>Preview as member</Button>
+            <Button disabled={!dirty || busy} onClick={save}>{busy ? 'Saving…' : 'Save changes'}</Button>
+          </Row>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: '20px 24px' }}>
+          <Name f={f} set={set} />
+          <TypeChips f={f} set={set} />
+          <div style={{ gridColumn: '1/-1' }}><Discipline f={f} set={set} /></div>
+          <Duration f={f} set={set} />
+          <Intensity f={f} set={set} />
+          <Group f={f} set={set} />
+          <Clearance f={f} set={set} />
+          <Energy f={f} set={set} label="Suitable energy" />
+          <Social f={f} set={set} />
+          <div style={{ gridColumn: '1/-1' }}><Requirements f={f} set={set} /></div>
+          <DropOff f={f} set={set} />
+          {gym ? (
+            <Field label="Lead trainer">
+              <Row gap={6}>{trainers.map((t) => <Chip key={t.id} on={f.trainerId === t.id} onClick={() => set({ trainerId: t.id })}>{t.name}</Chip>)}</Row>
+            </Field>
+          ) : null}
+          <Description f={f} set={set} />
+        </div>
+      </div>
+      <aside style={{ flex: '1 1 240px', maxWidth: 320, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ position: 'relative', height: 200, borderRadius: 24, overflow: 'hidden', color: '#fff' }}>
+          <img src={photoUrl(f.image)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'var(--scrim)' }} />
+          <div style={{ position: 'absolute', top: 12, left: 12, right: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <Tag tone="glass">{f.discipline ?? typeLabel(f.type)}</Tag>
             {cls.premium ? <Tag tone="premium">Premium</Tag> : null}
-            {f.dropOff && f.type === 'class' ? <Tag tone="glass">Drop-off</Tag> : null}
             {cls.status !== 'live' ? <Tag tone="glass">{STATUS[cls.status]}</Tag> : null}
-          </Row>
-          <Button variant="glass" size="sm" onClick={() => setPhotos(true)}>Replace photo</Button>
-        </div>
-        <div style={{ position: 'absolute', left: 22, bottom: 20 }}><h2 className="pk-display-lg" style={{ margin: 0 }}>{f.title || cls.title}</h2></div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: '24px 32px' }}>
-        <Name f={f} set={set} />
-        <Discipline f={f} set={set} />
-        <Duration f={f} set={set} />
-        <Intensity f={f} set={set} />
-        <Group f={f} set={set} />
-        <Energy f={f} set={set} label="Suitable for" />
-        <Social f={f} set={set} />
-        <Description f={f} set={set} />
-        <TypeChips f={f} set={set} />
-        <Clearance f={f} set={set} />
-        <Requirements f={f} set={set} />
-        <DropOff f={f} set={set} />
-        {gym ? (
-          <Field label="Lead trainer">
-            <Row gap={6}>{trainers.map((t) => <Chip key={t.id} on={f.trainerId === t.id} onClick={() => set({ trainerId: t.id })}>{t.name}</Chip>)}</Row>
-          </Field>
-        ) : null}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '20px 22px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-            <span className="pk-label" style={{ fontWeight: 600 }}>Credit cost</span>
-            <span className="pk-display-md">{cls.credits == null ? 'In review' : credits(cls.credits)}</span>
           </div>
-          <span className="pk-caption pk-muted" style={{ textWrap: 'pretty' }}>{creditNote}</span>
+          <div style={{ position: 'absolute', left: 12, right: 12, bottom: 12 }}><Button variant="glass" size="sm" icon={ImageIcon} onClick={() => setPhotos(true)}>Replace photo</Button></div>
         </div>
-      </div>
-
-      <Row gap={10}>
-        <Button disabled={!dirty || busy} onClick={save}>{busy ? 'Saving…' : 'Save changes'}</Button>
-        <Button variant="quiet" onClick={() => setPreview(true)}>Preview as member</Button>
-        {done && !dirty ? <span className="pk-label pk-muted">Saved. Members see the changes on Book now.</span> : null}
-        <ErrorLine>{error}</ErrorLine>
-      </Row>
+        <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+            <span className="pp-stat-label">Credit cost</span>
+            <span className={cls.credits == null ? 'pp-title' : 'pp-stat-num'}>{cls.credits == null ? 'In review' : cls.credits}</span>
+          </div>
+          <span className="pp-caption pp-muted" style={{ textWrap: 'pretty' }}>{creditNote}</span>
+        </div>
+      </aside>
 
       {photos ? (
-        <Modal eyebrow={cls.title} title="Cover photo" onClose={() => setPhotos(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <span className="pk-caption pk-muted">Outdoor, in motion, one dog clearly in frame. Members see this first.</span>
-            <PhotoGrid value={f.image} onPick={(image) => { set({ image }); setPhotos(false); }} />
-          </div>
+        <Modal eyebrow={cls.title} title="Cover photo" width={560} onClose={() => setPhotos(false)}>
+          <span className="pp-caption pp-muted">Outdoor, in motion, one dog clearly in frame. Members see this first.</span>
+          <PhotoGrid value={f.image} onPick={(image) => { set({ image }); setPhotos(false); }} />
         </Modal>
       ) : null}
       {preview ? (
-        <Modal eyebrow="Preview as member" title="On Book" width={380} onClose={() => setPreview(false)}>
+        <Modal eyebrow="Preview as member" title="On Book" width={300} onClose={() => setPreview(false)}>
           <ClassCard image={photoUrl(f.image)} discipline={f.discipline ?? typeLabel(f.type)} premium={cls.premium} title={f.title || cls.title}
             meta={`${f.duration} min · ${partnerName}`} credits={cls.credits == null ? 'In review' : credits(cls.credits)} spotsLeft={f.type === 'class' ? f.group : 1} />
         </Modal>
       ) : null}
-    </div>
+    </section>
   );
 }

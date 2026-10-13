@@ -6,7 +6,7 @@ import { errorCopy, uploadPartnerPhoto, type SessionType } from '@/lib/api';
 import { usePartner } from '@/lib/partner';
 import { isUpload } from '@/lib/photos';
 import { DISCIPLINES, ENERGY, PHOTOS, REQS, SOCIAL, TYPES, type ClassForm } from '@/lib/classForm';
-import { Chip, ErrorLine, Field, IntensityBars, Row, Stepper, Toggle, photoUrl } from '@/ui/kit';
+import { Chip, ErrorLine, Field, Ico, Row, Segmented, Stepper, Toggle, photoUrl } from '@/ui/kit';
 
 export type Patch = (p: Partial<ClassForm>) => void;
 
@@ -15,9 +15,9 @@ export const typeLabel = (t: SessionType) => TYPES.find((x) => x.key === t)!.lab
 const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
 export const Name = ({ f, set, placeholder }: { f: ClassForm; set: Patch; placeholder?: string }) => (
-  <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-    <span className="pk-label" style={{ fontWeight: 600 }}>Class name</span>
-    <input className="field" style={{ height: 48, fontSize: 15 }} value={f.title} placeholder={placeholder} onChange={(e) => set({ title: e.target.value })} />
+  <label className="pp-field">
+    <span className="pp-field-label">Class name</span>
+    <input className="field" value={f.title} placeholder={placeholder} onChange={(e) => set({ title: e.target.value })} />
   </label>
 );
 
@@ -26,12 +26,14 @@ export const Discipline = ({ f, set }: { f: ClassForm; set: Patch }) => (
 );
 
 export const Duration = ({ f, set }: { f: ClassForm; set: Patch }) => (
-  <Field label="Duration"><Row gap={6}>{Array.from(new Set([30, 45, 60, 90, f.duration])).sort((a, b) => a - b).map((m) => <Chip key={m} on={f.duration === m} onClick={() => set({ duration: m })}>{`${m} min`}</Chip>)}</Row></Field>
+  <Field label="Duration">
+    <Segmented label="Duration" options={Array.from(new Set([30, 45, 60, 90, f.duration])).sort((a, b) => a - b).map((m) => ({ value: String(m), label: `${m} min` }))} value={String(f.duration)} onChange={(v) => set({ duration: Number(v) })} />
+  </Field>
 );
 
 export const Intensity = ({ f, set, note }: { f: ClassForm; set: Patch; note?: boolean }) => (
   <Field label={`Intensity · ${f.intensity} of 5`} note={note ? INTENSITY[f.intensity] : undefined}>
-    <IntensityBars value={f.intensity} onPick={(intensity) => set({ intensity })} />
+    <Segmented label="Intensity" options={['1', '2', '3', '4', '5']} value={String(f.intensity)} onChange={(v) => set({ intensity: Number(v) })} />
   </Field>
 );
 
@@ -39,18 +41,18 @@ export const Group = ({ f, set }: { f: ClassForm; set: Patch }) => {
   const solo = f.type !== 'class';
   return (
     <Field label="Max group size" note={solo ? `${typeLabel(f.type)} sessions are always one dog.` : 'Smaller groups usually cost more credits.'}>
-      <Row gap={14}>
+      <Row gap={10} wrap={false}>
         <Stepper label="dogs" value={solo ? 1 : f.group} decDisabled={solo || f.group <= 2} incDisabled={solo || f.group >= 24}
           onDec={() => set({ group: f.group - 1 })} onInc={() => set({ group: f.group + 1 })} />
-        <span className="pk-label pk-muted">dogs</span>
+        <span className="pp-caption pp-muted">dogs</span>
       </Row>
     </Field>
   );
 };
 
 export const Description = ({ f, set, placeholder }: { f: ClassForm; set: Patch; placeholder?: string }) => (
-  <label style={{ display: 'flex', flexDirection: 'column', gap: 8, gridColumn: '1/-1' }}>
-    <span className="pk-label" style={{ fontWeight: 600 }}>What happens in the session</span>
+  <label className="pp-field" style={{ gridColumn: '1/-1' }}>
+    <span className="pp-field-label">What happens in the session</span>
     <textarea className="area" rows={4} value={f.description} placeholder={placeholder} onChange={(e) => set({ description: e.target.value })} />
   </label>
 );
@@ -85,19 +87,19 @@ export const Requirements = ({ f, set }: { f: ClassForm; set: Patch }) => (
 
 /** Group classes only: whether owners hand the dog over for the session. */
 export const DropOff = ({ f, set }: { f: ClassForm; set: Patch }) => f.type === 'class' ? (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span className="pk-label" style={{ fontWeight: 600 }}>Drop-off class</span>
-      <span className="pk-caption pk-muted" style={{ textWrap: 'pretty' }}>Owners leave their dog with you for the session. Leave off if owners stay.</span>
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 0', boxShadow: 'inset 0 1px 0 var(--line),inset 0 -1px 0 var(--line)', gridColumn: '1/-1' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <span className="pp-label">Drop-off class</span>
+      <span className="pp-caption pp-muted" style={{ textWrap: 'pretty' }}>Owners leave their dog with you for the session. Leave off if owners stay.</span>
     </div>
     <Toggle on={f.dropOff} onChange={(dropOff) => set({ dropOff })} label="Drop-off class" />
   </div>
 ) : null;
 
-/** Type chips with the note under them (the editor's compact version of the step-one cards). */
+/** Session type as a segmented control with the note under it (the editor's compact version of the step-one cards). */
 export const TypeChips = ({ f, set }: { f: ClassForm; set: Patch }) => (
   <Field label="Session type" note={TYPES.find((t) => t.key === f.type)!.note}>
-    <Row gap={6}>{TYPES.map((t) => <Chip key={t.key} on={f.type === t.key} onClick={() => set({ type: t.key, clearance: null })}>{t.label}</Chip>)}</Row>
+    <Segmented label="Session type" options={TYPES.map((t) => ({ value: t.key, label: t.label }))} value={f.type} onChange={(v) => set({ type: v, clearance: null })} />
   </Field>
 );
 
@@ -111,7 +113,7 @@ export function PhotoGrid({ value, onPick }: { value: string | null; onPick: (p:
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mine, setMine] = useState<string | null>(isUpload(value) ? value : null);
-  const tile: CSSProperties = { aspectRatio: '4 / 5', padding: 0, border: 0, borderRadius: 20, overflow: 'hidden', cursor: 'pointer' };
+  const tile: CSSProperties = { aspectRatio: '1', padding: 0, border: 0, borderRadius: 12, overflow: 'hidden', cursor: 'pointer' };
   const ring = (on: boolean) => (on ? '0 0 0 3px var(--bg),0 0 0 5px var(--ink)' : 'none');
 
   const upload = async (file: File | undefined) => {
@@ -126,10 +128,10 @@ export function PhotoGrid({ value, onPick }: { value: string | null; onPick: (p:
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(104px,1fr))', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(84px,1fr))', gap: 8 }}>
         <button type="button" onClick={() => input.current?.click()} disabled={busy}
-          style={{ ...tile, background: 'var(--surface-raised)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
-          <Upload size={22} />{busy ? 'Uploading…' : 'Upload your own'}
+          style={{ ...tile, background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--line-strong)', color: 'var(--ink)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, font: 'inherit', fontSize: 12, fontWeight: 500 }}>
+          <Ico icon={Upload} />{busy ? 'Uploading…' : 'Upload'}
         </button>
         {mine ? (
           <button type="button" aria-label="Use your uploaded photo" aria-pressed={value === mine} onClick={() => onPick(mine)} style={{ ...tile, boxShadow: ring(value === mine) }}>
@@ -143,7 +145,7 @@ export function PhotoGrid({ value, onPick }: { value: string | null; onPick: (p:
         ))}
       </div>
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => upload(e.target.files?.[0])} />
-      <span className="pk-caption pk-muted">JPG, PNG or WebP. Cropped to the card's shape from the centre.</span>
+      <span className="pp-caption pp-muted">JPG, PNG or WebP. Cropped to the card's shape from the centre.</span>
       <ErrorLine>{error}</ErrorLine>
     </div>
   );

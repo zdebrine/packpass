@@ -54,7 +54,7 @@ function FlipCard() {
           stats={[{ value: stats.sessions, label: 'Sessions' }, { value: stats.hours, label: 'Hours active' }, { value: stats.disciplines, label: 'Disciplines' }]}
         />
       </Animated.View>
-      <Animated.View style={[face, back, { borderRadius: 28, backgroundColor: c.pitch, paddingVertical: 28, paddingHorizontal: 24, boxShadow: c.shadowCard }]}>
+      <Animated.View style={[face, back, { borderRadius: 16, backgroundColor: c.pitch, paddingVertical: 28, paddingHorizontal: 24, boxShadow: c.shadowCard }]}>
         <Text variant="wide" color={c.onPitchMuted}>{`${juno.name} · Discipline levels`}</Text>
         <Text variant="displayXl" color={c.onPitch} style={{ marginTop: 10 }}>{stats.levelsTitle}</Text>
         <View style={{ gap: 20, marginTop: 30 }}>
@@ -155,7 +155,7 @@ export default function DogProfile() {
   const addDog = () => { startAddDog(); router.push('/onboarding/dog'); };
 
   if (wide) {
-    const tileBox = { borderRadius: 24, backgroundColor: c.surfaceRaised } as const;
+    const tileBox = { borderRadius: 16, backgroundColor: c.surfaceRaised } as const;
     return (
       <Page top={32}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -231,7 +231,7 @@ export default function DogProfile() {
                     );
                   })}
                   {paths.available.map((g) => (
-                    <Press key={g.id} onPress={() => router.push(`/goal/${g.id}`)} style={tile(300, { paddingVertical: 18, paddingHorizontal: 20, borderRadius: 24, borderWidth: 1, borderColor: c.surfaceSunken, gap: 6 })}>
+                    <Press key={g.id} onPress={() => router.push(`/goal/${g.id}`)} style={tile(300, { paddingVertical: 18, paddingHorizontal: 20, borderRadius: 16, borderWidth: 1, borderColor: c.surfaceSunken, gap: 6 })}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
                         <Text variant="heading" weight="600" style={{ flex: 1 }}>{g.title}</Text>
                         <Text variant="caption" muted>{`${g.steps.length} steps`}</Text>
@@ -250,7 +250,7 @@ export default function DogProfile() {
                 <Text variant="caption" muted style={{ marginBottom: 12 }}>From you. Used to suggest classes and trainers, never to grant access.</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   {traits.map((t) => (
-                    <View key={t} style={tile(300, { paddingVertical: 14, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 })}>
+                    <View key={t} style={tile(300, { paddingVertical: 14, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.surfaceRaised, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 })}>
                       <Text variant="label" style={{ flex: 1 }}>{traitLabel(t)}</Text>
                       <Text variant="caption" muted>From you</Text>
                     </View>
@@ -265,7 +265,7 @@ export default function DogProfile() {
                   <Button variant="quiet" size="sm" onPress={() => router.push('/vaccines')}>Update</Button>
                 </View>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  <View style={tile(280, { backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 16 })}>
+                  <View style={tile(280, { backgroundColor: c.surfaceRaised, borderRadius: 16, padding: 20, gap: 16 })}>
                     {vaccineRows.map((v) => (
                       <View key={v.type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                         <View style={{ flexShrink: 1 }}>
@@ -278,7 +278,7 @@ export default function DogProfile() {
                   </View>
                   {/* Care notes are sample content: members can't enter them yet, so live builds leave them out. */}
                   {isLive ? null : (
-                    <View style={tile(280, { backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 14 })}>
+                    <View style={tile(280, { backgroundColor: c.surfaceRaised, borderRadius: 16, padding: 20, gap: 14 })}>
                       {careNotes.map(([k, v]) => (
                         <View key={k}>
                           <Text variant="caption" muted>{k}</Text>
@@ -346,7 +346,7 @@ export default function DogProfile() {
             {clearances.map((k) => {
               const st = styleFor(k);
               return (
-                <Press key={k.type} onPress={() => router.push(`/passport/${k.type}`)} accessibilityLabel={`${k.name}: ${STATUS_LABEL[k.status]}`} style={{ width: 148, padding: 16, borderRadius: 24, backgroundColor: c.surfaceRaised }}>
+                <Press key={k.type} onPress={() => router.push(`/passport/${k.type}`)} accessibilityLabel={`${k.name}: ${STATUS_LABEL[k.status]}`} style={{ width: 148, padding: 16, borderRadius: 16, backgroundColor: c.surfaceRaised }}>
                   <Badge icon={st.icon} bg={st.bg} fg={st.fg} size={36} iconSize={18} />
                   <Text variant="label" weight="600" style={{ marginTop: 18 }}>{k.name}</Text>
                   <Text variant="caption" weight="600" color={st.color}>{STATUS_LABEL[k.status]}</Text>
@@ -364,7 +364,7 @@ export default function DogProfile() {
               const i = stepIndex(g);
               const done = isComplete(g);
               return (
-                <Press key={g.id} onPress={() => router.push(`/goal/${g.id}`)} style={{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised, gap: 10 }}>
+                <Press key={g.id} onPress={() => router.push(`/goal/${g.id}`)} style={{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.surfaceRaised, gap: 10 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
                     <Text variant="heading" style={{ flex: 1 }}>{g.title}</Text>
                     <Text variant="caption" muted>{done ? 'Complete' : `Step ${i + 1} of ${g.steps.length}`}</Text>
@@ -375,7 +375,7 @@ export default function DogProfile() {
               );
             })}
             {paths.available.map((g) => (
-              <Press key={g.id} onPress={() => router.push(`/goal/${g.id}`)} style={{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20, borderWidth: 1, borderColor: c.surfaceSunken, gap: 6 }}>
+              <Press key={g.id} onPress={() => router.push(`/goal/${g.id}`)} style={{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 12, borderWidth: 1, borderColor: c.surfaceSunken, gap: 6 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
                   <Text variant="heading" style={{ flex: 1 }}>{g.title}</Text>
                   <Text variant="caption" muted>{`${g.steps.length} steps`}</Text>
@@ -394,7 +394,7 @@ export default function DogProfile() {
           <Text variant="caption" muted style={{ marginBottom: 12 }}>From you. Used to suggest classes and trainers, never to grant access.</Text>
           <View style={{ gap: 8 }}>
             {traits.map((t) => (
-              <View key={t} style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+              <View key={t} style={{ paddingVertical: 14, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.surfaceRaised, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                 <Text variant="label" style={{ flex: 1 }}>{traitLabel(t)}</Text>
                 <Text variant="caption" muted>From you</Text>
               </View>
@@ -404,7 +404,7 @@ export default function DogProfile() {
         </View>
 
         <Section title="Health and care" right={<Button variant="quiet" size="sm" onPress={() => router.push('/vaccines')}>Update</Button>}>
-          <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 16 }}>
+          <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 16, padding: 20, gap: 16 }}>
             {vaccineRows.map((v) => (
               <View key={v.type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View>
@@ -418,7 +418,7 @@ export default function DogProfile() {
           {/* Care notes are sample content: members can't enter them yet, so live builds leave them out. */}
           {isLive ? null : (
             <>
-              <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 28, padding: 20, gap: 14, marginTop: 8 }}>
+              <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 16, padding: 20, gap: 14, marginTop: 8 }}>
                 {careNotes.map(([k, v]) => (
                   <View key={k}>
                     <Text variant="caption" muted>{k}</Text>

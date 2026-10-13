@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { errorCopy, saveClass } from '@/lib/api';
 import { emptyForm, estimate, payloadOf, TYPES, type ClassForm } from '@/lib/classForm';
 import { usePartner } from '@/lib/partner';
-import { Button, ClassCard, Chip, ErrorLine, Field, Row, Tag, photoUrl } from '@/ui/kit';
+import { Badge, Button, ClassCard, Chip, ErrorLine, Field, Ico, Page, Row, photoUrl } from '@/ui/kit';
 import { Clearance, Description, Discipline, DropOff, Duration, Energy, Group, Intensity, Name, PhotoGrid, Requirements, Social, typeLabel, type Patch } from './classParts';
 
 const STEPS: [string, string][] = [['Basics', 'Type, name, photo'], ['Format', 'Length, size, who leads'], ['Who it’s for', 'Fit and requirements'], ['Review', 'Send to PackPass']];
@@ -51,59 +51,59 @@ export function NewClass() {
   const again = () => { setF(emptyForm(f.trainerId)); setStep(0); setSentId(null); };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1240 }}>
-      <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span className="pk-wide pk-muted">Classes · New</span>
-          <h1 className="pk-display-xl" style={{ margin: 0, whiteSpace: 'nowrap' }}>Create a class</h1>
+    <Page>
+      <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span className="pp-caption pp-muted">Classes</span>
+          <h1 className="pp-page-title">Create a class</h1>
         </div>
-        <Button variant="quiet" size="sm" onClick={() => nav('/classes')}>{sentId ? 'Done' : 'Cancel'}</Button>
+        <Button variant="outline" onClick={() => nav('/classes')}>{sentId ? 'Done' : 'Cancel'}</Button>
       </header>
 
       {sentId ? (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start' }}>
-          <div className="card" style={{ flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18, padding: 32 }}>
-            <span style={{ width: 56, height: 56, borderRadius: 9999, background: 'var(--inverse)', color: 'var(--on-inverse)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check size={26} /></span>
-            <h2 className="pk-display-lg" style={{ margin: 0 }}>{`${f.title.trim()} is in review.`}</h2>
-            <p className="pk-body" style={{ margin: 0, maxWidth: 560, textWrap: 'pretty' }}>PackPass reviews new classes and sets the credit cost within 2 business days. The class opens on Book, and you can schedule sessions, once it's live.</p>
-            <Row style={{ paddingTop: 6 }}>
+          <div className="card" style={{ flex: '1 1 400px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14, padding: 28 }}>
+            <span style={{ width: 40, height: 40, borderRadius: 9999, background: 'var(--pitch)', color: 'var(--on-pitch)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check size={20} /></span>
+            <h2 className="pp-headline">{`${f.title.trim()} is in review.`}</h2>
+            <p className="pp-body pp-muted" style={{ margin: 0, maxWidth: 560, textWrap: 'pretty' }}>PackPass reviews new classes and sets the credit cost within 2 business days. The class opens on Book, and you can schedule sessions, once it's live.</p>
+            <Row style={{ paddingTop: 4 }}>
               <Button onClick={() => nav(`/classes?c=${sentId}`)}>See it in Classes</Button>
-              <Button variant="quiet" style={{ background: 'var(--bg)' }} onClick={again}>Create another</Button>
+              <Button variant="outline" onClick={again}>Create another</Button>
             </Row>
           </div>
-          <div style={{ flex: '1 1 280px', maxWidth: 300, minWidth: 0 }}>{card}</div>
+          <div style={{ flex: '0 0 232px' }}>{card}</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start' }}>
-          <nav aria-label="Steps" style={{ flex: '1 1 210px', maxWidth: 250, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <nav aria-label="Steps" style={{ flex: '0 0 180px', display: 'flex', flexDirection: 'column', gap: 2, position: 'sticky', top: 24 }}>
             {STEPS.map(([label, sub], i) => {
               const on = i === step, done = i < step && !needs[i].length, open = i <= reach;
               return (
                 <button key={label} type="button" onClick={() => open && setStep(i)} aria-current={on ? 'step' : undefined} disabled={!open}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px 10px 10px', border: 0, borderRadius: 20, cursor: open ? 'pointer' : 'default', background: on ? 'var(--inverse)' : 'transparent', color: on ? 'var(--on-inverse)' : open ? 'var(--ink)' : 'var(--ink-faint)' }}>
-                  <span style={{ width: 32, height: 32, flex: 'none', borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, background: on ? 'rgba(255,255,255,.16)' : 'var(--surface-raised)' }}>{done ? <Check size={16} /> : i + 1}</span>
-                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'left', minWidth: 0 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
-                    <span style={{ fontSize: 12, opacity: 0.7, whiteSpace: 'nowrap' }}>{sub}</span>
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '6px 8px', border: 0, borderRadius: 8, font: 'inherit', textAlign: 'left', cursor: open ? 'pointer' : 'default', background: on ? 'var(--surface-raised)' : 'transparent', color: on || open ? 'var(--ink)' : 'var(--ink-faint)' }}>
+                  <span style={{ width: 24, height: 24, flex: 'none', borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, background: on ? 'var(--inverse)' : 'transparent', color: on ? 'var(--on-inverse)' : 'inherit', boxShadow: on ? 'none' : 'inset 0 0 0 1px var(--line-strong)' }}>{done ? <Check size={13} /> : i + 1}</span>
+                  <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <span className="pp-label">{label}</span>
+                    <span className="pp-caption" style={{ opacity: 0.75, whiteSpace: 'nowrap' }}>{sub}</span>
                   </span>
                 </button>
               );
             })}
           </nav>
 
-          <div style={{ flex: '999 1 440px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 28 }}>
+          <div style={{ flex: '1 1 360px', minWidth: 0, maxWidth: 600, display: 'flex', flexDirection: 'column', gap: 24 }}>
             {step === 0 ? (
               <>
                 <Field label="Session type">
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8 }}>
                     {TYPES.map((t) => {
                       const on = f.type === t.key, Icon = TYPE_ICON[t.key];
                       return (
                         <button key={t.key} type="button" aria-pressed={on} onClick={() => set({ type: t.key, clearance: null })}
-                          style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6, padding: 16, border: 0, borderRadius: 20, cursor: 'pointer', textAlign: 'left', background: on ? 'var(--inverse)' : 'var(--surface-raised)', color: on ? 'var(--on-inverse)' : 'var(--ink)' }}>
-                          <Icon size={20} />
-                          <span style={{ fontSize: 15, fontWeight: 600 }}>{t.label}</span>
-                          <span style={{ fontSize: 12, lineHeight: '16px', opacity: 0.75, textWrap: 'pretty' }}>{t.note}</span>
+                          style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6, padding: 14, border: 0, borderRadius: 12, cursor: 'pointer', font: 'inherit', textAlign: 'left', background: 'var(--surface)', color: 'var(--ink)', boxShadow: on ? 'inset 0 0 0 1.5px var(--ink)' : 'inset 0 0 0 1px var(--line)' }}>
+                          <Ico icon={Icon} size={20} />
+                          <span className="pp-heading">{t.label}</span>
+                          <span className="pp-caption pp-muted" style={{ textWrap: 'pretty' }}>{t.note}</span>
                         </button>
                       );
                     })}
@@ -116,7 +116,7 @@ export function NewClass() {
                 </Field>
               </>
             ) : step === 1 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: '24px 32px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '20px 24px' }}>
                 <Duration f={f} set={set} />
                 <Intensity f={f} set={set} note />
                 <Group f={f} set={set} />
@@ -129,7 +129,7 @@ export function NewClass() {
                 <Description f={f} set={set} placeholder="Walk an owner through the hour. What does the dog do first, and how does it end?" />
               </div>
             ) : step === 2 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: '24px 32px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: '20px 24px' }}>
                 <Energy f={f} set={set} />
                 {group > 1 ? <Social f={f} set={set} /> : null}
                 <Clearance f={f} set={set} />
@@ -137,7 +137,7 @@ export function NewClass() {
                 <DropOff f={f} set={set} />
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ borderRadius: 16, boxShadow: 'inset 0 0 0 1px var(--line)', overflow: 'hidden' }}>
                 <Review title="Basics" onEdit={() => setStep(0)} rows={[['Type', typeLabel(f.type)], ['Name', f.title || '—'], ['Discipline', f.discipline || '—'], ['Cover photo', f.image ? 'Chosen' : '—']]} />
                 <Review title="Format" onEdit={() => setStep(1)} rows={[
                   ['Duration', `${f.duration} min`], ['Intensity', `${f.intensity} of 5`], ['Group size', `${group} ${group === 1 ? 'dog' : 'dogs'}`], ['Location', partner.street || partner.name],
@@ -146,51 +146,51 @@ export function NewClass() {
                 <Review title="Who it’s for" onEdit={() => setStep(2)} rows={[
                   ['Energy', f.energy.join(', ') || '—'], ...(group > 1 ? [['With other dogs', f.social.join(', ') || '—'] as [string, string]] : []),
                   [f.type === 'assessment' ? 'Grants' : 'Requires', f.clearance === 'social' ? 'Social' : f.clearance === 'herding' ? 'Herding' : 'No clearance'], ['Requirements', f.reqs.join(', ') || 'None'],
-                  ...(f.type === 'class' ? [['Owners', f.dropOff ? <Tag tone="signal">Drop-off</Tag> : 'Stay with their dog'] as [string, ReactNode]] : []),
+                  ...(f.type === 'class' ? [['Owners', f.dropOff ? <Badge>Drop-off</Badge> : 'Stay with their dog'] as [string, ReactNode]] : []),
                 ]} />
-                <div className="card" style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <span className="pk-title">What happens in the session</span>
-                  <p className="pk-body" style={{ margin: 0, textWrap: 'pretty' }}>{f.description}</p>
+                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <span className="pp-title">What happens in the session</span>
+                  <p className="pp-body" style={{ margin: 0, textWrap: 'pretty' }}>{f.description}</p>
                 </div>
               </div>
             )}
 
-            {missing.length ? <span className="pk-caption" style={{ color: 'var(--kennel-red)', fontWeight: 600 }}>{missing.join(' · ')}</span> : null}
-            <Row gap={10}>
-              {step > 0 ? <Button variant="quiet" onClick={() => setStep(step - 1)}>Back</Button> : null}
+            {missing.length ? <span className="pp-caption" style={{ color: 'var(--kennel-red)' }}>{missing.join(' · ')}</span> : null}
+            <Row gap={8}>
+              {step > 0 ? <Button variant="outline" onClick={() => setStep(step - 1)}>Back</Button> : null}
               <Button disabled={missing.length > 0 || busy} onClick={next}>{step === 3 ? (busy ? 'Sending…' : 'Send for review') : 'Continue'}</Button>
               <ErrorLine>{error}</ErrorLine>
             </Row>
           </div>
 
-          <aside style={{ flex: '1 1 280px', maxWidth: 300, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 24 }}>
-            <span className="pk-wide pk-muted">Member preview</span>
+          <aside style={{ flex: '0 0 232px', display: 'flex', flexDirection: 'column', gap: 12, position: 'sticky', top: 24 }}>
+            <span className="pp-caption pp-muted">Member preview</span>
             {card}
-            <div className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
-                <span className="pk-label" style={{ fontWeight: 600 }}>Likely credit cost</span>
-                <span className="pk-display-md">{`${est} credit${est > 1 ? 's' : ''}`}</span>
+                <span className="pp-label">Likely credit cost</span>
+                <span className="pp-title pp-num">{`${est} credit${est > 1 ? 's' : ''}`}</span>
               </div>
-              <span className="pk-caption pk-muted" style={{ textWrap: 'pretty' }}>Estimated from duration, intensity and group size. PackPass confirms it in review.</span>
+              <span className="pp-caption pp-muted" style={{ textWrap: 'pretty' }}>Estimated from duration, intensity and group size. PackPass confirms it in review.</span>
             </div>
           </aside>
         </div>
       )}
-    </div>
+    </Page>
   );
 }
 
 function Review({ title, rows, onEdit }: { title: string; rows: [string, ReactNode][]; onEdit: () => void }) {
   return (
-    <div className="card" style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span className="pk-title">{title}</span>
-        <button type="button" className="link" style={{ alignSelf: 'center', fontSize: 14 }} onClick={onEdit}>Edit</button>
+    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8, boxShadow: 'inset 0 -1px 0 var(--line)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <span className="pp-title">{title}</span>
+        <Button variant="ghost" size="sm" onClick={onEdit}>Edit</Button>
       </div>
       {rows.map(([k, v]) => (
         <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
-          <span className="pk-label pk-muted">{k}</span>
-          <span className="pk-label" style={{ fontWeight: 600, textAlign: 'right' }}>{v}</span>
+          <span className="pp-caption pp-muted">{k}</span>
+          <span className="pp-label" style={{ textAlign: 'right' }}>{v}</span>
         </div>
       ))}
     </div>

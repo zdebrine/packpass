@@ -83,12 +83,12 @@ export default function BookingSheet() {
   const body = (
     done ? (
       <>
-        <View style={{ height: 260, borderRadius: 28, overflow: 'hidden', ...(wide ? { marginTop: 40 } : null) }}>
+        <View style={{ height: 260, borderRadius: 16, overflow: 'hidden', ...(wide ? { marginTop: 40 } : null) }}>
           <PhotoFill name={cls.image} />
           <Scrim />
           <View style={{ position: 'absolute', top: 14, left: 14 }}><Tag tone="glass">{allowance ? `${credits} of ${allowance} credits left` : `${creditsLabel(credits)} left`}</Tag></View>
           <View style={{ position: 'absolute', left: 20, right: 20, bottom: 18 }}>
-            <Text variant="display2xl" color="#fff" accessibilityRole="header" accessibilityLiveRegion="polite">Booked.</Text>
+            <Text variant="hero" color="#fff" accessibilityRole="header" accessibilityLiveRegion="polite">Booked.</Text>
             <Text color="#fff" style={{ marginTop: 8 }}>{`${cls.title}, ${dayTimeInline(session.startsAt)}.`}</Text>
           </View>
         </View>
@@ -119,7 +119,7 @@ export default function BookingSheet() {
           ))}
         </View>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: wide ? 24 : 22, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.surfaceRaised }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: wide ? 24 : 22, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text>{creditsLabel(cost)}</Text>
             {cls.dropOff ? <Tag>Drop-off</Tag> : null}
@@ -130,7 +130,7 @@ export default function BookingSheet() {
         </View>
 
         {error ? (
-          <View style={{ marginTop: 16, paddingVertical: 14, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.kennelRedSoft }} accessibilityLiveRegion="polite">
+          <View style={{ marginTop: 16, paddingVertical: 14, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.kennelRedSoft }} accessibilityLiveRegion="polite">
             <Text variant="label" weight="600" color={c.kennelRed}>{error}</Text>
           </View>
         ) : null}
@@ -182,7 +182,7 @@ export default function BookingSheet() {
 
       <Animated.View
         entering={SlideInDown.duration(motion.base).easing(ease)}
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: c.bg, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 10, paddingHorizontal: 20, paddingBottom: bottom }}
+        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: c.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 10, paddingHorizontal: 20, paddingBottom: bottom }}
         accessibilityViewIsModal
       >
         <Grabber />

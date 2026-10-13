@@ -31,15 +31,15 @@ export function Staff() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, maxWidth: 1040 }}>
-      <header style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <span className="pk-wide pk-muted">PackPass · Staff</span>
-        <h1 className="pk-display-xl" style={{ margin: 0 }}>Staff accounts</h1>
-        <span className="pk-label pk-muted">Link a PackPass account to a partner so it opens their dashboard, usually a new partner’s first owner. The person creates an account first; owners add the rest of their team on Team.</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1040, margin: '0 auto', width: '100%' }}>
+      <header style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span className="pp-caption pp-muted">PackPass · Staff</span>
+        <h1 className="pp-page-title" style={{ margin: 0 }}>Staff accounts</h1>
+        <span className="pp-label pp-muted">Link a PackPass account to a partner so it opens their dashboard, usually a new partner’s first owner. The person creates an account first; owners add the rest of their team on Team.</span>
       </header>
 
       <section className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <h2 className="pk-title" style={{ margin: 0 }}>Link an account</h2>
+        <h2 className="pp-title" style={{ margin: 0 }}>Link an account</h2>
         <Field label="Email"><input className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="owner@theirbusiness.com" style={{ background: 'var(--bg)' }} /></Field>
         <Field label="Partner">
           <Row gap={6}>{data.partners.map((p) => <Chip key={p.id} on={partner === p.id} onClick={() => { setPartner(p.id); setTrainer(null); }}>{p.name}</Chip>)}</Row>
@@ -57,12 +57,12 @@ export function Staff() {
         ) : null}
         <Row gap={12}>
           <Button disabled={busy || !email.includes('@') || !partner} onClick={link}>{busy ? 'Linking…' : 'Link account'}</Button>
-          {msg ? (msg.ok ? <span className="pk-label" style={{ color: 'var(--turf)', fontWeight: 600 }}>{msg.text}</span> : <ErrorLine>{msg.text}</ErrorLine>) : null}
+          {msg ? (msg.ok ? <span className="pp-label" style={{ color: 'var(--turf)', fontWeight: 600 }}>{msg.text}</span> : <ErrorLine>{msg.text}</ErrorLine>) : null}
         </Row>
       </section>
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <h2 className="pk-title" style={{ margin: 0 }}>{`Linked · ${data.staff.length}`}</h2>
+        <h2 className="pp-title" style={{ margin: 0 }}>{`Linked · ${data.staff.length}`}</h2>
         {data.staff.map((s) => (
           <StaffRow key={s.user_id} s={s} onDone={reload}
             lastOwner={s.role === 'owner' && data.staff.filter((x) => x.partner_id === s.partner_id && x.role === 'owner').length === 1} />
@@ -81,17 +81,17 @@ function StaffRow({ s, lastOwner, onDone }: { s: AdminStaff; lastOwner: boolean;
     try { await unlinkStaff(s.user_id); onDone(); } catch (e) { setError(errorCopy(e)); setBusy(false); }
   };
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', borderRadius: 20, background: 'var(--surface-raised)', flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, boxShadow: 'inset 0 0 0 1px var(--line)', flexWrap: 'wrap' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 180 }}>
-        <span className="pk-label" style={{ fontWeight: 600 }}>{s.name || s.email}</span>
-        <span className="pk-caption pk-muted">{s.email}</span>
+        <span className="pp-label" style={{ fontWeight: 600 }}>{s.name || s.email}</span>
+        <span className="pp-caption pp-muted">{s.email}</span>
       </div>
-      <span className="pk-label">{s.partner_name}</span>
+      <span className="pp-label">{s.partner_name}</span>
       <Tag>{s.role === 'owner' ? 'Owner' : 'Trainer'}</Tag>
-      {s.trainer_name ? <span className="pk-caption pk-muted">{`as ${s.trainer_name}`}</span> : null}
+      {s.trainer_name ? <span className="pp-caption pp-muted">{`as ${s.trainer_name}`}</span> : null}
       {confirm ? (
         <Row gap={8} wrap={false}>
-          <span className="pk-caption" style={{ color: lastOwner ? 'var(--kennel-red)' : undefined }}>
+          <span className="pp-caption" style={{ color: lastOwner ? 'var(--kennel-red)' : undefined }}>
             {lastOwner ? `${s.partner_name} will have no owner.` : 'They keep their PackPass account.'}
           </span>
           <Button size="sm" disabled={busy} onClick={remove} style={{ background: 'var(--kennel-red)', color: '#fff' }}>{busy ? 'Removing…' : 'Remove'}</Button>

@@ -1,11 +1,12 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import type { PhotoSource } from '@/data/types';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radius } from '@/theme/tokens';
-import { Tag } from './controls';
+import { StatusBadge, Tag } from './controls';
 import { Press } from './Press';
-import { Glass, Gradient, Photo, PhotoFill, Scrim } from './Surface';
+import { Glass, Gradient, Photo, PhotoFill } from './Surface';
 import { Text } from './Text';
 
 const spotsCopy = (n: number) => (n === 0 ? 'Full. Waitlist open' : n === 1 ? 'Last spot' : `${n} spots left`);
@@ -38,47 +39,41 @@ export function ClassCard({ layout = 'tile', image, discipline, premium, dropOff
 
   if (layout === 'row') {
     return (
-      <Press onPress={onPress} scale={!!onPress} style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }} accessibilityLabel={title}>
-        <View style={{ width: 88, height: 88, borderRadius: radius.tile, overflow: 'hidden', backgroundColor: c.surfaceSunken }}>
+      <Press onPress={onPress} scale={!!onPress} style={{ flexDirection: 'row', gap: 12, alignItems: 'center', paddingVertical: 8 }} accessibilityLabel={title}>
+        <View style={{ width: 64, height: 64, borderRadius: radius.thumb, overflow: 'hidden', backgroundColor: c.surfaceSunken }}>
           <Photo name={image} style={StyleSheet.absoluteFill} />
         </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.meta} color={c.inkMuted}>{[time, duration].filter(Boolean).join(' · ')}</Text>
-          <Text style={[styles.title, { fontSize: 18, lineHeight: 20, marginTop: 4 }]} numberOfLines={2}>{title}</Text>
-          <Text style={[styles.meta, { marginTop: 6 }]} color={c.inkMuted} numberOfLines={1}>{[partner, place].filter(Boolean).join(' · ')}</Text>
-          {hasSpots ? (
-            <View style={styles.spots}>
-              {dot()}
-              <Text variant="caption" weight="600">{spotsCopy(spotsLeft!)}</Text>
-            </View>
-          ) : null}
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Text variant="heading" numberOfLines={2}>{title}</Text>
+          <Text variant="caption" muted numberOfLines={1}>{[time, duration, partner, place].filter(Boolean).join(' · ')}</Text>
+          {hasSpots ? <Text variant="caption" color={spotsLeft! <= 1 ? c.kennelRed : c.inkMuted}>{spotsCopy(spotsLeft!)}</Text> : null}
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ fontFamily: fonts.display, fontSize: 20, lineHeight: 20 }}>{credits}</Text>
-          <Text style={{ fontFamily: fonts.sansMedium, fontSize: 11, lineHeight: 14 }} color={c.inkMuted}>{credits === 1 ? 'credit' : 'credits'}</Text>
+        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+          <Text variant="heading" weight="600" num>{credits}</Text>
+          <Text style={{ fontFamily: fonts.sans, fontSize: 11, lineHeight: 14 }} color={c.inkMuted}>{credits === 1 ? 'credit' : 'credits'}</Text>
         </View>
       </Press>
     );
   }
 
   return (
-    <Press onPress={onPress} style={{ width: 260, height: 320, borderRadius: radius.card, overflow: 'hidden', backgroundColor: c.surfaceSunken }} accessibilityLabel={title}>
+    <Press onPress={onPress} style={{ width: 232, height: 280, borderRadius: radius.photo, overflow: 'hidden', backgroundColor: c.surfaceSunken }} accessibilityLabel={title}>
       <PhotoFill name={image} />
-      <Scrim />
+      <Gradient stops={[['rgba(0,0,0,0.18)', 0], ['rgba(0,0,0,0)', 0.3], ['rgba(0,0,0,0)', 0.45], ['rgba(0,0,0,0.66)', 1]]} />
       <View style={styles.tileTop}>
-        <View style={{ flexDirection: 'row', gap: 6 }}>
+        <View style={{ flexDirection: 'row', gap: 6, flexShrink: 1 }}>
           {premium ? <Tag tone="premium">Premium</Tag> : discipline ? <Tag tone="glass">{discipline}</Tag> : null}
           {dropOff ? <Tag tone="glass">Drop-off</Tag> : null}
         </View>
         <Tag tone="glass">{creditLabel(credits)}</Tag>
       </View>
       <View style={styles.tileBody}>
-        <Text style={[styles.title, { color: '#fff' }]}>{title}</Text>
-        <Text style={[styles.meta, { marginTop: 6 }]} color="rgba(255,255,255,0.82)">{[time, partner, place].filter(Boolean).join(' · ')}</Text>
+        <Text variant="title" color="#fff">{title}</Text>
+        <Text variant="caption" color="rgba(255,255,255,0.84)">{[time, partner, place].filter(Boolean).join(' · ')}</Text>
         {hasSpots ? (
-          <View style={[styles.spots, { marginTop: 10 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             {dot()}
-            <Text variant="caption" weight="600" color="#fff">{spotsCopy(spotsLeft!)}</Text>
+            <Text variant="caption" weight="500" color="#fff">{spotsCopy(spotsLeft!)}</Text>
           </View>
         ) : null}
       </View>
@@ -98,25 +93,26 @@ export interface AthleteCardProps {
   streak?: number;
   stats?: { value: number | string; label: string }[];
   compact?: boolean;
+  /** Compact only: replaces the streak badge (Today puts the credit count here). */
+  trailing?: ReactNode;
 }
 
-export function AthleteCard({ name, photo, breed, age, stage, since, streak, stats = [], compact }: AthleteCardProps) {
+export function AthleteCard({ name, photo, breed, age, stage, since, streak, stats = [], compact, trailing }: AthleteCardProps) {
   const { c } = useTheme();
   const sub = [breed, age, stage].filter(Boolean).join(' · ');
   const streakTag = streak ? <Tag tone="signal">{`${streak} day streak`}</Tag> : null;
 
   if (compact) {
     return (
-      <View style={{ minHeight: 108, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 12, borderRadius: radius.card, backgroundColor: c.surfaceRaised }}>
-        <View style={{ width: 84, height: 84, borderRadius: radius.tile, overflow: 'hidden', backgroundColor: c.pitch, alignItems: 'center', justifyContent: 'center' }}>
-          {photo ? <PhotoFill name={photo} /> : <Text style={{ fontFamily: fonts.wideBold, fontSize: 44, color: 'rgba(255,255,255,0.5)' }}>{name.charAt(0)}</Text>}
+      <View style={{ height: 72, flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 8, paddingRight: 12, borderRadius: radius.card, backgroundColor: c.surfaceRaised }}>
+        <View style={{ width: 56, height: 56, borderRadius: radius.thumb, overflow: 'hidden', backgroundColor: c.pitch, alignItems: 'center', justifyContent: 'center' }}>
+          {photo ? <PhotoFill name={photo} /> : <Text style={{ fontFamily: fonts.wideBold, fontSize: 28, color: 'rgba(255,255,255,0.5)' }}>{name.charAt(0)}</Text>}
         </View>
-        {/* No minWidth 0: a narrow card wraps the breed line, never the dog's name mid-word. */}
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontFamily: fonts.display, fontSize: 28, lineHeight: 28, letterSpacing: -0.84 }}>{name}</Text>
-          <Text style={{ fontFamily: fonts.sansMedium, fontSize: 13, lineHeight: 18, marginTop: 4 }} color={c.inkMuted}>{sub}</Text>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={{ fontFamily: fonts.display, fontSize: 22, lineHeight: 24, letterSpacing: -0.44 }} numberOfLines={1}>{name}</Text>
+          {sub ? <Text variant="caption" muted style={{ fontSize: 12, lineHeight: 16, marginTop: 2 }} numberOfLines={1}>{sub}</Text> : null}
         </View>
-        <View style={{ alignSelf: 'flex-start' }}>{streakTag}</View>
+        {trailing ?? (streak ? <StatusBadge tone="signal">{`${streak} day streak`}</StatusBadge> : null)}
       </View>
     );
   }
@@ -136,7 +132,7 @@ export function AthleteCard({ name, photo, breed, age, stage, since, streak, sta
         {streakTag}
       </View>
       <View style={{ position: 'absolute', left: 20, right: 20, bottom: 20 }}>
-        <Text style={{ fontFamily: fonts.display, fontSize: 64, lineHeight: 60, letterSpacing: -1.92, color: '#fff' }} numberOfLines={1} adjustsFontSizeToFit>{name}</Text>
+        <Text style={{ fontFamily: fonts.display, fontSize: 56, lineHeight: 52, letterSpacing: -1.68, color: '#fff' }} numberOfLines={1} adjustsFontSizeToFit>{name}</Text>
         <Text variant="label" color="rgba(255,255,255,0.85)" style={{ marginTop: 8 }}>{sub}</Text>
         {stats.length ? (
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
@@ -154,9 +150,6 @@ export function AthleteCard({ name, photo, breed, age, stage, since, streak, sta
 }
 
 const styles = StyleSheet.create({
-  title: { fontFamily: fonts.display, fontSize: 24, lineHeight: 25, letterSpacing: -0.48 },
-  meta: { fontFamily: fonts.sans, fontSize: 13, lineHeight: 18 },
-  spots: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
-  tileTop: { position: 'absolute', top: 14, left: 14, right: 14, flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  tileBody: { position: 'absolute', left: 18, right: 18, bottom: 18 },
+  tileTop: { position: 'absolute', top: 12, left: 12, right: 12, flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
+  tileBody: { position: 'absolute', left: 16, right: 16, bottom: 16, gap: 4 },
 });
