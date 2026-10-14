@@ -61,3 +61,21 @@ test('a partner uploads a trainer photo', async ({ page }) => {
   await expect.poll(() => sql(`select photo_url from trainers where id = '${trainer[0]}'`)).toMatch(/^eastside\/.+\.jpg$/);
   expect(sql(`select count(*) from storage.objects where bucket_id = 'partner-media' and name like 'eastside/%'`)).not.toBe('0');
 });
+
+test('picking Herding makes a new class built for herding breeds, and the preview counts who can book', async ({ page }) => {
+  const member = await account(`collie-${Date.now()}@example.com`, 'goodpass123');
+  sql(`insert into dogs (owner_id, name, breed, birth_year, weight_lb) values ('${member}', 'Kep', 'Border Collie', 2022, 40)`);
+  await signIn(page);
+  await page.goto('/classes/new');
+  await page.getByLabel('Class name').fill('Herding basics');
+  await page.getByRole('button', { name: 'Herding', exact: true }).click();
+  await page.getByRole('button', { name: 'Use the dog chilling photo' }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('What happens in the session').fill('Dogs meet a small flock of ducks on a long line with the trainer.');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  // Step 3: the discipline filled in who it's for, and the preview says how many dogs could book it.
+  await expect(page.getByRole('button', { name: 'Herding', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: '25 lb+' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: '1 year+' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText(/PackPass dogs? can book this · \d+ (is a Built for match|are Built for matches)/)).toBeVisible();
+});

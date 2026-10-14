@@ -8,7 +8,7 @@ import { useData, usePartner } from '@/lib/partner';
 import { credits } from '@/lib/sessions';
 import { addDays, austin, mondayOf } from '@/lib/time';
 import { Badge, Button, ClassCard, Chip, EmptyState, ErrorLine, Field, Modal, Page, PageHead, Row, Tag, photoUrl } from '@/ui/kit';
-import { Ages, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PhotoGrid, Requirements, Sizes, Social, TypeChips, typeLabel, type Patch } from './classParts';
+import { Ages, BuiltFor, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PhotoGrid, Reach, Requirements, Sizes, Social, TypeChips, typeLabel, type Patch } from './classParts';
 
 const STATUS: Record<ClassType['status'], string> = { live: 'Live', in_review: 'In review', paused: 'Paused' };
 
@@ -123,6 +123,7 @@ function Editor({ cls, partnerName, gym, trainers }: { cls: ClassType; partnerNa
           <div style={{ gridColumn: '1/-1' }}><Requirements f={f} set={set} /></div>
           <Fixed f={f} set={set} />
           <DropOff f={f} set={set} />
+          <div style={{ gridColumn: '1/-1' }}><BuiltFor f={f} set={set} /></div>
           {gym ? (
             <Field label="Lead trainer">
               <Row gap={6}>{trainers.map((t) => <Chip key={t.id} on={f.trainerId === t.id} onClick={() => set({ trainerId: t.id })}>{t.name}</Chip>)}</Row>
@@ -142,6 +143,7 @@ function Editor({ cls, partnerName, gym, trainers }: { cls: ClassType; partnerNa
           </div>
           <div style={{ position: 'absolute', left: 12, right: 12, bottom: 12 }}><Button variant="glass" size="sm" icon={ImageIcon} onClick={() => setPhotos(true)}>Replace photo</Button></div>
         </div>
+        <Reach f={f} />
         <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
             <span className="pp-stat-label">Credit cost</span>

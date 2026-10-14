@@ -3,10 +3,10 @@ import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { errorCopy, saveClass } from '@/lib/api';
-import { ageLabel, emptyForm, estimate, payloadOf, sizeLabel, TYPES, type ClassForm } from '@/lib/classForm';
+import { ageLabel, APTITUDES, emptyForm, estimate, payloadOf, sizeLabel, TYPES, type ClassForm } from '@/lib/classForm';
 import { usePartner } from '@/lib/partner';
 import { Badge, Button, ClassCard, Chip, ErrorLine, Field, Ico, Page, Row, photoUrl } from '@/ui/kit';
-import { Ages, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PhotoGrid, Requirements, Sizes, Social, typeLabel, type Patch } from './classParts';
+import { Ages, BuiltFor, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PhotoGrid, Reach, Requirements, Sizes, Social, typeLabel, type Patch } from './classParts';
 
 const STEPS: [string, string][] = [['Basics', 'Type, name, photo'], ['Format', 'Length, size, who leads'], ['Who it’s for', 'Fit and requirements'], ['Review', 'Send to PackPass']];
 const TYPE_ICON = { class: Users, private: UserRound, assessment: ShieldCheck };
@@ -110,7 +110,7 @@ export function NewClass() {
                   </div>
                 </Field>
                 <Name f={f} set={set} placeholder="Say what the dog does, like Scent Work I" />
-                <Discipline f={f} set={set} />
+                <Discipline f={f} set={set} prefill />
                 <Field label="Cover photo" note="Outdoor, in motion, one dog clearly in frame. Members see this first.">
                   <PhotoGrid value={f.image} onPick={(image) => set({ image })} />
                 </Field>
@@ -137,6 +137,7 @@ export function NewClass() {
                 <Sizes f={f} set={set} />
                 <Requirements f={f} set={set} />
                 <Fixed f={f} set={set} />
+                <div style={{ gridColumn: '1/-1' }}><BuiltFor f={f} set={set} /></div>
                 <DropOff f={f} set={set} />
               </div>
             ) : (
@@ -149,7 +150,8 @@ export function NewClass() {
                 <Review title="Who it’s for" onEdit={() => setStep(2)} rows={[
                   ['Energy', f.energy.join(', ') || '—'], ...(group > 1 ? [['With other dogs', f.social.join(', ') || '—'] as [string, string]] : []),
                   [f.type === 'assessment' ? 'Grants' : 'Requires', f.clearance === 'social' ? 'Social' : f.clearance === 'herding' ? 'Herding' : 'No clearance'], ['Ages', ageLabel(f.age) ?? 'Any age'], ['Size', sizeLabel(f.size) ?? 'Any size'],
-                  ...(f.fixed ? [['Spayed or neutered', 'Required'] as [string, string]] : []), ['Requirements', f.reqs.join(', ') || 'None'],
+                  ...(f.fixed ? [['Spayed or neutered', 'Required'] as [string, string]] : []),
+                  ['Built for', f.builtFor.map((k) => APTITUDES.find((a) => a.key === k)?.label ?? k).join(', ') || 'Any breed'], ['Requirements', f.reqs.join(', ') || 'None'],
                   ...(f.type === 'class' ? [['Owners', f.dropOff ? <Badge>Drop-off</Badge> : 'Stay with their dog'] as [string, ReactNode]] : []),
                 ]} />
                 <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -170,6 +172,7 @@ export function NewClass() {
           <aside style={{ flex: '0 0 232px', display: 'flex', flexDirection: 'column', gap: 12, position: 'sticky', top: 24 }}>
             <span className="pp-caption pp-muted">Member preview</span>
             {card}
+            <Reach f={f} />
             <div className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
                 <span className="pp-label">Likely credit cost</span>

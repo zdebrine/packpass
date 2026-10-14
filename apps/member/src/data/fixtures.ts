@@ -1,6 +1,7 @@
 // Sample data for v1. Every value comes from `project/Pack Member App.dc.html` unless noted.
 // The app's clock is fixed to the moment the design depicts: Tuesday, Sep 29 2026, 9:41 am.
 
+import type { Aptitude } from './breeds';
 import type { TraitGroup } from './traits';
 import type { ClassType, Dog, Partner, PhotoKey, Session, Trainer } from './types';
 
@@ -38,8 +39,10 @@ export const photoKey = (k: string | null | undefined): PhotoKey | undefined =>
 
 
 export const dogs: Record<string, Dog> = {
-  juno: { id: 'juno', name: 'Juno', photo: 'juno', breed: 'Border Collie', breedIds: ['border-collie'], age: '3 yrs', stage: 'Prime', since: 2026, birthYear: 2023, birthMonth: 3, weightLb: 38, fixed: true },
-  otis: { id: 'otis', name: 'Otis', photo: 'dog_sleeping_while_owner_reads', breed: 'Labrador Retriever', breedIds: ['labrador-retriever'], age: '6 yrs', stage: 'Prime', since: 2026, birthYear: 2020, weightLb: 72, fixed: true },
+  juno: { id: 'juno', name: 'Juno', photo: 'juno', breed: 'Border Collie', breedIds: ['border-collie'], age: '3 yrs', stage: 'Prime', since: 2026, birthYear: 2023, birthMonth: 3, weightLb: 38, fixed: true,
+    energy: 'working', social: 'Loves dogs', interests: ['Herding', 'Sprint', 'Scent'] },
+  otis: { id: 'otis', name: 'Otis', photo: 'dog_sleeping_while_owner_reads', breed: 'Labrador Retriever', breedIds: ['labrador-retriever'], age: '6 yrs', stage: 'Prime', since: 2026, birthYear: 2020, weightLb: 72, fixed: true,
+    energy: 'medium', social: 'Loves dogs', interests: [] },
 };
 
 export const partners: Record<string, Partner> = {
@@ -65,7 +68,11 @@ const FIXED = { icon: 'stethoscope', text: 'Spayed or neutered' } as const;
 
 // Descriptions for classes the design doesn't detail are written in the same voice.
 // No sample class is drop-off. Classes with the "12 months or older" requirement gate on it too.
-const C = (c: Omit<ClassType, 'dropOff'>): ClassType => ({ ...c, dropOff: false, minAgeMonths: c.minAgeMonths ?? (c.requirements.includes(AGE) ? 12 : undefined) });
+/** What each discipline is built for by default, as the partner editor prefills it. */
+const BUILT_FOR: Record<string, Aptitude[]> = { Herding: ['herding'], Sprint: ['sighthound'], Scent: ['scenthound'] };
+const C = (c: Omit<ClassType, 'dropOff'>): ClassType => ({
+  ...c, dropOff: false, minAgeMonths: c.minAgeMonths ?? (c.requirements.includes(AGE) ? 12 : undefined), builtFor: c.builtFor ?? BUILT_FOR[c.discipline] ?? [],
+});
 export const classes: Record<string, ClassType> = {
   'herding-fundamentals': C({
     id: 'herding-fundamentals', title: 'Herding Fundamentals', discipline: 'Herding', category: 'Sport', sessionType: 'Class',

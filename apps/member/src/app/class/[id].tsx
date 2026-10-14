@@ -10,12 +10,14 @@ import { Press } from '@/ds/Press';
 import { col, Columns, Page, tile, useWide, web } from '@/ds/responsive';
 import { Photo, PhotoFill, Gradient } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
+import { useFit } from '@/features/book/useFit';
 import { WaitlistActions } from '@/features/book/Waitlist';
 import { Map, useMe } from '@/features/Map';
 import { assessmentFor, bookingFor, cancelRefund, checkInClosesAt, credits as creditsLabel, eligibility, view } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { cancelCopy, dayTime, monthDay, relativeDay, time } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
+import { builtForLabel, builtForList } from '@/lib/fit';
 import { useAllowance, useApp, useDog, useOriginLabel, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -49,6 +51,7 @@ export default function ClassDetail() {
   const v = view(id);
   const juno = useDog();
   const rules = useRules();
+  const fit = useFit();
   const onCalmPath = useApp((s) => s.activePaths.includes('calm-around-dogs'));
   const bookings = useApp((s) => s.bookings);
   const vaccines = useApp((s) => s.vaccines);
@@ -137,6 +140,16 @@ export default function ClassDetail() {
       ) : null}
     </>
   );
+  // Who the class is built for. Breed never gates it, so a dog that isn't a match hears the class is open to it.
+  const built = cls.builtFor?.length ? fit(cls).builtFor : null;
+  const builtRow = cls.builtFor?.length ? (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
+      <Icon name="sparkles" size={16} />
+      <Text variant="label" style={{ flex: 1 }}>
+        {built ? `${builtForLabel(built)}. ${juno.name} is ${/^[aeiou]/i.test(juno.breed) ? 'an' : 'a'} ${juno.breed}.` : `Open to all breeds. ${builtForList(cls.builtFor)}.`}
+      </Text>
+    </View>
+  ) : null;
   const stats = (
     <>
       <Stat cell={statCell} label="Duration"><Text variant="heading" style={{ marginTop: 4 }}>{`${cls.durationMin} min`}</Text></Stat>
@@ -307,6 +320,7 @@ export default function ClassDetail() {
             <View onLayout={(e) => setStatsW(e.nativeEvent.layout.width)} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {stats}
             </View>
+            {builtRow}
             {cls.dropOff ? (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
                 <Tag>Drop-off</Tag>
@@ -378,6 +392,7 @@ export default function ClassDetail() {
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {stats}
           </View>
+          {builtRow}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
             <View style={{ width: 8, height: 8, borderRadius: 9999, backgroundColor: c.turf }} />
             <Text variant="label">{`Adds to ${juno.name}'s month: ${cls.balance.toLowerCase()}`}</Text>

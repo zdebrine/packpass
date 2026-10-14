@@ -1,5 +1,8 @@
 // Client types. These mirror the Supabase schema planned in docs/TECH_SPEC.md §5.
 
+import type { Aptitude } from './breeds';
+import type { Energy } from './fixtures';
+
 /** A photo in assets/photos, named for what it shows. */
 export type PhotoKey =
   | 'athletic_dog_catching_ball'
@@ -82,6 +85,12 @@ export interface ClassType {
   maxWeightLb?: number;
   /** Spayed or neutered dogs only. */
   requiresFixed?: boolean;
+  // Fit (fitFor in src/lib/fit.ts): ranks the class for each dog, never hides it.
+  /** Breed aptitudes the class is built for. Dogs that share one see it first with a "Built for" tag. */
+  builtFor?: Aptitude[];
+  /** Energy levels and sociability ("Loves dogs"…) the partner picked. Empty: judged from intensity and group size. */
+  energy?: Energy[];
+  sociability?: string[];
 }
 
 export interface Session {
@@ -202,6 +211,11 @@ export interface Dog {
   birthMonth?: number;
   weightLb?: number;
   fixed?: boolean;
+  /** From onboarding (01g), for class fit. */
+  energy?: Energy;
+  /** "Loves dogs", "Selective" or "Prefers solo". */
+  social?: string;
+  interests?: string[];
   /** What the owner picked in onboarding (01h), e.g. "Pulls on the leash". Live mode only. */
   traits?: string[];
 }

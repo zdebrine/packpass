@@ -1,11 +1,11 @@
 // Field groups shared by the class editor (03 Classes) and the new-class steps (03b).
 import { Upload } from 'lucide-react';
-import { useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
-import { errorCopy, uploadPartnerPhoto, type SessionType } from '@/lib/api';
+import { errorCopy, loadReach, uploadPartnerPhoto, type SessionType } from '@/lib/api';
 import { usePartner } from '@/lib/partner';
 import { isUpload } from '@/lib/photos';
-import { AGES, DISCIPLINES, ENERGY, PHOTOS, REQS, SIZES, SOCIAL, TYPES, ageLabel, sizeLabel, type ClassForm, type Range } from '@/lib/classForm';
+import { AGES, APTITUDES, DISCIPLINE_DEFAULTS, DISCIPLINES, ENERGY, PHOTOS, REQS, SIZES, SOCIAL, TYPES, ageLabel, emptyForm, payloadOf, sizeLabel, type ClassForm, type Range } from '@/lib/classForm';
 import { Chip, ErrorLine, Field, Ico, Row, Segmented, Stepper, Toggle, photoUrl } from '@/ui/kit';
 
 export type Patch = (p: Partial<ClassForm>) => void;
@@ -21,8 +21,22 @@ export const Name = ({ f, set, placeholder }: { f: ClassForm; set: Patch; placeh
   </label>
 );
 
-export const Discipline = ({ f, set }: { f: ClassForm; set: Patch }) => (
-  <Field label="Discipline"><Row gap={6}>{DISCIPLINES.map((d) => <Chip key={d} on={f.discipline === d} onClick={() => set({ discipline: d })}>{d}</Chip>)}</Row></Field>
+/** Who it's for, as a discipline prefills it (or a new class's blank form). */
+const whoFor = (discipline: string | null) => {
+  const blank = emptyForm(null);
+  return DISCIPLINE_DEFAULTS[discipline ?? ''] ?? { builtFor: blank.builtFor, age: blank.age, size: blank.size };
+};
+const sameWho = (f: ClassForm, w: ReturnType<typeof whoFor>) => JSON.stringify([f.builtFor, f.age, f.size]) === JSON.stringify([w.builtFor, w.age, w.size]);
+
+/** With `prefill` (a new class), picking a discipline also sets Built for, ages and size, unless the partner changed them. */
+export const Discipline = ({ f, set, prefill }: { f: ClassForm; set: Patch; prefill?: boolean }) => (
+  <Field label="Discipline">
+    <Row gap={6}>
+      {DISCIPLINES.map((d) => (
+        <Chip key={d} on={f.discipline === d} onClick={() => set(prefill && sameWho(f, whoFor(f.discipline)) ? { discipline: d, ...whoFor(d) } : { discipline: d })}>{d}</Chip>
+      ))}
+    </Row>
+  </Field>
 );
 
 export const Duration = ({ f, set }: { f: ClassForm; set: Patch }) => (
@@ -123,6 +137,35 @@ export const Fixed = ({ f, set }: { f: ClassForm; set: Patch }) => (
 );
 
 /** Group classes only: whether owners hand the dog over for the session. */
+export const BuiltFor = ({ f, set }: { f: ClassForm; set: Patch }) => (
+  <Field label="Built for" note="Dogs with these breeds see this class first and get a Built for tag. Other dogs can still book.">
+    <Row gap={6}>
+      {APTITUDES.map((a) => {
+        const on = f.builtFor.includes(a.key);
+        return <Chip key={a.key} on={on} onClick={() => (on || f.builtFor.length < 3) && set({ builtFor: toggle(f.builtFor, a.key) })}>{a.label}</Chip>;
+      })}
+    </Row>
+  </Field>
+);
+
+/** The member preview's reach line: how many PackPass dogs could book this today, and how many are Built for matches. */
+export function Reach({ f }: { f: ClassForm }) {
+  const [reach, setReach] = useState<{ can_book: number; built_for: number } | null>(null);
+  const key = JSON.stringify([f.age, f.size, f.fixed, f.builtFor]);
+  useEffect(() => {
+    let live = true;
+    const t = setTimeout(() => loadReach(payloadOf(f)).then((r) => live && setReach(r)).catch(() => live && setReach(null)), 300);
+    return () => { live = false; clearTimeout(t); };
+  }, [key]); // refetch only when the gates or Built for change
+  if (!reach) return null;
+  const dogs = (n: number) => `${n} PackPass ${n === 1 ? 'dog' : 'dogs'}`;
+  return (
+    <span className="pp-caption pp-muted" style={{ textWrap: 'pretty' }}>
+      {`${reach.can_book ? `About ${dogs(reach.can_book)} can book this` : 'No PackPass dogs can book this yet. Try a wider age or size'}${f.builtFor.length && reach.can_book ? ` · ${reach.built_for} ${reach.built_for === 1 ? 'is a Built for match' : 'are Built for matches'}` : ''}.`}
+    </span>
+  );
+}
+
 export const DropOff = ({ f, set }: { f: ClassForm; set: Patch }) => f.type === 'class' ? (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 0', boxShadow: 'inset 0 1px 0 var(--line),inset 0 -1px 0 var(--line)', gridColumn: '1/-1' }}>
     <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>

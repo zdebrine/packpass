@@ -35,6 +35,20 @@ export function sizeLabel({ min, max }: Range): string | null {
   if (min != null && max != null) return `Dogs ${min} to ${max} lb`;
   return min != null ? `Dogs ${min} lb and up` : `Dogs up to ${max} lb`;
 }
+/** Breed aptitudes a class can be built for, the same list as the member app (apps/member/src/data/breeds.ts). */
+export const APTITUDES: { key: string; label: string }[] = [
+  { key: 'herding', label: 'Herding' }, { key: 'sighthound', label: 'Sighthound' }, { key: 'scenthound', label: 'Scenthound' },
+  { key: 'retriever', label: 'Retriever' }, { key: 'water', label: 'Water' }, { key: 'terrier', label: 'Terrier' },
+  { key: 'guardian', label: 'Guardian' }, { key: 'bully', label: 'Bully' }, { key: 'toy', label: 'Toy' }, { key: 'companion', label: 'Companion' },
+];
+/** Who a new class is for by default, prefilled when the partner picks a discipline (docs: breed-specific classes plan). */
+export const DISCIPLINE_DEFAULTS: Record<string, Pick<ClassForm, 'builtFor' | 'age' | 'size'>> = {
+  Herding: { builtFor: ['herding'], age: { min: 12, max: null }, size: { min: 25, max: null } },
+  Sprint: { builtFor: ['sighthound'], age: { min: 12, max: null }, size: { min: null, max: null } },
+  Scent: { builtFor: ['scenthound'], age: { min: 6, max: null }, size: { min: null, max: null } },
+  Agility: { builtFor: [], age: { min: 12, max: null }, size: { min: null, max: null } },
+};
+
 /** The cover photo library (public/photos). */
 export const PHOTOS = [
   'athletic_dog_catching_ball', 'dog_running_on_beach', 'dog_getting_pets_at_park', 'dogs_meeting_on_leash', 'pulling_on_leash',
@@ -57,12 +71,14 @@ export interface ClassForm {
   size: Range;
   /** Spayed or neutered dogs only. */
   fixed: boolean;
+  /** Breed aptitudes (APTITUDES keys), up to three. Ranks the class for matching dogs; never stops others booking. */
+  builtFor: string[];
 }
 
 export const emptyForm = (trainerId: string | null): ClassForm => ({
   title: '', discipline: null, type: 'class', image: null, duration: 60, intensity: 3, group: 8, energy: [], social: [], clearance: null,
   reqs: ['Rabies', 'DHPP', 'Bordetella'], description: '', trainerId, dropOff: false,
-  age: { min: 6, max: null }, size: { min: null, max: null }, fixed: false,
+  age: { min: 6, max: null }, size: { min: null, max: null }, fixed: false, builtFor: [],
 });
 
 /** Reads a saved class back into the form (older classes keep their fit in suits / suits_note). */
@@ -82,7 +98,7 @@ export function formOf(c: ClassType): ClassForm {
     age: c.min_age_months != null || c.max_age_months != null
       ? { min: c.min_age_months, max: c.max_age_months }
       : { min: /12 months|1 year/i.test(text) ? 12 : /6 months/i.test(text) ? 6 : null, max: null },
-    size: { min: c.min_weight_lb, max: c.max_weight_lb }, fixed: c.requires_fixed,
+    size: { min: c.min_weight_lb, max: c.max_weight_lb }, fixed: c.requires_fixed, builtFor: c.built_for ?? [],
   };
 }
 
@@ -110,7 +126,7 @@ export function payloadOf(f: ClassForm) {
     drop_off: f.type === 'class' && f.dropOff,
     // An empty string clears a gate (partner_save_class).
     min_age_months: f.age.min ?? '', max_age_months: f.age.max ?? '', min_weight_lb: f.size.min ?? '', max_weight_lb: f.size.max ?? '',
-    requires_fixed: f.fixed,
+    requires_fixed: f.fixed, built_for: f.builtFor,
   };
 }
 

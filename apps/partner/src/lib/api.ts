@@ -15,6 +15,8 @@ export interface ClassType {
   drop_off: boolean;
   /** Who it's for: a dog outside these can't book (public.class_gate). */
   min_age_months: number | null; max_age_months: number | null; min_weight_lb: number | null; max_weight_lb: number | null; requires_fixed: boolean;
+  /** Breed aptitudes the class is built for: ranks it for matching dogs, never gates it. */
+  built_for: string[];
 }
 export interface Staff { user_id: string; partner_id: string; trainer_id: string | null; role: 'owner' | 'trainer'; name: string }
 export interface Session {
@@ -98,6 +100,9 @@ export const loadTrainers = async (partnerId: string) =>
   check(await db.from('trainers').select('*').eq('partner_id', partnerId).order('name')) as Trainer[];
 export const saveClass = async (id: string | null, fields: Record<string, unknown>) =>
   check(await db.rpc('partner_save_class', { p_id: id, p: fields })) as string;
+/** How many PackPass dogs could book a class with these gates today, and how many are Built for matches. */
+export const loadReach = async (fields: Record<string, unknown>) =>
+  (check(await db.rpc('partner_class_reach', { p: fields })) as { can_book: number; built_for: number }[])[0];
 // ---- Photos (class covers, trainer photos) -------------------------------------------------------
 // Uploads go to the public partner-media bucket under the partner's folder and are stored on the row as that
 // path; library photos stay a bare key (src/lib/photos.ts tells them apart).
