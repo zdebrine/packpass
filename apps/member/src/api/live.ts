@@ -9,6 +9,7 @@ import { loadTraits, pathsFor } from '@/data/traits';
 import type { Booking, ClassType, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
 import type { DogRecord, OnboardingDraft } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
+import { setWeights, type Weights } from '@/lib/fit';
 import { db, partnerMediaUrl } from './client';
 
 /** A stored photo: a library key, or a partner's upload (`<partner>/<file>` in the public partner-media bucket). */
@@ -79,7 +80,7 @@ export async function hasSession() {
 /** Loads partners, trainers, classes and the next 4 weeks of sessions into the shared catalog. */
 export async function loadCatalog() {
   const c = db();
-  const [partners, trainers, classes, sessions, paths] = await Promise.all([
+  const [partners, trainers, classes, sessions, paths, weights] = await Promise.all([
     c.from('partners').select('*').then(check),
     c.from('trainers').select('*').then(check),
     c.from('class_types').select('*').then(check),
@@ -89,7 +90,10 @@ export async function loadCatalog() {
       .order('starts_at')
       .then(check),
     c.from('training_paths').select('id, specialties').then(check),
+    // PackPass tunes these in Admin › Fit; the app's defaults stand in if they can't load.
+    c.from('fit_weights').select('breed, energy, social, interests, balance, history').maybeSingle().then((r) => r.data, () => null),
   ]);
+  if (weights) setWeights(weights as Weights);
   setCatalog({
     partners: Object.fromEntries((partners as any[]).map((p): [string, Partner] => [p.id, {
       id: p.id, name: p.name, short: p.short_name, street: p.street, address: p.address,
@@ -467,8 +471,8 @@ export async function markRead(ids: string[] | null) {
   check(await db().rpc('mark_notifications_read', { p_ids: ids }));
 }
 
-export interface Impression { session_id: string; surface: 'list' | 'map' | 'detail'; state: 'open' | 'unlock' | 'no'; position?: number; score?: number; parts?: Record<string, number> }
-/** Which classes Book showed the dog, with their fit, so the weights can be tuned from what gets booked. */
+export interface Impression { session_id: string; surface: 'list' | 'map' | 'detail'; state: 'open' | 'unlock' | 'no'; position?: number; score?: number; parts?: Record<string, number>; weights?: Record<string, number> }
+/** Which classes Book showed the dog, with their fit (each part's signal and the weights used), so the weights can be tuned from what gets booked. */
 export async function logImpressions(dogId: string, rows: Impression[]) {
   if (rows.length) check(await db().rpc('log_impressions', { p_dog: dogId, p: rows }));
 }

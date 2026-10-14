@@ -113,3 +113,27 @@ test('a partner asks for Only these breeds, PackPass approves it, and a trainer 
   await expect(page.getByText('Pip can book your classes whatever their size or breed limits.', { exact: false })).toBeVisible();
   expect(sql(`select count(*) from dog_fit_overrides where dog_id = '${dog}' and partner_id = 'eastside'`)).toBe('1');
 });
+
+test('PackPass sees how fit predicts booking and tunes the weights', async ({ page }) => {
+  const email = await signIn(page);
+  sql(`insert into packpass_admins (user_id) select id from auth.users where email = '${email}'`);
+  const member = await account(`fit-report-${Date.now()}@example.com`, 'goodpass123');
+  const dog = sql(`insert into dogs (owner_id, name) values ('${member}', 'Rex') returning id`);
+  sql(`insert into match_impressions (dog_id, session_id, surface, state, score, score_parts, weights, booked)
+    select '${dog}', s.id, 'list', 'open', 90, '{"breed":1,"energy":1,"social":1,"interests":1,"balance":0,"history":0}', '{"breed":35}', true
+    from sessions s where s.class_id = 'free-roam' and s.starts_at > now() order by s.starts_at limit 1`);
+  await page.goto('/admin/fit');
+  await expect(page.getByRole('heading', { name: 'Class fit' })).toBeVisible();
+  await expect(page.getByText(/of classes shown were booked/)).toBeVisible();
+  await expect(page.getByText(/Fewer than 30 dogs so far/)).toBeVisible();
+
+  // Move 5 from breed to balance and save.
+  await page.getByRole('button', { name: 'Fewer Breed weight' }).click();
+  await expect(page.getByText('Adds up to 95. Make it 100 to save.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save weights' })).toBeDisabled();
+  await page.getByRole('button', { name: 'More Balance weight' }).click();
+  await page.getByRole('button', { name: 'Save weights' }).click();
+  await expect(page.getByText('Saved.')).toBeVisible();
+  expect(sql(`select breed || ',' || balance from fit_weights`)).toBe('30,15');
+  sql(`update fit_weights set breed = 35, balance = 10`);
+});

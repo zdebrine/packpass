@@ -12,6 +12,7 @@ import { col, Columns, Page, useWide } from '@/ds/responsive';
 import { Press } from '@/ds/Press';
 import { HeroScrim, Photo, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
+import { useFit } from '@/features/book/useFit';
 import { Map, useMe } from '@/features/Map';
 import { HeldPlan } from '@/features/today/HeldPlan';
 import { activeBookings, bookError, bookingFor, checkInClosesAt, credits as creditsLabel, nextSession, timeLabel } from '@/lib/booking';
@@ -36,6 +37,7 @@ export default function Today() {
   const juno = useDog();
   const from = useOriginLabel();
   const rules = useRules();
+  const fit = useFit();
   const notes = useNotifications();
   const me = useMe();
   const canBook = (id: string) => !bookError(id, juno.id, rules);
@@ -51,13 +53,13 @@ export default function Today() {
   const stepBooked = !!step?.classId && upcoming.some((x) => x.v.cls.id === step.classId);
   const { done, short } = useMonthDone();
   const stats = useDogStats();
-  // The first suggestion Juno can book that isn't booked yet. Live mode suggests the soonest class in the
-  // balance the month is shortest on.
+  // The first suggestion Juno can book that isn't booked yet. With a balance the month is short on, it's the
+  // class in that balance that fits Juno best (src/lib/fit.ts, the same score Book ranks by), soonest first on a tie.
   const suggestIds = short ? Object.values(catalog.classes).filter((k) => k.balance === short).map((k) => k.id) : monthSuggestions;
   const suggestion = suggestIds
     .map((id) => nextSession(id, 1))
     .filter((v) => v && canBook(v.session.id) && !bookingFor(bookings.filter((b) => b.dogId === juno.id), v.session.id))
-    .sort((a, b) => (short ? +a!.session.startsAt - +b!.session.startsAt : 0))[0];
+    .sort((a, b) => (short ? fit(b!.cls).score - fit(a!.cls).score || +a!.session.startsAt - +b!.session.startsAt : 0))[0];
   const picks = recommended
     .map(([id, from]) => nextSession(id, from))
     .filter((v): v is NonNullable<typeof v> => !!v && canBook(v.session.id))
