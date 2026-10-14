@@ -8,7 +8,7 @@ import { Icon } from '@/ds/Icon';
 import { Field, Screen, useTop } from '@/ds/layout';
 import { DetentSheet } from '@/ds/sheet';
 import { Press } from '@/ds/Press';
-import { col, Page, useWide } from '@/ds/responsive';
+import { col, Page, useWide, web } from '@/ds/responsive';
 import { Text } from '@/ds/Text';
 import { BookRowView, bookRow, dogLine, HiddenLine, OpenCard, PlaceGroup, SectionHead, UnlockCard, type BookRow } from '@/features/book/parts';
 import { useFit } from '@/features/book/useFit';
@@ -307,19 +307,21 @@ export default function Book() {
         </View>
 
         {mapMode ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap-reverse', gap: 20, marginTop: 24 }}>
-            <View style={col(1, 360, { maxWidth: 440, padding: 20, borderRadius: 16, boxShadow: `inset 0 0 0 1px ${c.line}` })}>
-              {partnerCard(p, byPartner[p.id] ?? [])}
-            </View>
+          // Map first in row-reverse: it sits on the right beside the list, on top when they stack,
+          // and sticks to the top of the page while a long partner list scrolls.
+          <View style={{ flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 20, marginTop: 24, alignItems: 'flex-start' }}>
             <Map
               center={centerOf(pins, [30.2849, -97.719])}
               zoom={12}
               height={560}
               me={me}
-              style={col(999, 420, { minHeight: 560 })}
+              style={col(999, 420, web({ position: 'sticky', top: 16, zIndex: 1, height: 'calc(100vh - 240px)', minHeight: 420 }))}
               pins={pins.map((pin) => ({ ...pin, active: pin.id === p.id }))}
               renderPin={renderPin(setPartnerId)}
             />
+            <View style={col(1, 360, { maxWidth: 440, padding: 20, borderRadius: 16, boxShadow: `inset 0 0 0 1px ${c.line}` })}>
+              {partnerCard(p, byPartner[p.id] ?? [])}
+            </View>
           </View>
         ) : <View onLayout={(e) => setGridW(e.nativeEvent.layout.width)}>{list}</View>}
       </Page>
