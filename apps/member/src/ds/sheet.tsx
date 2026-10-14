@@ -87,15 +87,13 @@ const useScrollTop = () => {
 };
 
 /**
- * A phone sheet over a dimmed screen: slides up on open, follows the finger, and closes when dragged or
+ * A phone sheet over the screen it was opened from, which stays visible under a dimmed backdrop: slides up on open, follows the finger, and closes when dragged or
  * flicked down or when the backdrop is tapped. `scroll` puts the content in a list that hands a pull-down
  * at its top back to the sheet.
  */
-export function ModalSheet({ children, onClose, behind, top, scroll, padding, style }: {
+export function ModalSheet({ children, onClose, top, scroll, padding, style }: {
   children: ReactNode;
   onClose: () => void;
-  /** Drawn under the backdrop (the photo behind a sheet). */
-  behind?: ReactNode;
   /** Pins the sheet's top edge this far down (a tall sheet); otherwise it sizes to its content. */
   top?: number;
   scroll?: boolean;
@@ -127,8 +125,7 @@ export function ModalSheet({ children, onClose, behind, top, scroll, padding, st
   const dim = useAnimatedStyle(() => ({ opacity: interpolate(y.value, [0, h || screen], [1, 0], 'clamp') }));
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
-      {behind}
+    <View style={{ flex: 1 }}>
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }, dim]}>
         <Pressable style={{ flex: 1 }} onPress={dismiss} accessibilityLabel="Close" />
       </Animated.View>

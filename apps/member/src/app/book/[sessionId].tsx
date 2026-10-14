@@ -174,7 +174,6 @@ export default function BookingSheet() {
   return (
     <ModalSheet
       onClose={close}
-      behind={<Photo name={cls.image} style={{ position: 'absolute', left: 0, top: 0, right: 0, height: 460 }} />}
       padding={{ paddingTop: 18, paddingHorizontal: 20, paddingBottom: bottom }}
     >
       {body}

@@ -10,7 +10,6 @@ import { Badge, IconButton, useBottom, useTop } from '@/ds/layout';
 import { Overlay } from '@/ds/overlay';
 import { ModalSheet } from '@/ds/sheet';
 import { useWide } from '@/ds/responsive';
-import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { useClearanceStyle } from '@/features/passport/style';
 import { useApp, useDog } from '@/store/app';
@@ -143,7 +142,6 @@ export default function ClearanceDetail() {
       onClose={close}
       top={top + 42}
       scroll
-      behind={<Photo name={juno.photo ?? 'dog_and_owner_chilling'} style={{ position: 'absolute', left: 0, top: 0, right: 0, height: 460 }} />}
       padding={{ paddingTop: 20, paddingHorizontal: 20, paddingBottom: bottom }}
     >
       {header}
