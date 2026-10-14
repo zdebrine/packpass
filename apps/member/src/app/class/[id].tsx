@@ -116,11 +116,13 @@ export default function ClassDetail() {
       ) : null}
       {!el.ok ? (
         <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', padding: 16, borderRadius: 12, backgroundColor: c.surfaceRaised, marginBottom: 8 }}>
-          <Badge icon="shield" bg={c.surfaceSunken} fg={c.ink} />
+          <Badge icon={el.needs === 'fit' ? 'ban' : 'shield'} bg={c.surfaceSunken} fg={c.ink} />
           <View style={{ flex: 1 }}>
             <Text variant="label" weight="600">{el.reason}</Text>
             <Text variant="caption" muted style={{ marginTop: 2 }}>
-              {el.needs === 'herding'
+              {el.needs === 'fit'
+                ? `${partner.name} sets who this class is for, so ${juno.name} can't book it.`
+                : el.needs === 'herding'
                 ? 'Herding partners assess every dog on livestock themselves.'
                 : el.needs === 'social'
                   ? onCalmPath
@@ -222,6 +224,8 @@ export default function ClassDetail() {
           <Text variant="caption" muted center={!wide}>This session has already started.</Text>
           <Button block variant="quiet" fill={quietFill} onPress={() => router.replace('/book')}>See other classes</Button>
         </>
+      ) : !el.ok && el.needs === 'fit' ? (
+        <Button variant="quiet" fill={quietFill} block onPress={() => router.replace('/book')}>See other classes</Button>
       ) : !el.ok && el.needs === 'social' ? (
         <>
           {onCalmPath ? <Button variant="signal" block onPress={() => router.push('/goal/calm-around-dogs')}>See the path</Button> : null}

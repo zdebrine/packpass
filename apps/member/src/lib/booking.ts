@@ -2,6 +2,7 @@ import { catalog, sessionById } from '@/data/catalog';
 import type { Booking, ClassType, Partner, Session, Trainer } from '@/data/types';
 import { now } from './clock';
 import { dayOffset, time } from './dates';
+import { gateFor, gateLabel, type DogFacts, type GateCode } from './fit';
 
 export interface SessionView {
   session: Session;
@@ -27,11 +28,13 @@ export const timeLabel = (v: SessionView) => v.cls.openWindow ?? time(v.session.
 // The same rules as public.booking_block() / book_session() in supabase/migrations, with the
 // same reason codes, so sample mode and live mode behave alike.
 
-export type BlockCode = 'started' | 'needs_herding' | 'needs_social' | 'records_denied' | 'vaccines';
+export type BlockCode = 'started' | GateCode | 'needs_herding' | 'needs_social' | 'records_denied' | 'vaccines';
 export type BookError = BlockCode | 'already_booked' | 'full' | 'credits' | 'not_found';
 
 /** What the rules need to know about the member and dog. */
 export interface RuleContext {
+  /** The dog's birthday, weight and spayed/neutered status, for the class's own gates (src/lib/fit.ts). */
+  dog?: DogFacts;
   /** Valid Social clearance (granted, not expired). Seen or not doesn't matter for booking. */
   hasSocial: boolean;
   /** Partners where the dog holds a Herding clearance. */
@@ -48,6 +51,8 @@ export interface RuleContext {
 
 export function blockFor(cls: ClassType, session: Session, ctx: RuleContext): BlockCode | null {
   if (session.startsAt <= now()) return 'started';
+  const gate = gateFor(cls, ctx.dog, session.startsAt);
+  if (gate) return gate;
   if (cls.requires === 'herding' && !ctx.herdingAt.includes(cls.partnerId)) return 'needs_herding';
   const groupClass = cls.sessionType === 'Class' && cls.groupSize > 1;
   if (groupClass && !ctx.hasSocial && !ctx.pathClasses.includes(cls.id)) return 'needs_social';
@@ -69,11 +74,18 @@ export function bookError(sessionId: string, dogId: string, ctx: RuleContext): B
 
 export type Eligibility =
   | { ok: true; cleared: boolean }
-  | { ok: false; needs: 'herding' | 'social' | 'vaccines'; reason: string };
+  | { ok: false; needs: 'herding' | 'social' | 'vaccines'; reason: string }
+  /** The class isn't for this dog (age, size, spayed or neutered): nothing to unlock. `label` is the class's rule. */
+  | { ok: false; needs: 'fit'; reason: string; label: string };
 
 /** For badges and the class detail box: can the dog book this class, and is it "Cleared"? */
 export function eligibility(v: SessionView, ctx: RuleContext, dogName = 'Juno'): Eligibility {
   const block = blockFor(v.cls, v.session, ctx);
+  if (block === 'too_young' || block === 'too_old' || block === 'too_small' || block === 'too_large' || block === 'needs_fixed') {
+    const label = gateLabel(v.cls, block);
+    const rule = label.replace(/^Ages /, 'dogs aged ').replace(/^./, (x) => x.toLowerCase());
+    return { ok: false, needs: 'fit', label, reason: `This class is for ${rule}.` };
+  }
   if (block === 'needs_herding') return { ok: false, needs: 'herding', reason: 'This class needs a Herding assessment first.' };
   if (block === 'needs_social') return { ok: false, needs: 'social', reason: 'This class needs a Social clearance first.' };
   if (block === 'records_denied') return { ok: false, needs: 'vaccines', reason: `PackPass denied ${dogName}'s vet record. Upload a new one to book.` };

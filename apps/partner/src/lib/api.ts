@@ -13,6 +13,8 @@ export interface ClassType {
   credit_review: boolean; energy: string[]; sociability: string[];
   /** Owners leave the dog with the trainer (group classes only). */
   drop_off: boolean;
+  /** Who it's for: a dog outside these can't book (public.class_gate). */
+  min_age_months: number | null; max_age_months: number | null; min_weight_lb: number | null; max_weight_lb: number | null; requires_fixed: boolean;
 }
 export interface Staff { user_id: string; partner_id: string; trainer_id: string | null; role: 'owner' | 'trainer'; name: string }
 export interface Session {

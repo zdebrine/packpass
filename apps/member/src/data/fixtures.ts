@@ -38,8 +38,8 @@ export const photoKey = (k: string | null | undefined): PhotoKey | undefined =>
 
 
 export const dogs: Record<string, Dog> = {
-  juno: { id: 'juno', name: 'Juno', photo: 'juno', breed: 'Border Collie', age: '3 yrs', stage: 'Prime', since: 2026 },
-  otis: { id: 'otis', name: 'Otis', photo: 'dog_sleeping_while_owner_reads', breed: 'Labrador', age: '6 yrs', stage: 'Prime', since: 2026 },
+  juno: { id: 'juno', name: 'Juno', photo: 'juno', breed: 'Border Collie', breedIds: ['border-collie'], age: '3 yrs', stage: 'Prime', since: 2026, birthYear: 2023, birthMonth: 3, weightLb: 38, fixed: true },
+  otis: { id: 'otis', name: 'Otis', photo: 'dog_sleeping_while_owner_reads', breed: 'Labrador Retriever', breedIds: ['labrador-retriever'], age: '6 yrs', stage: 'Prime', since: 2026, birthYear: 2020, weightLb: 72, fixed: true },
 };
 
 export const partners: Record<string, Partner> = {
@@ -61,10 +61,11 @@ export const trainers: Record<string, Trainer> = {
 const VAX = { icon: 'syringe', text: 'Rabies, DHPP and Bordetella current' } as const;
 const AGE = { icon: 'cake', text: '12 months or older' } as const;
 const LEASH = { icon: 'link', text: 'On leash until the trainer releases Juno' } as const;
+const FIXED = { icon: 'stethoscope', text: 'Spayed or neutered' } as const;
 
 // Descriptions for classes the design doesn't detail are written in the same voice.
-// No sample class is drop-off.
-const C = (c: Omit<ClassType, 'dropOff'>): ClassType => ({ ...c, dropOff: false });
+// No sample class is drop-off. Classes with the "12 months or older" requirement gate on it too.
+const C = (c: Omit<ClassType, 'dropOff'>): ClassType => ({ ...c, dropOff: false, minAgeMonths: c.minAgeMonths ?? (c.requirements.includes(AGE) ? 12 : undefined) });
 export const classes: Record<string, ClassType> = {
   'herding-fundamentals': C({
     id: 'herding-fundamentals', title: 'Herding Fundamentals', discipline: 'Herding', category: 'Sport', sessionType: 'Class',
@@ -76,7 +77,8 @@ export const classes: Record<string, ClassType> = {
     id: 'herding-livestock', title: 'Herding on Livestock', discipline: 'Herding', category: 'Sport', sessionType: 'Class',
     credits: 4, durationMin: 75, intensity: 5, groupSize: 4, suits: 'Working dog', suitsNote: 'Herding breeds', balance: 'Mental',
     description: 'Sheep, not ducks. Juno works a full flock in the big pasture with Maren on the field. Bigger outruns, longer drives and a pen at the end. For dogs past Herding Fundamentals.',
-    partnerId: 'ridgeline', trainerId: 'maren', image: 'dog_chilling', premium: true, requires: 'herding', requirements: [VAX, AGE, LEASH],
+    partnerId: 'ridgeline', trainerId: 'maren', image: 'dog_chilling', premium: true, requires: 'herding', requirements: [VAX, AGE, { icon: 'shield', text: '25 lb and up' }, LEASH],
+    minWeightLb: 25,
   }),
   'herding-assessment': C({
     id: 'herding-assessment', title: 'Herding assessment', discipline: 'Herding', category: 'Sport', sessionType: 'Assessment',
@@ -124,7 +126,19 @@ export const classes: Record<string, ClassType> = {
     id: 'free-roam', title: 'Free roam', discipline: 'Open play', category: 'Play', sessionType: 'Class',
     credits: 1, durationMin: 60, intensity: 3, groupSize: 12, suits: 'Any energy', suitsNote: 'Loves dogs', balance: 'Social',
     description: 'Off-leash play in the club yard with a handler watching the group. Dogs are matched by size and play style at the gate.',
-    partnerId: 'eastside', trainerId: 'sam', image: 'dog_and_owner_chilling', requirements: [VAX, AGE],
+    partnerId: 'eastside', trainerId: 'sam', image: 'dog_and_owner_chilling', requirements: [VAX, AGE, FIXED], requiresFixed: true,
+  }),
+  'puppy-social': C({
+    id: 'puppy-social', title: 'Puppy social', discipline: 'Play', category: 'Play', sessionType: 'Class',
+    credits: 1, durationMin: 45, intensity: 2, groupSize: 6, suits: 'Any energy', suitsNote: 'Puppies only', balance: 'Social',
+    description: 'Short, supervised play for puppies with a trainer setting the pace. Gentle greetings, a little confidence work and plenty of breaks.',
+    partnerId: 'eastside', trainerId: 'sam', image: 'dog_wrapped_in_blanket', requirements: [VAX, { icon: 'cake', text: '4 to 12 months old' }], minAgeMonths: 4, maxAgeMonths: 12,
+  }),
+  'senior-strength': C({
+    id: 'senior-strength', title: 'Senior strength', discipline: 'Fitness', category: 'Sport', sessionType: 'Class',
+    credits: 2, durationMin: 40, intensity: 2, groupSize: 6, suits: 'Any energy', suitsNote: 'Good with dogs nearby', balance: 'Physical',
+    description: 'Slow strength and balance work for older dogs: cavaletti at a walk, stand-sit-stand and gentle core work. Keeps joints moving without the pounding.',
+    partnerId: 'northside', trainerId: 'ana', image: 'dog_sleeping_while_owner_reads', requirements: [VAX, { icon: 'cake', text: '8 years and up' }, LEASH], minAgeMonths: 96,
   }),
   'small-group-play': C({
     id: 'small-group-play', title: 'Small-group play', discipline: 'Play', category: 'Play', sessionType: 'Class',
@@ -209,6 +223,10 @@ export const WEEKLY: [string, number, string, number][] = [
   ['social-recheck', 6, '10:00', 2],
   ['social-assessment', 3, '10:30', 3],
   ['social-assessment', 6, '11:00', 3],
+  ['puppy-social', 2, '18:00', 4],
+  ['puppy-social', 6, '09:30', 4],
+  ['senior-strength', 1, '17:00', 5],
+  ['senior-strength', 5, '10:00', 5],
 ];
 
 const spotsFor = (today: number, day: number, cap: number) =>

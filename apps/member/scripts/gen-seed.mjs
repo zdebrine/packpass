@@ -60,10 +60,11 @@ insert into public.trainers (id, partner_id, name, credential, photo_url, rating
 ${rows(Object.values(trainers).map((t) => [t.id, TRAINER_PARTNER[t.id], t.name, t.credential, t.photo, t.rating, TRAINER_SPECIALTIES[t.id] ?? []]))};
 
 insert into public.class_types (id, partner_id, trainer_id, title, discipline, category, session_type, credits, duration_min,
-  intensity, group_size, suits, suits_note, balance, description, image, premium, requires, grants, open_window, requirements) values
+  intensity, group_size, suits, suits_note, balance, description, image, premium, requires, grants, open_window,
+  min_age_months, max_age_months, min_weight_lb, max_weight_lb, requires_fixed, requirements) values
 ${Object.values(classes).map((c) => `  (${[c.id, c.partnerId, c.trainerId, c.title, c.discipline, c.category.toLowerCase(), c.sessionType.toLowerCase(),
   c.credits, c.durationMin, c.intensity, c.groupSize, c.suits, c.suitsNote, c.balance.toLowerCase(), c.description, c.image, !!c.premium,
-  c.requires, c.grants, c.openWindow].map(q).join(', ')}, ${q(JSON.stringify(c.requirements))}::jsonb)`).join(',\n')};
+  c.requires, c.grants, c.openWindow, c.minAgeMonths, c.maxAgeMonths, c.minWeightLb, c.maxWeightLb, !!c.requiresFixed].map(q).join(', ')}, ${q(JSON.stringify(c.requirements))}::jsonb)`).join(',\n')};
 
 insert into public.training_paths (id, title, lede, grants, specialties) values
 ${rows(PATHS.map(([id, title, lede, grants, , specs]) => [id, title, lede, grants, specs]))};
@@ -113,8 +114,8 @@ begin
   values (p_user, 'Juno', 'female', 'Border Collie', 3, 2023, 38, true, 'working', 'loves_dogs', '{Herding,Sprint,Scent}',
           '{"pulls","nervous_dogs"}', 'Austin · South', 2026)
   returning id into juno;
-  insert into public.dogs (owner_id, name, sex, breed, birth_year, energy, sociability, member_since)
-  values (p_user, 'Otis', 'male', 'Labrador', 2020, 'medium', 'loves_dogs', 2026) returning id into otis;
+  insert into public.dogs (owner_id, name, sex, breed, birth_year, weight_lb, fixed, energy, sociability, member_since)
+  values (p_user, 'Otis', 'male', 'Labrador', 2020, 72, true, 'medium', 'loves_dogs', 2026) returning id into otis;
 
   insert into public.vaccinations (dog_id, type, expires_on, verified) values
     (juno, 'rabies', '2028-03-01', true), (juno, 'dhpp', '2027-01-01', true), (juno, 'bordetella', current_date + 15, true);

@@ -3,6 +3,12 @@
 
 const COPY: Record<string, string> = {
   started: 'This session has already started.',
+  too_young: 'This class is for older dogs.',
+  too_old: 'This class is for younger dogs.',
+  too_small: 'This class is for bigger dogs.',
+  too_large: 'This class is for smaller dogs.',
+  needs_fixed: 'This class is for spayed or neutered dogs.',
+  bad_breed: 'Pick a breed from the list, or choose Not sure.',
   needs_herding: 'This class needs a Herding assessment first.',
   needs_social: 'This class needs a Social clearance first.',
   records_denied: 'PackPass denied the vet record. Upload a new one from Vaccines to book.',
@@ -54,6 +60,11 @@ export function errorCopy(e: unknown) {
 /** Short reason used on 01j's skipped list. */
 export const SHORT: Record<string, string> = {
   started: 'already started',
+  too_young: 'for older dogs',
+  too_old: 'for younger dogs',
+  too_small: 'for bigger dogs',
+  too_large: 'for smaller dogs',
+  needs_fixed: 'for spayed or neutered dogs',
   needs_herding: 'needs a Herding assessment',
   needs_social: 'needs a Social clearance',
   records_denied: 'vet record denied',

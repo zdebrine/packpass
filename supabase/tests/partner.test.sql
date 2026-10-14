@@ -554,6 +554,26 @@ reset role;
 select p.ok((select not drop_off from class_types where id = (select a from p.drop)), 'turning a class into a private clears drop-off');
 select p.expect_error($$update class_types set drop_off = true where id = 'herding-assessment'$$, 'class_types_drop_off_classes_only');
 
+-- Who it's for (…_class_fit_gates.sql): ages, size and spayed or neutered, saved with the class; left out of a
+-- later save they stay, and an empty value clears one.
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.partner_save_class((select c from p.drop), '{"title":"Plain group class","discipline":"Agility","category":"sport","session_type":"class","duration_min":60,"intensity":3,"group_size":6,"balance":"physical","min_age_months":12,"max_age_months":108,"min_weight_lb":20,"requires_fixed":true}');
+reset role;
+select p.ok((select min_age_months = 12 and max_age_months = 108 and min_weight_lb = 20 and max_weight_lb is null and requires_fixed
+             from class_types where id = (select c from p.drop)), 'a partner saves who a class is for');
+select p.ok((select not credit_review from class_types where id = (select c from p.drop)), 'gates don''t send a class to credit review');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.partner_save_class((select c from p.drop), '{"title":"Plain group class","discipline":"Agility","category":"sport","session_type":"class","duration_min":60,"intensity":3,"group_size":6,"balance":"physical","max_age_months":""}');
+reset role;
+select p.ok((select min_age_months = 12 and max_age_months is null and min_weight_lb = 20 and requires_fixed
+             from class_types where id = (select c from p.drop)), 'saving without a gate keeps it, an empty one clears it');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select p.expect_error($$select public.partner_save_class((select c from p.drop), '{"title":"Plain group class","discipline":"Agility","category":"sport","session_type":"class","duration_min":60,"intensity":3,"group_size":6,"balance":"physical","min_age_months":24,"max_age_months":12}')$$, 'class_types_age_range');
+reset role;
+
 -- ---- Partner photo uploads --------------------------------------------------------------------------
 reset role;
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000c0b1', 'media@ridgeline.co');

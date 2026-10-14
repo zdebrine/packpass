@@ -4,7 +4,37 @@ import { photoKey } from './photos';
 export const DISCIPLINES = ['Herding', 'Agility', 'Sprint', 'Fitness', 'Scent', 'Sniff', 'Open play', 'Play', 'Skills', 'Behavior'];
 export const ENERGY = ['Couch', 'Medium', 'High', 'Working dog'];
 export const SOCIAL = ['Loves dogs', 'Selective', 'Prefers solo'];
-export const REQS = ['Rabies', 'DHPP', 'Bordetella', '6 months+', '1 year+', 'Leash until release'];
+export const REQS = ['Rabies', 'DHPP', 'Bordetella', 'Leash until release'];
+
+// Who it's for: gates the member app and booking check (public.class_gate). A dog outside them can't book.
+export interface Range { min: number | null; max: number | null }
+export const AGES: { label: string; min: number | null; max: number | null }[] = [
+  { label: 'Any age', min: null, max: null },
+  { label: '6 months+', min: 6, max: null },
+  { label: '1 year+', min: 12, max: null },
+  { label: 'Puppies, 4 to 12 months', min: 4, max: 12 },
+  { label: 'Adults, 1 to 8 years', min: 12, max: 96 },
+  { label: 'Seniors, 8 years+', min: 96, max: null },
+];
+export const SIZES: { label: string; min: number | null; max: number | null }[] = [
+  { label: 'Any size', min: null, max: null },
+  { label: 'Under 25 lb', min: null, max: 25 },
+  { label: '25 lb+', min: 25, max: null },
+  { label: '55 lb+', min: 55, max: null },
+];
+const months = (m: number) => (m % 12 === 0 && m >= 12 ? `${m / 12} ${m === 12 ? 'year' : 'years'}` : `${m} months`);
+/** The same wording as the member app (apps/member/src/lib/fit.ts): "Puppies 4 to 12 months", "Dogs 8 years and up". */
+export function ageLabel({ min, max }: Range): string | null {
+  if (min == null && max == null) return null;
+  if (max != null && max <= 12) return min ? `Puppies ${min} to ${max} months` : `Puppies up to ${max} months`;
+  if (min != null && max != null) return min % 12 === 0 && max % 12 === 0 ? `Ages ${min / 12} to ${max / 12} years` : `Ages ${months(min)} to ${months(max)}`;
+  return min != null ? `Dogs ${months(min)} and up` : `Dogs up to ${months(max!)}`;
+}
+export function sizeLabel({ min, max }: Range): string | null {
+  if (min == null && max == null) return null;
+  if (min != null && max != null) return `Dogs ${min} to ${max} lb`;
+  return min != null ? `Dogs ${min} lb and up` : `Dogs up to ${max} lb`;
+}
 /** The cover photo library (public/photos). */
 export const PHOTOS = [
   'athletic_dog_catching_ball', 'dog_running_on_beach', 'dog_getting_pets_at_park', 'dogs_meeting_on_leash', 'pulling_on_leash',
@@ -22,11 +52,17 @@ export interface ClassForm {
   energy: string[]; social: string[]; clearance: 'social' | 'herding' | null; reqs: string[]; description: string; trainerId: string | null;
   /** Owners leave the dog with the trainer. Group classes only; privates and assessments never are. */
   dropOff: boolean;
+  /** Age in months and weight in lb the class is for; null ends are open. */
+  age: Range;
+  size: Range;
+  /** Spayed or neutered dogs only. */
+  fixed: boolean;
 }
 
 export const emptyForm = (trainerId: string | null): ClassForm => ({
   title: '', discipline: null, type: 'class', image: null, duration: 60, intensity: 3, group: 8, energy: [], social: [], clearance: null,
   reqs: ['Rabies', 'DHPP', 'Bordetella'], description: '', trainerId, dropOff: false,
+  age: { min: 6, max: null }, size: { min: null, max: null }, fixed: false,
 });
 
 /** Reads a saved class back into the form (older classes keep their fit in suits / suits_note). */
@@ -34,7 +70,7 @@ export function formOf(c: ClassType): ClassForm {
   const text = c.requirements.map((r) => r.text).join(' ');
   const reqs = [
     /rabies/i.test(text) && 'Rabies', /dhpp/i.test(text) && 'DHPP', /bordetella/i.test(text) && 'Bordetella',
-    /6 months/i.test(text) && '6 months+', /12 months|1 year/i.test(text) && '1 year+', /leash until/i.test(text) && 'Leash until release',
+    /leash until/i.test(text) && 'Leash until release',
   ].filter(Boolean) as string[];
   const energy = c.energy.length ? c.energy : /any energy/i.test(c.suits ?? '') ? ENERGY : ENERGY.filter((e) => (c.suits ?? '').toLowerCase().includes(e.toLowerCase().replace(' dog', '')));
   const social = c.sociability.length ? c.sociability : SOCIAL.filter((s) => (c.suits_note ?? '').toLowerCase().includes(s.toLowerCase().split(' ')[0]));
@@ -42,6 +78,11 @@ export function formOf(c: ClassType): ClassForm {
     title: c.title, discipline: c.discipline, type: c.session_type, image: photoKey(c.image), duration: c.duration_min, intensity: c.intensity, group: c.group_size,
     energy, social, clearance: c.session_type === 'assessment' ? c.grants : c.requires, reqs, description: c.description ?? '', trainerId: c.trainer_id,
     dropOff: c.drop_off,
+    // Classes saved before the gates had their age floor in the requirements text only.
+    age: c.min_age_months != null || c.max_age_months != null
+      ? { min: c.min_age_months, max: c.max_age_months }
+      : { min: /12 months|1 year/i.test(text) ? 12 : /6 months/i.test(text) ? 6 : null, max: null },
+    size: { min: c.min_weight_lb, max: c.max_weight_lb }, fixed: c.requires_fixed,
   };
 }
 
@@ -53,7 +94,9 @@ export function payloadOf(f: ClassForm) {
   const vax = ['Rabies', 'DHPP', 'Bordetella'].filter((v) => f.reqs.includes(v));
   const requirements = [
     vax.length && { icon: 'syringe', text: `${vax.length === 3 ? 'Rabies, DHPP and Bordetella' : vax.join(' and ')} current` },
-    f.reqs.includes('1 year+') ? { icon: 'cake', text: '12 months or older' } : f.reqs.includes('6 months+') && { icon: 'cake', text: '6 months or older' },
+    ageLabel(f.age) && { icon: 'cake', text: ageLabel(f.age) },
+    sizeLabel(f.size) && { icon: 'shield', text: sizeLabel(f.size) },
+    f.fixed && { icon: 'stethoscope', text: 'Spayed or neutered' },
     // The member app swaps "Juno" for the member's dog.
     f.reqs.includes('Leash until release') && { icon: 'link', text: 'On leash until the trainer releases Juno' },
   ].filter(Boolean);
@@ -65,6 +108,9 @@ export function payloadOf(f: ClassForm) {
     suits_note: group === 1 ? (f.type === 'private' ? 'Private session' : 'One dog at a time') : f.social.length === SOCIAL.length || !f.social.length ? 'All dogs welcome' : f.social.join(', '),
     description: f.description.trim(), image: f.image, trainer_id: f.trainerId, clearance: f.clearance ?? '', requirements, energy: f.energy, sociability: f.social,
     drop_off: f.type === 'class' && f.dropOff,
+    // An empty string clears a gate (partner_save_class).
+    min_age_months: f.age.min ?? '', max_age_months: f.age.max ?? '', min_weight_lb: f.size.min ?? '', max_weight_lb: f.size.max ?? '',
+    requires_fixed: f.fixed,
   };
 }
 

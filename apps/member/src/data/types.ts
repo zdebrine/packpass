@@ -74,7 +74,14 @@ export interface ClassType {
   openWindow?: string;
   /** Owners leave the dog with the trainer and pick up at the end. Every other class, they stay. */
   dropOff: boolean;
-  requirements: { icon: 'syringe' | 'cake' | 'link'; text: string }[];
+  requirements: { icon: 'syringe' | 'cake' | 'link' | 'stethoscope' | 'shield'; text: string }[];
+  // Who it's for (gates). A dog outside them can't book: src/lib/fit.ts and public.class_gate().
+  minAgeMonths?: number;
+  maxAgeMonths?: number;
+  minWeightLb?: number;
+  maxWeightLb?: number;
+  /** Spayed or neutered dogs only. */
+  requiresFixed?: boolean;
 }
 
 export interface Session {
@@ -185,9 +192,16 @@ export interface Dog {
   /** None until the member adds one; screens fall back to the dog's initial. */
   photo?: PhotoSource;
   breed: string;
+  /** Canonical breeds (src/data/breeds.ts), up to three for a mix. Empty when the owner isn't sure. */
+  breedIds?: string[];
   age: string;
   stage: string;
   since: number;
+  /** For the class gates (src/lib/fit.ts). Month is 1 to 12. Unknown when missing. */
+  birthYear?: number;
+  birthMonth?: number;
+  weightLb?: number;
+  fixed?: boolean;
   /** What the owner picked in onboarding (01h), e.g. "Pulls on the leash". Live mode only. */
   traits?: string[];
 }

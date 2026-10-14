@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { isLive } from '@/api/client';
 import * as live from '@/api/live';
+import { breedLabel, breedNamed } from '@/data/breeds';
 import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, OTIS_VACCINES, TRAIT_SPECIAL, type Energy } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
 import { planOf } from '@/data/plans';
@@ -24,6 +25,8 @@ export interface OnboardingDraft {
   photo: PhotoSource | null;
   sex: 'Female' | 'Male';
   breed: string;
+  /** Breeds picked from the breed search (src/data/breeds.ts): one, or up to three for a mix. */
+  breedIds: string[];
   mixed: boolean;
   notSure: boolean;
   birthMonth: number; // 0 to 11
@@ -57,6 +60,7 @@ const SAMPLE_DRAFT: OnboardingDraft = {
   photo: 'juno',
   sex: 'Female',
   breed: 'Border Collie',
+  breedIds: ['border-collie'],
   mixed: false,
   notSure: false,
   birthMonth: 2,
@@ -73,7 +77,7 @@ const SAMPLE_DRAFT: OnboardingDraft = {
 // keep a starting value for their pickers; "With other dogs" is left for the owner to choose, since it decides
 // which group classes fit.
 const BLANK_DOG: Partial<OnboardingDraft> = {
-  dogName: '', photo: null, sex: 'Female', breed: '', mixed: false, notSure: false, birthMonth: SAMPLE_DRAFT.birthMonth,
+  dogName: '', photo: null, sex: 'Female', breed: '', breedIds: [], mixed: false, notSure: false, birthMonth: SAMPLE_DRAFT.birthMonth,
   birthYear: SAMPLE_DRAFT.birthYear, weight: SAMPLE_DRAFT.weight, fixed: false, energy: 'medium', social: '', interests: [], traits: [],
 };
 // Live accounts start blank: nothing about the sample member or Juno is filled in for a real owner.
@@ -327,8 +331,10 @@ const savedRecords = (s: AppState) => {
 };
 
 /** The booking rules for a given dog: its own clearances, paths and vaccines, the account's credits and bookings. */
-export const ruleContextFor = (s: AppState, dogId: string): RuleContext =>
-  ruleContext({ ...recordOf(s, dogId), credits: s.credits, bookings: s.bookings });
+export const ruleContextFor = (s: AppState, dogId: string): RuleContext => ({
+  ...ruleContext({ ...recordOf(s, dogId), credits: s.credits, bookings: s.bookings }),
+  dog: s.dogs.find((d) => d.id === dogId),
+});
 
 export const useApp = create<AppState>()(
   persist(
@@ -558,8 +564,9 @@ export const useApp = create<AppState>()(
             // Sample mode keeps the new dog on the device, with whatever was entered for it on the way (vaccines).
             const d = get().draft;
             const dog: Dog = {
-              id: `dog-${Date.now()}`, name: d.dogName.trim(), photo: d.photo ?? undefined, breed: d.mixed ? 'Mixed breed' : d.breed,
+              id: `dog-${Date.now()}`, name: d.dogName.trim(), photo: d.photo ?? undefined, breed: breedLabel(d.breedIds, d.mixed, d.breed), breedIds: d.breedIds,
               ...live.ageOf(d.birthYear, d.birthMonth + 1), since: now().getFullYear(), traits: d.traits,
+              birthYear: d.birthYear, birthMonth: d.birthMonth + 1, weightLb: d.weight, fixed: d.fixed,
             };
             set((s) => ({ dogs: [...s.dogs, dog], activeDogId: dog.id, addingDog: false, pendingVaccineDoc: null, dogRecords: { ...s.dogRecords, [dog.id]: pickRecord(s) } }));
           } else {
@@ -737,7 +744,7 @@ export const useApp = create<AppState>()(
     },
     {
       name: 'packpass-member',
-      version: 6,
+      version: 7,
       storage: createJSONStorage(() => AsyncStorage),
       // Live mode keeps member data in Supabase; only preferences and the onboarding draft persist.
       partialize: (s) =>
@@ -770,6 +777,20 @@ export const useApp = create<AppState>()(
             p.activeDogId = p.dogs[0]?.id ?? null;
             p.dogs = p.dogs.map((d: Dog, i: number) => (d.traits ? d : { ...d, traits: i === 0 ? p.draft?.traits ?? [] : [] }));
             p.dogRecords = { ...fresh.dogRecords };
+          }
+        }
+        // v7, class gates: the draft keeps breed ids, and sample dogs get the birthday, weight and spayed or
+        // neutered status the gates read.
+        if (version < 7) {
+          if (p.draft && !Array.isArray(p.draft.breedIds)) {
+            const b = p.draft.mixed ? undefined : breedNamed(p.draft.breed ?? '');
+            p.draft = { ...p.draft, breedIds: b ? [b.id] : [] };
+          }
+          if (Array.isArray(p.dogs)) {
+            p.dogs = p.dogs.map((d: Dog) => {
+              const x = sampleDogs[d.id];
+              return d.birthYear == null && x ? { ...d, breedIds: x.breedIds, birthYear: x.birthYear, birthMonth: x.birthMonth, weightLb: x.weightLb, fixed: x.fixed } : d;
+            });
           }
         }
         return p as never;
@@ -824,7 +845,9 @@ export const useNotifications = () => {
   return remote ?? sampleNotifications(social);
 };
 /** Booking rule context for the dog that's showing. */
-export const useRules = () =>
-  ruleContext(useApp((s) => s));
+export const useRules = () => {
+  const s = useApp((x) => x);
+  return { ...ruleContext(s), dog: s.dogs.find((d) => d.id === activeDogId(s)) };
+};
 /** Booking rule context for a given dog (the booking sheet's dog picker). */
 export const useRulesFor = (dogId: string) => ruleContextFor(useApp((s) => s), dogId);

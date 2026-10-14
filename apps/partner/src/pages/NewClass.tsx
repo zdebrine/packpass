@@ -3,10 +3,10 @@ import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { errorCopy, saveClass } from '@/lib/api';
-import { emptyForm, estimate, payloadOf, TYPES, type ClassForm } from '@/lib/classForm';
+import { ageLabel, emptyForm, estimate, payloadOf, sizeLabel, TYPES, type ClassForm } from '@/lib/classForm';
 import { usePartner } from '@/lib/partner';
 import { Badge, Button, ClassCard, Chip, ErrorLine, Field, Ico, Page, Row, photoUrl } from '@/ui/kit';
-import { Clearance, Description, Discipline, DropOff, Duration, Energy, Group, Intensity, Name, PhotoGrid, Requirements, Social, typeLabel, type Patch } from './classParts';
+import { Ages, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PhotoGrid, Requirements, Sizes, Social, typeLabel, type Patch } from './classParts';
 
 const STEPS: [string, string][] = [['Basics', 'Type, name, photo'], ['Format', 'Length, size, who leads'], ['Who it’s for', 'Fit and requirements'], ['Review', 'Send to PackPass']];
 const TYPE_ICON = { class: Users, private: UserRound, assessment: ShieldCheck };
@@ -133,7 +133,10 @@ export function NewClass() {
                 <Energy f={f} set={set} />
                 {group > 1 ? <Social f={f} set={set} /> : null}
                 <Clearance f={f} set={set} />
+                <Ages f={f} set={set} />
+                <Sizes f={f} set={set} />
                 <Requirements f={f} set={set} />
+                <Fixed f={f} set={set} />
                 <DropOff f={f} set={set} />
               </div>
             ) : (
@@ -145,7 +148,8 @@ export function NewClass() {
                 ]} />
                 <Review title="Who it’s for" onEdit={() => setStep(2)} rows={[
                   ['Energy', f.energy.join(', ') || '—'], ...(group > 1 ? [['With other dogs', f.social.join(', ') || '—'] as [string, string]] : []),
-                  [f.type === 'assessment' ? 'Grants' : 'Requires', f.clearance === 'social' ? 'Social' : f.clearance === 'herding' ? 'Herding' : 'No clearance'], ['Requirements', f.reqs.join(', ') || 'None'],
+                  [f.type === 'assessment' ? 'Grants' : 'Requires', f.clearance === 'social' ? 'Social' : f.clearance === 'herding' ? 'Herding' : 'No clearance'], ['Ages', ageLabel(f.age) ?? 'Any age'], ['Size', sizeLabel(f.size) ?? 'Any size'],
+                  ...(f.fixed ? [['Spayed or neutered', 'Required'] as [string, string]] : []), ['Requirements', f.reqs.join(', ') || 'None'],
                   ...(f.type === 'class' ? [['Owners', f.dropOff ? <Badge>Drop-off</Badge> : 'Stay with their dog'] as [string, ReactNode]] : []),
                 ]} />
                 <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
