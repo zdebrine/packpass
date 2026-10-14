@@ -131,3 +131,61 @@ delete from dogs where id in (select id from r.d);
 delete from partner_staff where user_id = '00000000-0000-0000-0000-00000000bb02';
 delete from packpass_admins where user_id = '00000000-0000-0000-0000-00000000bb03';
 drop schema r cascade;
+
+-- ---- Fit weights and the report (…_fit_weights.sql) ------------------------------------------------------------
+create schema w;
+create function w.ok(cond boolean, what text) returns void language plpgsql as $$
+begin
+  if cond is not true then raise exception 'FAILED: %', what; end if;
+  raise notice 'ok: %', what;
+end $$;
+create function w.expect_error(q text, want text) returns void language plpgsql as $$
+declare got text;
+begin
+  begin execute q; exception when others then got := sqlerrm; end;
+  if got is null or got not like '%' || want || '%' then raise exception 'FAILED: expected error "%" but got "%"', want, got; end if;
+  raise notice 'ok: rejected with %', want;
+end $$;
+grant usage on schema w to authenticated;
+grant execute on all functions in schema w to authenticated;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000cc01', 'weights@packpass.co'), ('00000000-0000-0000-0000-00000000cc02', 'weights-member@dogs.co');
+insert into packpass_admins (user_id) values ('00000000-0000-0000-0000-00000000cc01');
+create table w.d (id uuid);
+with x as (insert into dogs (owner_id, name) values ('00000000-0000-0000-0000-00000000cc02', 'Wren') returning id) insert into w.d select id from x;
+grant select on w.d to authenticated;
+
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000cc02', false);
+select w.ok((select breed + energy + social + interests + balance + history from fit_weights) = 100, 'members read the weights, which add up to 100');
+select w.expect_error($$select public.admin_set_fit_weights('{"breed":30,"energy":20,"social":15,"interests":15,"balance":15,"history":5}')$$, 'not_admin');
+-- Two classes shown: the strong breed match booked, the weak one not. A third row from before signals is left out.
+select public.log_impressions((select id from w.d), jsonb_build_array(
+  jsonb_build_object('session_id', (select id from sessions where class_id = 'herding-livestock' and starts_at > now() order by starts_at limit 1), 'surface', 'list', 'state', 'open', 'score', 85,
+                     'parts', '{"breed":1,"energy":0.6,"social":1,"interests":1,"balance":0,"history":0}'::jsonb, 'weights', '{"breed":35}'::jsonb),
+  jsonb_build_object('session_id', (select id from sessions where class_id = 'scent-work' and starts_at > now() order by starts_at limit 1), 'surface', 'list', 'state', 'open', 'score', 30,
+                     'parts', '{"breed":0,"energy":0.6,"social":1,"interests":0,"balance":0,"history":0}'::jsonb, 'weights', '{"breed":35}'::jsonb),
+  jsonb_build_object('session_id', (select id from sessions where class_id = 'agility-drop-in' and starts_at > now() order by starts_at limit 1), 'surface', 'list', 'state', 'open', 'score', 50,
+                     'parts', '{"breed":15}'::jsonb)));
+reset role;
+insert into bookings (session_id, dog_id, member_id, credits_charged)
+values ((select id from sessions where class_id = 'herding-livestock' and starts_at > now() order by starts_at limit 1), (select id from w.d), '00000000-0000-0000-0000-00000000cc02', 0);
+
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000cc01', false);
+select w.ok((select shown = 2 and booked = 1 and dogs = 1 from public.admin_fit_report() where kind = 'all'), 'the report counts bookable impressions logged as signals');
+select w.ok((select shown = 1 and booked = 1 from public.admin_fit_report() where kind = 'band' and label = '80 to 100'), 'by score band');
+select w.ok((select shown = 0 from public.admin_fit_report() where kind = 'band' and label = '40 to 59'), 'with empty bands kept');
+select w.ok((select booked = 1 from public.admin_fit_report() where kind = 'part' and label = 'breed strong')
+        and (select booked = 0 and shown = 1 from public.admin_fit_report() where kind = 'part' and label = 'breed weak'), 'and by part, strong against weak');
+select w.expect_error($$select public.admin_set_fit_weights('{"breed":50,"energy":20,"social":15,"interests":15,"balance":10,"history":5}')$$, 'bad_weights');
+select w.expect_error($$select public.admin_set_fit_weights('{"breed":-5,"energy":40,"social":15,"interests":15,"balance":30,"history":5}')$$, 'bad_weights');
+select public.admin_set_fit_weights('{"breed":30,"energy":20,"social":15,"interests":15,"balance":15,"history":5}');
+reset role;
+select w.ok((select breed = 30 and balance = 15 and updated_by = '00000000-0000-0000-0000-00000000cc01' from fit_weights), 'an admin sets the weights');
+
+update fit_weights set breed = 35, balance = 10, updated_by = null;
+delete from match_impressions where dog_id in (select id from w.d);
+delete from bookings where dog_id in (select id from w.d);
+delete from dogs where id in (select id from w.d);
+delete from packpass_admins where user_id = '00000000-0000-0000-0000-00000000cc01';
+drop schema w cascade;

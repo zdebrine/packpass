@@ -5,6 +5,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import './styles.css';
 import { AdminShell } from '@/admin/AdminNav';
 import { Applications } from '@/admin/Applications';
+import { Fit } from '@/admin/Fit';
 import { Partners as AdminPartners } from '@/admin/Partners';
 import { Review } from '@/admin/Review';
 import { Staff as AdminStaff } from '@/admin/Staff';
@@ -32,6 +33,7 @@ const adminRoutes = (
     <Route path="admin/vet-records" element={<VetRecords />} />
     <Route path="admin/partners" element={<AdminPartners />} />
     <Route path="admin/staff" element={<AdminStaff />} />
+    <Route path="admin/fit" element={<Fit />} />
   </>
 );
 

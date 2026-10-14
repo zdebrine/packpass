@@ -284,6 +284,14 @@ export const setClassReview = async (id: string, credits: number | null, premium
   check(await db.rpc('admin_set_class', { p_class: id, p_credits: credits, p_premium: premium, p_status: status }));
 };
 export const decideBreedOnly = async (id: string, approve: boolean) => { check(await db.rpc('admin_set_breed_only', { p_class: id, p_approve: approve })); };
+/** Class fit (supabase/migrations/…_fit_weights.sql): how often dogs book what Book showed them, and the weights the app ranks with. */
+export type FitPart = 'breed' | 'energy' | 'social' | 'interests' | 'balance' | 'history';
+export type FitWeights = Record<FitPart, number>;
+export interface FitReportRow { kind: 'all' | 'band' | 'part'; label: string; shown: number; booked: number; dogs: number }
+export const loadFitReport = async (days: number) => check(await db.rpc('admin_fit_report', { p_days: days })) as FitReportRow[];
+export const loadFitWeights = async () =>
+  check(await db.from('fit_weights').select('breed, energy, social, interests, balance, history, updated_at').single()) as FitWeights & { updated_at: string };
+export const saveFitWeights = async (w: FitWeights) => { check(await db.rpc('admin_set_fit_weights', { p: w })); };
 export const loadAdminPartners = async () => check(await db.rpc('admin_partners')) as AdminPartner[];
 export const saveAdminPartner = async (id: string | null, fields: Record<string, unknown>) => check(await db.rpc('admin_save_partner', { p_id: id, p: fields })) as string;
 export const loadAdminTrainers = async () => check(await db.rpc('admin_trainers')) as AdminTrainer[];
@@ -332,6 +340,7 @@ const COPY: Record<string, string> = {
   vaccines: 'This dog doesn\'t have all three vaccines on file.',
   bad_title: 'Give the class a name.',
   breed_only_reason: 'Say why this class is only for these breeds.',
+  bad_weights: 'The weights have to be whole numbers that add up to 100.',
   breed_only_needs_built_for: 'Pick at least one breed group under Built for first.',
   not_found: 'That isn\'t available any more. Refresh and try again.',
   not_admin: 'Only PackPass admins can do this.',

@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { isLive } from '@/api/client';
 import { logImpressions, type Impression } from '@/api/live';
 import { eligibility, type RuleContext, type SessionView } from '@/lib/booking';
-import type { Fit } from '@/lib/fit';
+import { currentWeights, type Fit } from '@/lib/fit';
 
 const seen = new Set<string>();
 
@@ -22,7 +22,7 @@ export function useImpressions(dogId: string, rows: SessionView[], rules: RuleCo
       seen.add(key);
       const e = eligibility(v, rules);
       const f = fit(v);
-      fresh.push({ session_id: v.session.id, surface, state: e.ok ? 'open' : e.needs === 'fit' ? 'no' : 'unlock', position, score: f.score, parts: f.parts });
+      fresh.push({ session_id: v.session.id, surface, state: e.ok ? 'open' : e.needs === 'fit' ? 'no' : 'unlock', position, score: f.score, parts: f.signals, weights: currentWeights() });
     });
     logImpressions(dogId, fresh.slice(0, 100)).catch(() => {});
     // Only a different set of rows, in a different order, is a new impression.

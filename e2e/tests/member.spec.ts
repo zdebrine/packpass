@@ -219,7 +219,7 @@ test('a herding-breeds-only class turns a Lab away until the partner marks it As
     await expect(page.getByText('This class is for herding breeds only.')).toHaveCount(0);
 
     await page.goto('/book');
-    await expect.poll(() => Number(sql(`select count(*) from match_impressions where dog_id = '${dog}' and surface = 'list'`))).toBeGreaterThan(0);
+    await expect.poll(() => Number(sql(`select count(*) from match_impressions where dog_id = '${dog}' and surface = 'list' and weights ->> 'breed' = '35' and (score_parts ->> 'breed')::numeric <= 1`))).toBeGreaterThan(0);
   } finally {
     sql(`update class_types set breed_only = false where id = 'herding-livestock'`);
   }
