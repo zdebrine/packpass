@@ -56,7 +56,7 @@ function WebFrame({ children }: { children: React.ReactNode }) {
 }
 
 /** Desktop shows sheets and full-screen modals as dialogs over the page, so the page has to stay rendered underneath. */
-function useModal(phone: 'transparentModal' | 'fullScreenModal' | undefined, animation?: 'fade') {
+function useModal(phone: 'transparentModal' | 'fullScreenModal' | undefined, animation?: 'fade' | 'none') {
   const wide = useWide();
   if (wide) return { presentation: 'transparentModal' as const, animation: 'fade' as const };
   return { presentation: phone, animation };
@@ -76,7 +76,8 @@ function RootLayout() {
   const dataReady = useApp((s) => s.ready);
   const ready = fontsLoaded && hydrated && dataReady;
   usePush();
-  const sheet = useModal('transparentModal', 'fade');
+  // Phone sheets open over the screen they came from and animate themselves (ds/sheet).
+  const sheet = useModal('transparentModal', 'none');
   const fade = useModal('fullScreenModal', 'fade');
   const scan = useModal('fullScreenModal');
   const page = useModal(undefined);

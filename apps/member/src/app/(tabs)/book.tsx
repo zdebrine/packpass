@@ -6,7 +6,8 @@ import { catalog } from '@/data/catalog';
 import type { Category, SessionType } from '@/data/types';
 import { Chip, Tag } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
-import { Field, Grabber, Screen, useTop } from '@/ds/layout';
+import { Field, Screen, useTop } from '@/ds/layout';
+import { DetentSheet } from '@/ds/sheet';
 import { Press } from '@/ds/Press';
 import { col, Page, useWide } from '@/ds/responsive';
 import { PhotoFill, Scrim } from '@/ds/Surface';
@@ -96,6 +97,8 @@ export default function Book() {
   const [fits, setFits] = useState(true);
   const [query, setQuery] = useState('');
   const [partnerId, setPartnerId] = useState(() => (catalog.partners.ridgeline ? 'ridgeline' : Object.keys(catalog.partners)[0]));
+  // Tapping a pin brings a collapsed map sheet back up.
+  const [opened, setOpened] = useState(0);
   const sociability = useApp((s) => s.draft.social);
   const rules = useRules();
   const dog = useDog();
@@ -252,7 +255,7 @@ export default function Book() {
             const id = pins.find((x) => x.lat === pin.lat && x.lng === pin.lng)!.id;
             const n = byPartner[id]?.length ?? 0;
             const on = id === partnerId;
-            return <LabelPin on={on} label={on ? `${catalog.partners[id].short} · ${n}` : pinLabel(id, n)} a11y={`${catalog.partners[id].name}, ${n} sessions`} onPress={() => setPartnerId(id)} />;
+            return <LabelPin on={on} label={on ? `${catalog.partners[id].short} · ${n}` : pinLabel(id, n)} a11y={`${catalog.partners[id].name}, ${n} sessions`} onPress={() => { setPartnerId(id); setOpened((n) => n + 1); }} />;
           }}
         >
           <View style={{ position: 'absolute', top: top + 8, left: 20, right: 20, flexDirection: 'row', gap: 8, zIndex: 5 }}>
@@ -262,9 +265,7 @@ export default function Book() {
             </Press>
             <Segmented value="Map" onChange={setMode} float />
           </View>
-          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '48%', backgroundColor: c.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 10, boxShadow: c.shadowFloat, zIndex: 5 }}>
-            <Grabber />
-            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 }}>
+          <DetentSheet peek={132} half={0.48} gap={top + 72} open={opened} contentStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 }}>
               <Text variant="eyebrow" muted>{`${dayLabel} · ${p.distanceMi} mi · ${p.street}`}</Text>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
                 <Text variant="displayLg" style={{ flex: 1 }}>{p.name}</Text>
@@ -276,8 +277,7 @@ export default function Book() {
               <View style={{ gap: 14, marginTop: 18 }}>
                 {here.length ? here.map((v) => <ClassRow key={v.session.id} v={v} showPartnerAsCoach />) : <Text muted>Nothing on this day.</Text>}
               </View>
-            </ScrollView>
-          </View>
+          </DetentSheet>
         </Map>
       </Screen>
     );

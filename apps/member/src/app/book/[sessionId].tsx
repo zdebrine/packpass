@@ -1,15 +1,15 @@
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import Animated, { Easing, FadeIn, SlideInDown } from 'react-native-reanimated';
+import { Platform, View } from 'react-native';
 
 import { isLive } from '@/api/client';
 import { errorCopy } from '@/api/errors';
 import { TOP_UP } from '@/data/plans';
 import { Button, Chip, Tag } from '@/ds/controls';
-import { Grabber, IconButton, useBottom } from '@/ds/layout';
+import { IconButton, useBottom } from '@/ds/layout';
 import { Overlay } from '@/ds/overlay';
+import { ModalSheet } from '@/ds/sheet';
 import { tile, useWide } from '@/ds/responsive';
 import { WaitlistActions } from '@/features/book/Waitlist';
 import { Photo, PhotoFill, Scrim } from '@/ds/Surface';
@@ -21,9 +21,7 @@ import { pay, settle } from '@/lib/checkout';
 import { comingWithAccounts } from '@/lib/notice';
 import { useAllowance, useApp, useDog, useRulesFor } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
-import { motion } from '@/theme/tokens';
 
-const ease = Easing.bezier(...motion.easeOut);
 const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
 /** 06 Booking sheet. "Book for 2 credits" → "Confirm booking" → "Booked." */
@@ -174,22 +172,12 @@ export default function BookingSheet() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <Photo name={cls.image} style={{ position: 'absolute', left: 0, top: 0, right: 0, height: 460 }} />
-      <Animated.View entering={FadeIn.duration(motion.base)} style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
-        <Pressable style={{ flex: 1 }} onPress={close} accessibilityLabel="Close" />
-      </Animated.View>
-
-      <Animated.View
-        entering={SlideInDown.duration(motion.base).easing(ease)}
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: c.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 10, paddingHorizontal: 20, paddingBottom: bottom }}
-        accessibilityViewIsModal
-      >
-        <Grabber />
-        <View style={{ height: 18 }} />
-        {body}
-      </Animated.View>
-    </View>
+    <ModalSheet
+      onClose={close}
+      padding={{ paddingTop: 18, paddingHorizontal: 20, paddingBottom: bottom }}
+    >
+      {body}
+    </ModalSheet>
   );
 }
 
