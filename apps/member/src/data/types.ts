@@ -88,6 +88,8 @@ export interface ClassType {
   // Fit (fitFor in src/lib/fit.ts): ranks the class for each dog, never hides it.
   /** Breed aptitudes the class is built for. Dogs that share one see it first with a "Built for" tag. */
   builtFor?: Aptitude[];
+  /** PackPass approved "Only these breeds": dogs whose breeds share none of builtFor can't book (unless Assessed fit). */
+  breedOnly?: boolean;
   /** Energy levels and sociability ("Loves dogs"…) the partner picked. Empty: judged from intensity and group size. */
   energy?: Energy[];
   sociability?: string[];
@@ -211,6 +213,8 @@ export interface Dog {
   birthMonth?: number;
   weightLb?: number;
   fixed?: boolean;
+  /** Partners whose trainers marked the dog Assessed fit: their size and breed gates don't apply. Live mode only. */
+  fitPartners?: string[];
   /** From onboarding (01g), for class fit. */
   energy?: Energy;
   /** "Loves dogs", "Selective" or "Prefers solo". */

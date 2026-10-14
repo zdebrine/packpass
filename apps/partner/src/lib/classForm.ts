@@ -73,12 +73,16 @@ export interface ClassForm {
   fixed: boolean;
   /** Breed aptitudes (APTITUDES keys), up to three. Ranks the class for matching dogs; never stops others booking. */
   builtFor: string[];
+  /** Asks PackPass to make the class open only to dogs whose breeds share a Built for aptitude, and why. */
+  breedOnly: boolean;
+  breedOnlyReason: string;
 }
 
 export const emptyForm = (trainerId: string | null): ClassForm => ({
   title: '', discipline: null, type: 'class', image: null, duration: 60, intensity: 3, group: 8, energy: [], social: [], clearance: null,
   reqs: ['Rabies', 'DHPP', 'Bordetella'], description: '', trainerId, dropOff: false,
   age: { min: 6, max: null }, size: { min: null, max: null }, fixed: false, builtFor: [],
+  breedOnly: false, breedOnlyReason: '',
 });
 
 /** Reads a saved class back into the form (older classes keep their fit in suits / suits_note). */
@@ -99,6 +103,7 @@ export function formOf(c: ClassType): ClassForm {
       ? { min: c.min_age_months, max: c.max_age_months }
       : { min: /12 months|1 year/i.test(text) ? 12 : /6 months/i.test(text) ? 6 : null, max: null },
     size: { min: c.min_weight_lb, max: c.max_weight_lb }, fixed: c.requires_fixed, builtFor: c.built_for ?? [],
+    breedOnly: c.breed_only ?? false, breedOnlyReason: c.breed_only_reason ?? '',
   };
 }
 
@@ -129,6 +134,12 @@ export function payloadOf(f: ClassForm) {
     requires_fixed: f.fixed, built_for: f.builtFor,
   };
 }
+
+/** Reasons PackPass accepts for "Only these breeds". Anything else goes in the partner's own words. */
+export const BREED_ONLY_REASONS = ['Sanctioned event', 'Insurance requirement'];
+/** Whether the "Only these breeds" request needs sending (partner_set_breed_only). A Built for change on its own
+ *  goes with the class and sends the request back to review by itself. */
+export const breedOnlyChanged = (a: ClassForm, b: ClassForm) => a.breedOnly !== b.breedOnly || (b.breedOnly && a.breedOnlyReason.trim() !== b.breedOnlyReason.trim());
 
 /** What changes the credit cost: the class goes back to PackPass for a review if these change. */
 export const pricingChanged = (a: ClassForm, b: ClassForm) => a.duration !== b.duration || a.intensity !== b.intensity || a.group !== b.group || a.type !== b.type;

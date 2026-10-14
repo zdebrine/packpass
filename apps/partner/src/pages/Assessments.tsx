@@ -1,12 +1,12 @@
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 
-import { errorCopy, loadAssessments, recordResult, type AssessmentRow } from '@/lib/api';
+import { errorCopy, loadAssessments, loadFitOverrides, recordResult, setFitOverride, type AssessmentRow } from '@/lib/api';
 import { useData, usePartner } from '@/lib/partner';
 import { partnerTraits, useTraits } from '@/lib/traits';
 import { monthDay, time, weekday, ymd } from '@/lib/time';
 import { useSigned } from '@/lib/useSigned';
-import { Avatar, Badge, Button, Checkbox, ErrorLine, Field, Page } from '@/ui/kit';
+import { Avatar, Badge, Button, Checkbox, ErrorLine, Field, Page, Toggle } from '@/ui/kit';
 import { Empty, Loading } from './Overview';
 
 const RUBRIC: Record<string, string[]> = {
@@ -18,6 +18,7 @@ const when = (d: Date) => `${ymd(d) === ymd(new Date()) ? 'Today' : `${weekday(d
 /** 09 Assessments: score the rubric, grant the clearance or set a goal, and send the result to the Passport. */
 export function Assessments() {
   const { data, reload } = useData(() => loadAssessments(), []);
+  const { data: fits, reload: reloadFits } = useData(loadFitOverrides, []);
   const [sel, setSel] = useState<string | null>(null);
   const photos = useSigned('dog-photos', data?.map((a) => a.photo_path) ?? []);
   if (!data) return <Loading />;
@@ -50,14 +51,15 @@ export function Assessments() {
               );
             })}
           </div>
-          <Result key={a.booking_id} a={a} photo={a.photo_path ? photos[a.photo_path] : undefined} onSent={reload} />
+          <Result key={a.booking_id} a={a} photo={a.photo_path ? photos[a.photo_path] : undefined} onSent={reload}
+            fit={!!fits?.some((o) => o.dog_id === a.dog_id)} onFit={reloadFits} />
         </div>
       )}
     </Page>
   );
 }
 
-function Result({ a, photo, onSent }: { a: AssessmentRow; photo?: string; onSent: () => void }) {
+function Result({ a, photo, onSent, fit, onFit }: { a: AssessmentRow; photo?: string; onSent: () => void; fit: boolean; onFit: () => void }) {
   const { partner } = usePartner();
   const done = !!a.outcome;
   const items = RUBRIC[a.grants] ?? [];
@@ -127,6 +129,7 @@ function Result({ a, photo, onSent }: { a: AssessmentRow; photo?: string; onSent
           : grant ? `${cap(a.grants)} clearances transfer to every PackPass partner and expire after 12 months.`
           : `Not yet. A goal puts the training path back to ${cap(a.grants)} on ${a.dog_name}'s Passport.`}</span>
       </section>
+      <AssessedFit a={a} on={fit} onDone={onFit} />
       <Field label="Note to owner">
         <textarea className="area" rows={3} value={note} disabled={done} onChange={(e) => setNote(e.target.value)} placeholder="Say what went well and what comes next. Describe behavior, not labels." />
       </Field>
@@ -143,6 +146,34 @@ function Result({ a, photo, onSent }: { a: AssessmentRow; photo?: string; onSent
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Assessed fit: after meeting the dog, a trainer can let it into this partner's classes past their size and breed
+ * limits (public.class_gate). Age and spayed or neutered still apply. Saved straight away, separate from the result.
+ */
+function AssessedFit({ a, on, onDone }: { a: AssessmentRow; on: boolean; onDone: () => void }) {
+  const { partner } = usePartner();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const flip = async (v: boolean) => {
+    setBusy(true); setError(null);
+    try { await setFitOverride(a.dog_id, v); onDone(); } catch (e) { setError(errorCopy(e)); } finally { setBusy(false); }
+  };
+  return (
+    <section style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 0', boxShadow: 'inset 0 1px 0 var(--line),inset 0 -1px 0 var(--line)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <span className="pp-label">{`Assessed fit at ${partner.short_name || partner.name}`}</span>
+          <span className="pp-caption pp-muted" style={{ textWrap: 'pretty' }}>{on
+            ? `${a.dog_name} can book your classes whatever their size or breed limits. Age and spayed or neutered rules still apply.`
+            : `Lets ${a.dog_name} book your classes outside their size or breed limits, once you've seen them work.`}</span>
+        </div>
+        <Toggle on={on} disabled={busy} onChange={flip} label={`Assessed fit at ${partner.short_name || partner.name}`} />
+      </div>
+      <ErrorLine>{error}</ErrorLine>
+    </section>
   );
 }
 

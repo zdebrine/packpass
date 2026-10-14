@@ -17,7 +17,7 @@ import { assessmentFor, bookingFor, cancelRefund, checkInClosesAt, credits as cr
 import { now } from '@/lib/clock';
 import { cancelCopy, dayTime, monthDay, relativeDay, time } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
-import { builtForLabel, builtForList } from '@/lib/fit';
+import { breedOnlyLabel, builtForLabel, builtForList } from '@/lib/fit';
 import { useAllowance, useApp, useDog, useOriginLabel, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -146,7 +146,9 @@ export default function ClassDetail() {
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 }}>
       <Icon name="sparkles" size={16} />
       <Text variant="label" style={{ flex: 1 }}>
-        {built ? `${builtForLabel(built)}. ${juno.name} is ${/^[aeiou]/i.test(juno.breed) ? 'an' : 'a'} ${juno.breed}.` : `Open to all breeds. ${builtForList(cls.builtFor)}.`}
+        {built
+          ? `${cls.breedOnly ? breedOnlyLabel(cls.builtFor) : builtForLabel(built)}. ${juno.name} is ${/^[aeiou]/i.test(juno.breed) ? 'an' : 'a'} ${juno.breed}.`
+          : cls.breedOnly ? `${breedOnlyLabel(cls.builtFor)}.` : `Open to all breeds. ${builtForList(cls.builtFor)}.`}
       </Text>
     </View>
   ) : null;

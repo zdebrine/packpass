@@ -75,13 +75,13 @@ export function bookError(sessionId: string, dogId: string, ctx: RuleContext): B
 export type Eligibility =
   | { ok: true; cleared: boolean }
   | { ok: false; needs: 'herding' | 'social' | 'vaccines'; reason: string }
-  /** The class isn't for this dog (age, size, spayed or neutered): nothing to unlock. `label` is the class's rule. */
+  /** The class isn't for this dog (age, size, breed, spayed or neutered): nothing to unlock. `label` is the class's rule. */
   | { ok: false; needs: 'fit'; reason: string; label: string };
 
 /** For badges and the class detail box: can the dog book this class, and is it "Cleared"? */
 export function eligibility(v: SessionView, ctx: RuleContext, dogName = 'Juno'): Eligibility {
   const block = blockFor(v.cls, v.session, ctx);
-  if (block === 'too_young' || block === 'too_old' || block === 'too_small' || block === 'too_large' || block === 'needs_fixed') {
+  if (block === 'too_young' || block === 'too_old' || block === 'too_small' || block === 'too_large' || block === 'breed_only' || block === 'needs_fixed') {
     const label = gateLabel(v.cls, block);
     const rule = label.replace(/^Ages /, 'dogs aged ').replace(/^./, (x) => x.toLowerCase());
     return { ok: false, needs: 'fit', label, reason: `This class is for ${rule}.` };

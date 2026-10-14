@@ -192,3 +192,35 @@ test('a class built for herding breeds says so to a herding dog and stays open t
   await page.reload();
   await expect(ui.text('Open to all breeds. Built for herding breeds.')).toBeVisible();
 });
+
+test('a herding-breeds-only class turns a Lab away until the partner marks it Assessed fit, and Book logs what it showed', async ({ page }) => {
+  const ui = visible(page);
+  const email = `breed-only-${Date.now()}@example.com`;
+  const id = await account(email, 'goodpass123');
+  const dog = sql(`insert into dogs (owner_id, name, breed, birth_year, weight_lb, energy, sociability) values ('${id}', 'Otis', 'Labrador Retriever', 2021, 70, 'medium', 'loves_dogs') returning id`);
+  sql(`update class_types set breed_only = true, breed_only_reason = 'Sanctioned trial' where id = 'herding-livestock'`);
+  sql(`update class_types set breed_only_status = 'approved' where id = 'herding-livestock'`); // as PackPass would
+  const session = sql(`select s.id from sessions s where s.class_id = 'herding-livestock' and s.starts_at > now() order by s.starts_at limit 1`);
+  try {
+    await page.goto('/');
+    await page.getByText('I already have an account').click();
+    await ui.boxes().nth(0).fill(email);
+    await ui.boxes().nth(1).fill('goodpass123');
+    await ui.button('Sign in').click();
+    await expect(ui.text(/Otis/)).toBeVisible();
+    await page.goto(`/class/${session}`);
+    await expect(ui.text('Herding breeds only.')).toBeVisible();
+    await expect(ui.text('This class is for herding breeds only.')).toBeVisible();
+
+    // Ridgeline's trainer met Otis and let him in.
+    sql(`insert into dog_fit_overrides (dog_id, partner_id, assessor) values ('${dog}', 'ridgeline', 'Maren')`);
+    await page.reload();
+    await expect(ui.text('Herding breeds only.')).toBeVisible();
+    await expect(page.getByText('This class is for herding breeds only.')).toHaveCount(0);
+
+    await page.goto('/book');
+    await expect.poll(() => Number(sql(`select count(*) from match_impressions where dog_id = '${dog}' and surface = 'list'`))).toBeGreaterThan(0);
+  } finally {
+    sql(`update class_types set breed_only = false where id = 'herding-livestock'`);
+  }
+});
