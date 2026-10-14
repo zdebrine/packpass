@@ -1,21 +1,20 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { Easing, FadeIn, SlideInDown } from 'react-native-reanimated';
+import { View } from 'react-native';
 
 import { credits as creditsLabel, nextSession } from '@/lib/booking';
 import { STATUS_LABEL } from '@/data/passport';
 import { useClearances } from '@/lib/clearances';
 import { Button } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
-import { Badge, Grabber, IconButton, useBottom, useTop } from '@/ds/layout';
+import { Badge, IconButton, useBottom, useTop } from '@/ds/layout';
 import { Overlay } from '@/ds/overlay';
+import { ModalSheet } from '@/ds/sheet';
 import { useWide } from '@/ds/responsive';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { useClearanceStyle } from '@/features/passport/style';
 import { useApp, useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
-import { motion } from '@/theme/tokens';
 
 const close = () => (router.canGoBack() ? router.back() : router.replace('/dog'));
 
@@ -140,23 +139,16 @@ export default function ClearanceDetail() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <Photo name={juno.photo ?? 'dog_and_owner_chilling'} style={{ position: 'absolute', left: 0, top: 0, right: 0, height: 460 }} />
-      <Animated.View entering={FadeIn.duration(motion.base)} style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
-        <Pressable style={{ flex: 1 }} onPress={close} accessibilityLabel="Close" />
-      </Animated.View>
-      <Animated.View
-        entering={SlideInDown.duration(motion.base).easing(Easing.bezier(...motion.easeOut))}
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: top + 42, backgroundColor: c.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
-        accessibilityViewIsModal
-      >
-        <View style={{ paddingTop: 10 }}><Grabber /></View>
-        <ScrollView contentContainerStyle={{ paddingTop: 20, paddingHorizontal: 20, paddingBottom: bottom }}>
-          {header}
+    <ModalSheet
+      onClose={close}
+      top={top + 42}
+      scroll
+      behind={<Photo name={juno.photo ?? 'dog_and_owner_chilling'} style={{ position: 'absolute', left: 0, top: 0, right: 0, height: 460 }} />}
+      padding={{ paddingTop: 20, paddingHorizontal: 20, paddingBottom: bottom }}
+    >
+      {header}
 
-          {details}
-        </ScrollView>
-      </Animated.View>
-    </View>
+      {details}
+    </ModalSheet>
   );
 }
