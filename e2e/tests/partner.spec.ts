@@ -79,3 +79,37 @@ test('picking Herding makes a new class built for herding breeds, and the previe
   await expect(page.getByRole('button', { name: '1 year+' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText(/PackPass dogs? can book this · \d+ (is a Built for match|are Built for matches)/)).toBeVisible();
 });
+
+test('a partner asks for Only these breeds, PackPass approves it, and a trainer marks a dog Assessed fit', async ({ page }) => {
+  const email = await signIn(page);
+  await page.goto('/classes');
+  await page.getByText('Free roam').first().click();
+  await page.getByRole('button', { name: 'Terrier', exact: true }).click();
+  await page.getByRole('switch', { name: 'Only these breeds' }).locator('..').click();
+  await page.getByRole('button', { name: 'Insurance requirement' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('Waiting for PackPass review. Every dog can book until it\'s approved.')).toBeVisible();
+  expect(sql(`select breed_only_status from class_types where id = 'free-roam'`)).toBe('pending');
+
+  // PackPass approves it from Review.
+  sql(`insert into packpass_admins (user_id) select id from auth.users where email = '${email}'`);
+  await page.goto('/admin');
+  await expect(page.getByText(/^Only Terrier/)).toBeVisible();
+  await expect(page.getByText('Why: Insurance requirement')).toBeVisible();
+  await page.getByRole('button', { name: 'Approve' }).click();
+  await expect(page.getByText('Why: Insurance requirement')).toHaveCount(0);
+  expect(sql(`select breed_only_status from class_types where id = 'free-roam'`)).toBe('approved');
+  sql(`update class_types set breed_only = false, built_for = '{}' where id = 'free-roam'`);
+
+  // A trainer lets a dog in past the size and breed limits after its assessment.
+  const member = await account(`fit-${Date.now()}@example.com`, 'goodpass123');
+  const dog = sql(`insert into dogs (owner_id, name, breed) values ('${member}', 'Pip', 'Pug') returning id`);
+  const session = sql(`select s.id from sessions s join class_types c on c.id = s.class_id
+    where c.partner_id = 'eastside' and c.grants is not null and s.starts_at > now() order by s.starts_at limit 1`);
+  sql(`insert into bookings (session_id, dog_id, member_id, credits_charged) values ('${session}', '${dog}', '${member}', 0)`);
+  await page.goto('/assessments');
+  await page.getByText(/^Pip ·/).first().click();
+  await page.getByRole('switch', { name: 'Assessed fit at Eastside' }).locator('..').click();
+  await expect(page.getByText('Pip can book your classes whatever their size or breed limits.', { exact: false })).toBeVisible();
+  expect(sql(`select count(*) from dog_fit_overrides where dog_id = '${dog}' and partner_id = 'eastside'`)).toBe('1');
+});

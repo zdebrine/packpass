@@ -2,11 +2,11 @@ import { Check, ShieldCheck, UserRound, Users } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { errorCopy, saveClass } from '@/lib/api';
+import { errorCopy, saveClass, setBreedOnly } from '@/lib/api';
 import { ageLabel, APTITUDES, emptyForm, estimate, payloadOf, sizeLabel, TYPES, type ClassForm } from '@/lib/classForm';
 import { usePartner } from '@/lib/partner';
 import { Badge, Button, ClassCard, Chip, ErrorLine, Field, Ico, Page, Row, photoUrl } from '@/ui/kit';
-import { Ages, BuiltFor, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PhotoGrid, Reach, Requirements, Sizes, Social, typeLabel, type Patch } from './classParts';
+import { Ages, BreedOnly, BuiltFor, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PhotoGrid, Reach, Requirements, Sizes, Social, typeLabel, type Patch } from './classParts';
 
 const STEPS: [string, string][] = [['Basics', 'Type, name, photo'], ['Format', 'Length, size, who leads'], ['Who it’s for', 'Fit and requirements'], ['Review', 'Send to PackPass']];
 const TYPE_ICON = { class: Users, private: UserRound, assessment: ShieldCheck };
@@ -26,7 +26,8 @@ export function NewClass() {
   const needs = [
     [[f.title.trim().length < 3, 'Add a class name'], [!f.discipline, 'Pick a discipline'], [!f.image, 'Choose a cover photo']],
     [[f.description.trim().length < 20, 'Describe the session in a sentence or two']],
-    [[!f.energy.length, 'Pick at least one energy level'], [group > 1 && !f.social.length, 'Pick who it suits around other dogs']],
+    [[!f.energy.length, 'Pick at least one energy level'], [group > 1 && !f.social.length, 'Pick who it suits around other dogs'],
+      [f.breedOnly && f.breedOnlyReason.trim().length < 3, 'Say why it\'s only for these breeds']],
     [],
   ].map((a) => (a as [boolean, string][]).filter((x) => x[0]).map((x) => x[1]));
   const firstGap = needs.findIndex((a) => a.length);
@@ -44,6 +45,7 @@ export function NewClass() {
     setBusy(true); setError(null);
     try {
       const id = await saveClass(null, payloadOf(f));
+      if (f.breedOnly) await setBreedOnly(id, true, f.breedOnlyReason);
       await reloadCatalog();
       setSentId(id);
     } catch (e) { setError(errorCopy(e)); } finally { setBusy(false); }
@@ -138,6 +140,7 @@ export function NewClass() {
                 <Requirements f={f} set={set} />
                 <Fixed f={f} set={set} />
                 <div style={{ gridColumn: '1/-1' }}><BuiltFor f={f} set={set} /></div>
+                <BreedOnly f={f} set={set} />
                 <DropOff f={f} set={set} />
               </div>
             ) : (
@@ -151,7 +154,9 @@ export function NewClass() {
                   ['Energy', f.energy.join(', ') || '—'], ...(group > 1 ? [['With other dogs', f.social.join(', ') || '—'] as [string, string]] : []),
                   [f.type === 'assessment' ? 'Grants' : 'Requires', f.clearance === 'social' ? 'Social' : f.clearance === 'herding' ? 'Herding' : 'No clearance'], ['Ages', ageLabel(f.age) ?? 'Any age'], ['Size', sizeLabel(f.size) ?? 'Any size'],
                   ...(f.fixed ? [['Spayed or neutered', 'Required'] as [string, string]] : []),
-                  ['Built for', f.builtFor.map((k) => APTITUDES.find((a) => a.key === k)?.label ?? k).join(', ') || 'Any breed'], ['Requirements', f.reqs.join(', ') || 'None'],
+                  ['Built for', f.builtFor.map((k) => APTITUDES.find((a) => a.key === k)?.label ?? k).join(', ') || 'Any breed'],
+                  ...(f.breedOnly ? [['Only these breeds', `Asked for: ${f.breedOnlyReason.trim()}`] as [string, string]] : []),
+                  ['Requirements', f.reqs.join(', ') || 'None'],
                   ...(f.type === 'class' ? [['Owners', f.dropOff ? <Badge>Drop-off</Badge> : 'Stay with their dog'] as [string, ReactNode]] : []),
                 ]} />
                 <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>

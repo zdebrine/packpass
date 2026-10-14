@@ -109,7 +109,7 @@ export async function loadCatalog() {
       dropOff: k.drop_off ?? false, requirements: k.requirements ?? [],
       minAgeMonths: k.min_age_months ?? undefined, maxAgeMonths: k.max_age_months ?? undefined,
       minWeightLb: k.min_weight_lb ?? undefined, maxWeightLb: k.max_weight_lb ?? undefined, requiresFixed: k.requires_fixed ?? false,
-      builtFor: k.built_for ?? [], energy: (k.energy ?? []).map((e: string) => ENERGY_KEY[e]).filter(Boolean), sociability: k.sociability ?? [],
+      builtFor: k.built_for ?? [], breedOnly: !!k.breed_only && k.breed_only_status === 'approved', energy: (k.energy ?? []).map((e: string) => ENERGY_KEY[e]).filter(Boolean), sociability: k.sociability ?? [],
     }])),
     sessions: (sessions as any[]).map((s): Session => ({ id: s.id, classId: s.class_id, startsAt: new Date(s.starts_at), spotsLeft: s.spots_left })),
     pathSpecialties: Object.fromEntries((paths as any[]).map((p) => [p.id, p.specialties ?? []])),
@@ -162,7 +162,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
   const photoPaths = dogs.map((d) => d.photo_path).filter(Boolean) as string[];
   const signed = photoPaths.length ? (check(await c.storage.from('dog-photos').createSignedUrls(photoPaths, PHOTO_URL_TTL)) as { path: string; signedUrl: string }[]) : [];
   const photoUrl = new Map(signed.map((x) => [x.path, x.signedUrl]));
-  const [bookings, clearances, paths, vaccines, reviews, notes, holds, waiting] = await Promise.all([
+  const [bookings, clearances, paths, vaccines, reviews, notes, holds, waiting, assessed] = await Promise.all([
     c.from('bookings').select('*').neq('status', 'cancelled').then(check),
     c.from('clearances').select('*').in('dog_id', dogIds).then(check),
     c.from('dog_paths').select('*').in('dog_id', dogIds).then(check),
@@ -171,6 +171,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     c.from('notifications').select('*').order('created_at', { ascending: false }).limit(50).then(check),
     c.from('held_spots').select('session_id, dog_id, expires_at').eq('status', 'held').gt('expires_at', new Date().toISOString()).then(check),
     c.rpc('my_waitlist').then(check),
+    c.from('dog_fit_overrides').select('dog_id, partner_id').in('dog_id', dogIds).then(check),
   ]) as any[][];
 
   const today = new Date().toISOString().slice(0, 10);
@@ -209,6 +210,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
       ...ageOf(d.birth_year, d.birth_month), since: d.member_since, traits: d.traits ?? [],
       birthYear: d.birth_year ?? undefined, birthMonth: d.birth_month ?? undefined, weightLb: d.weight_lb ?? undefined, fixed: d.fixed ?? undefined,
       energy: d.energy ?? undefined, social: SOCIAL_LABEL[d.sociability] ?? undefined, interests: d.interests ?? [],
+      fitPartners: assessed.filter((o) => o.dog_id === d.id).map((o) => o.partner_id),
     })),
     records: Object.fromEntries(dogIds.map((id) => [id, recordFor(id)])),
     bookings: bookings.map((b) => ({ id: b.id, sessionId: b.session_id, dogId: b.dog_id, credits: b.credits_charged, status: b.status === 'checked_in' ? 'checked_in' : 'booked' })),
@@ -463,4 +465,10 @@ export async function registerPushToken(token: string, platform: 'ios' | 'androi
 
 export async function markRead(ids: string[] | null) {
   check(await db().rpc('mark_notifications_read', { p_ids: ids }));
+}
+
+export interface Impression { session_id: string; surface: 'list' | 'map' | 'detail'; state: 'open' | 'unlock' | 'no'; position?: number; score?: number; parts?: Record<string, number> }
+/** Which classes Book showed the dog, with their fit, so the weights can be tuned from what gets booked. */
+export async function logImpressions(dogId: string, rows: Impression[]) {
+  if (rows.length) check(await db().rpc('log_impressions', { p_dog: dogId, p: rows }));
 }

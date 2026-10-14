@@ -1,15 +1,16 @@
 // Who a class is for: the age, size and spayed-or-neutered gates partners set on a class. The same rules
-// and codes as public.class_gate() (supabase/migrations/…_class_fit_gates.sql), so sample mode and live
-// mode agree. Breed never gates a class; it only ranks them (fitFor, below).
+// and codes as public.class_gate() (supabase/migrations/…_breed_review_overrides.sql), so sample mode and live
+// mode agree. Breed only ranks classes (fitFor, below), except a class PackPass approved as "Only these breeds".
+// A partner's Assessed fit lifts the size and breed gates at that partner.
 
 import { breedById, type Aptitude } from '@/data/breeds';
 import type { Energy } from '@/data/fixtures';
 import type { BalanceCategory, ClassType, Dog } from '@/data/types';
 
-export type GateCode = 'too_young' | 'too_old' | 'too_small' | 'too_large' | 'needs_fixed';
+export type GateCode = 'too_young' | 'too_old' | 'too_small' | 'too_large' | 'breed_only' | 'needs_fixed';
 
 /** What the gates need to know about a dog. Missing birthday or weight passes those gates. */
-export type DogFacts = Pick<Dog, 'birthYear' | 'birthMonth' | 'weightLb' | 'fixed'>;
+export type DogFacts = Pick<Dog, 'birthYear' | 'birthMonth' | 'weightLb' | 'fixed' | 'breedIds' | 'fitPartners'>;
 
 /** Age in months on a day, counted from the birth month (June when unknown), like public.dog_age_months(). */
 export function ageMonthsOn(dog: DogFacts, day: Date): number | null {
@@ -23,8 +24,14 @@ export function gateFor(cls: ClassType, dog: DogFacts | undefined, day: Date): G
   const age = ageMonthsOn(dog, day);
   if (cls.minAgeMonths != null && age != null && age < cls.minAgeMonths) return 'too_young';
   if (cls.maxAgeMonths != null && age != null && age > cls.maxAgeMonths) return 'too_old';
-  if (cls.minWeightLb != null && dog.weightLb != null && dog.weightLb < cls.minWeightLb) return 'too_small';
-  if (cls.maxWeightLb != null && dog.weightLb != null && dog.weightLb > cls.maxWeightLb) return 'too_large';
+  if (!dog.fitPartners?.includes(cls.partnerId)) {
+    if (cls.minWeightLb != null && dog.weightLb != null && dog.weightLb < cls.minWeightLb) return 'too_small';
+    if (cls.maxWeightLb != null && dog.weightLb != null && dog.weightLb > cls.maxWeightLb) return 'too_large';
+    if (cls.breedOnly && cls.builtFor?.length) {
+      const mine = aptitudesOf(dog.breedIds);
+      if (!cls.builtFor.some((a) => mine.has(a))) return 'breed_only';
+    }
+  }
   if (cls.requiresFixed && dog.fixed !== true) return 'needs_fixed';
   return null;
 }
@@ -53,6 +60,7 @@ export function sizeLabel(min?: number, max?: number): string | null {
 export function gateLabel(cls: ClassType, code: GateCode): string {
   if (code === 'too_young' || code === 'too_old') return ageLabel(cls.minAgeMonths, cls.maxAgeMonths)!;
   if (code === 'too_small' || code === 'too_large') return sizeLabel(cls.minWeightLb, cls.maxWeightLb)!;
+  if (code === 'breed_only') return breedOnlyLabel(cls.builtFor ?? []);
   return 'Spayed or neutered dogs';
 }
 
@@ -70,6 +78,11 @@ export const builtForLabel = (a: Aptitude) => `Built for ${BUILT_FOR[a]}`;
 /** "Built for herding breeds and sighthounds". */
 export const builtForList = (tags: Aptitude[]) =>
   `Built for ${tags.map((t) => BUILT_FOR[t]).join(', ').replace(/, ([^,]*)$/, ' and $1')}`;
+/** "Herding breeds only", for a class PackPass approved as Only these breeds. */
+export const breedOnlyLabel = (tags: Aptitude[]) => {
+  const list = tags.map((t) => BUILT_FOR[t]).join(', ').replace(/, ([^,]*)$/, ' and $1');
+  return `${list.charAt(0).toUpperCase()}${list.slice(1)} only`;
+};
 
 /** Onboarding's interests (01g) that each discipline answers. */
 const INTEREST_OF: Record<string, string> = {

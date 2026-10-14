@@ -15,8 +15,9 @@ export interface ClassType {
   drop_off: boolean;
   /** Who it's for: a dog outside these can't book (public.class_gate). */
   min_age_months: number | null; max_age_months: number | null; min_weight_lb: number | null; max_weight_lb: number | null; requires_fixed: boolean;
-  /** Breed aptitudes the class is built for: ranks it for matching dogs, never gates it. */
+  /** Breed aptitudes the class is built for: ranks it for matching dogs, and gates it only once PackPass approves breed_only. */
   built_for: string[];
+  breed_only: boolean; breed_only_reason: string | null; breed_only_status: 'pending' | 'approved' | 'rejected' | null;
 }
 export interface Staff { user_id: string; partner_id: string; trainer_id: string | null; role: 'owner' | 'trainer'; name: string }
 export interface Session {
@@ -98,6 +99,14 @@ export const loadClasses = async (partnerId: string) =>
   check(await db.from('class_types').select('*').eq('partner_id', partnerId).order('title')) as ClassType[];
 export const loadTrainers = async (partnerId: string) =>
   check(await db.from('trainers').select('*').eq('partner_id', partnerId).order('name')) as Trainer[];
+/** Turns "Only these breeds" on (sent to PackPass review) or off. Returns the review status. */
+export const setBreedOnly = async (id: string, on: boolean, reason: string) =>
+  check(await db.rpc('partner_set_breed_only', { p_class: id, p_on: on, p_reason: reason.trim() })) as ClassType['breed_only_status'];
+/** Dogs marked Assessed fit here: past this partner's size and breed gates (age and spayed or neutered still apply). */
+export const loadFitOverrides = async () => check(await db.rpc('partner_fit_overrides')) as { dog_id: string; assessor: string; created_at: string }[];
+export const setFitOverride = async (dogId: string, on: boolean, note?: string) => {
+  check(await db.rpc('partner_set_fit_override', { p_dog: dogId, p_on: on, p_note: note ?? null }));
+};
 export const saveClass = async (id: string | null, fields: Record<string, unknown>) =>
   check(await db.rpc('partner_save_class', { p_id: id, p: fields })) as string;
 /** How many PackPass dogs could book a class with these gates today, and how many are Built for matches. */
@@ -260,6 +269,7 @@ export interface ReviewClass {
   duration_min: number; intensity: number; group_size: number; credits: number | null; premium: boolean; status: ClassType['status'];
   credit_review: boolean; description: string | null; image: string | null; energy: string[]; sociability: string[];
   requires: 'social' | 'herding' | null; grants: 'social' | 'herding' | null;
+  built_for: string[]; breed_only_reason: string | null; breed_only_status: 'pending' | 'approved' | 'rejected' | null;
 }
 export interface AdminPartner {
   id: string; name: string; short_name: string; type: string; street: string; address: string; lat: number | null; lng: number | null;
@@ -273,6 +283,7 @@ export const loadReviewQueue = async () => check(await db.rpc('admin_review_queu
 export const setClassReview = async (id: string, credits: number | null, premium: boolean, status: 'live' | 'paused' | 'in_review') => {
   check(await db.rpc('admin_set_class', { p_class: id, p_credits: credits, p_premium: premium, p_status: status }));
 };
+export const decideBreedOnly = async (id: string, approve: boolean) => { check(await db.rpc('admin_set_breed_only', { p_class: id, p_approve: approve })); };
 export const loadAdminPartners = async () => check(await db.rpc('admin_partners')) as AdminPartner[];
 export const saveAdminPartner = async (id: string | null, fields: Record<string, unknown>) => check(await db.rpc('admin_save_partner', { p_id: id, p: fields })) as string;
 export const loadAdminTrainers = async () => check(await db.rpc('admin_trainers')) as AdminTrainer[];
@@ -320,6 +331,8 @@ const COPY: Record<string, string> = {
   already_recorded: 'A result is already recorded for this booking.',
   vaccines: 'This dog doesn\'t have all three vaccines on file.',
   bad_title: 'Give the class a name.',
+  breed_only_reason: 'Say why this class is only for these breeds.',
+  breed_only_needs_built_for: 'Pick at least one breed group under Built for first.',
   not_found: 'That isn\'t available any more. Refresh and try again.',
   not_admin: 'Only PackPass admins can do this.',
   bad_credits: 'Set a credit cost between 1 and 20 to put the class live.',

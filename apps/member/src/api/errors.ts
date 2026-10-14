@@ -7,6 +7,7 @@ const COPY: Record<string, string> = {
   too_old: 'This class is for younger dogs.',
   too_small: 'This class is for bigger dogs.',
   too_large: 'This class is for smaller dogs.',
+  breed_only: 'This class is only for the breeds it\'s built for.',
   needs_fixed: 'This class is for spayed or neutered dogs.',
   bad_breed: 'Pick a breed from the list, or choose Not sure.',
   needs_herding: 'This class needs a Herding assessment first.',

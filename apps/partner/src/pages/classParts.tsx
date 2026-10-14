@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { errorCopy, loadReach, uploadPartnerPhoto, type SessionType } from '@/lib/api';
 import { usePartner } from '@/lib/partner';
 import { isUpload } from '@/lib/photos';
-import { AGES, APTITUDES, DISCIPLINE_DEFAULTS, DISCIPLINES, ENERGY, PHOTOS, REQS, SIZES, SOCIAL, TYPES, ageLabel, emptyForm, payloadOf, sizeLabel, type ClassForm, type Range } from '@/lib/classForm';
+import { AGES, APTITUDES, BREED_ONLY_REASONS, DISCIPLINE_DEFAULTS, DISCIPLINES, ENERGY, PHOTOS, REQS, SIZES, SOCIAL, TYPES, ageLabel, emptyForm, payloadOf, sizeLabel, type ClassForm, type Range } from '@/lib/classForm';
 import { Chip, ErrorLine, Field, Ico, Row, Segmented, Stepper, Toggle, photoUrl } from '@/ui/kit';
 
 export type Patch = (p: Partial<ClassForm>) => void;
@@ -142,11 +142,44 @@ export const BuiltFor = ({ f, set }: { f: ClassForm; set: Patch }) => (
     <Row gap={6}>
       {APTITUDES.map((a) => {
         const on = f.builtFor.includes(a.key);
-        return <Chip key={a.key} on={on} onClick={() => (on || f.builtFor.length < 3) && set({ builtFor: toggle(f.builtFor, a.key) })}>{a.label}</Chip>;
+        const next = toggle(f.builtFor, a.key);
+        return <Chip key={a.key} on={on} onClick={() => (on || f.builtFor.length < 3) && set(next.length ? { builtFor: next } : { builtFor: next, breedOnly: false })}>{a.label}</Chip>;
       })}
     </Row>
   </Field>
 );
+
+const BREED_ONLY_STATUS = {
+  pending: 'Waiting for PackPass review. Every dog can book until it\'s approved.',
+  approved: 'Approved by PackPass. Only these breeds can book, plus dogs you mark Assessed fit.',
+  rejected: 'PackPass turned this down, so every dog can book. Change the reason to ask again.',
+} as const;
+
+/**
+ * "Only these breeds": rare, for sanctioned events or insurance. PackPass reviews every request; `status` is the
+ * saved class's review state. Dogs a trainer marks Assessed fit can still book.
+ */
+export const BreedOnly = ({ f, set, status }: { f: ClassForm; set: Patch; status?: keyof typeof BREED_ONLY_STATUS | null }) => f.builtFor.length ? (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 0', boxShadow: 'inset 0 1px 0 var(--line),inset 0 -1px 0 var(--line)', gridColumn: '1/-1' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <span className="pp-label">Only these breeds</span>
+        <span className="pp-caption pp-muted" style={{ textWrap: 'pretty' }}>
+          {f.breedOnly && status ? BREED_ONLY_STATUS[status] : 'Rare. For a sanctioned event or an insurance rule. PackPass reviews each request.'}
+        </span>
+      </div>
+      <Toggle on={f.breedOnly} onChange={(breedOnly) => set({ breedOnly })} label="Only these breeds" />
+    </div>
+    {f.breedOnly ? (
+      <Field label="Why">
+        <Row gap={6}>
+          {BREED_ONLY_REASONS.map((r) => <Chip key={r} on={f.breedOnlyReason === r} onClick={() => set({ breedOnlyReason: r })}>{r}</Chip>)}
+        </Row>
+        <input className="field" aria-label="Reason" value={f.breedOnlyReason} placeholder="Or say why in a few words" onChange={(e) => set({ breedOnlyReason: e.target.value })} style={{ marginTop: 8 }} />
+      </Field>
+    ) : null}
+  </div>
+) : null;
 
 /** The member preview's reach line: how many PackPass dogs could book this today, and how many are Built for matches. */
 export function Reach({ f }: { f: ClassForm }) {

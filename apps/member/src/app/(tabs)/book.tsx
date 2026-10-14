@@ -14,6 +14,7 @@ import { PhotoFill, Scrim } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { ClassRow } from '@/features/book/ClassRow';
 import { useFit } from '@/features/book/useFit';
+import { useImpressions } from '@/features/book/useImpressions';
 import { centerOf, Map, useMe } from '@/features/Map';
 import { eligibility, sessionsFor, timeLabel, view, type SessionView } from '@/lib/booking';
 import { now } from '@/lib/clock';
@@ -126,6 +127,7 @@ export default function Book() {
   // off, it's the day in time order.
   const rank: Record<string, number> = Object.fromEntries(shown.map((v) => [v.session.id, outside.includes(v) ? -1 : fit(v.cls).score]));
   const all = fits ? [...shown].sort((a, b) => rank[b.session.id] - rank[a.session.id]) : shown;
+  useImpressions(dog.id, all, rules, (v) => fit(v.cls));
   const outsideClasses = [...new Set(outside.map((v) => v.cls.id))];
   const outsideWhy = [...new Set(outside.map((v) => notFor(v)!.replace(/^./, (x) => x.toLowerCase())))];
   const hiddenLine = outside.length ? (

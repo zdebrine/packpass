@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-import { adminRemovePhoto, errorCopy, loadPartnerPhotos, loadReviewQueue, setClassReview, type PartnerPhoto, type ReviewClass } from '@/lib/api';
-import { estimateFor } from '@/lib/classForm';
+import { adminRemovePhoto, decideBreedOnly, errorCopy, loadPartnerPhotos, loadReviewQueue, setClassReview, type PartnerPhoto, type ReviewClass } from '@/lib/api';
+import { APTITUDES, estimateFor } from '@/lib/classForm';
 import { useData } from '@/lib/partner';
 import { Button, ErrorLine, Row, Stepper, Tag, Toggle, photoUrl } from '@/ui/kit';
 import { Empty, Loading } from '@/pages/Overview';
@@ -13,7 +13,8 @@ export function Review() {
   const { data, reload } = useData(loadReviewQueue, []);
   if (!data) return <Loading />;
   const fresh = data.filter((c) => c.status === 'in_review');
-  const repriced = data.filter((c) => c.status !== 'in_review');
+  const repriced = data.filter((c) => c.status !== 'in_review' && c.credit_review);
+  const breedOnly = data.filter((c) => c.breed_only_status === 'pending');
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1040, margin: '0 auto', width: '100%' }}>
       <header style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -24,8 +25,44 @@ export function Review() {
       {data.length ? null : <Empty>Nothing waiting. New classes and price changes from partners show up here.</Empty>}
       {fresh.length ? <Section title={`New classes · ${fresh.length}`} rows={fresh} onDone={reload} /> : null}
       {repriced.length ? <Section title={`Pricing changed · ${repriced.length}`} rows={repriced} onDone={reload} /> : null}
+      {breedOnly.length ? <BreedOnly rows={breedOnly} onDone={reload} /> : null}
       <Photos />
     </div>
+  );
+}
+
+/**
+ * "Only these breeds" requests. Approving stops dogs outside the class's Built for breeds booking it (dogs the partner
+ * marked Assessed fit still can); turning it down leaves the class open to every dog.
+ */
+function BreedOnly({ rows, onDone }: { rows: ReviewClass[]; onDone: () => void }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const decide = async (c: ReviewClass, approve: boolean) => {
+    setBusy(c.id); setError(null);
+    try { await decideBreedOnly(c.id, approve); onDone(); } catch (e) { setError(errorCopy(e)); } finally { setBusy(null); }
+  };
+  const groups = (c: ReviewClass) => c.built_for.map((k) => APTITUDES.find((a) => a.key === k)?.label ?? k).join(', ');
+  return (
+    <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <h2 className="pp-title" style={{ margin: 0 }}>{`Only these breeds · ${rows.length}`}</h2>
+      <span className="pp-label pp-muted">Partners asking to close a class to other breeds. Until you decide, every dog can book it.</span>
+      <ErrorLine>{error}</ErrorLine>
+      {rows.map((c) => (
+        <div key={c.id} className="card" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, padding: 20, alignItems: 'center' }}>
+          <div style={{ flex: '1 1 320px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+            <Row gap={8}><span className="pp-title">{c.title}</span><Tag>{c.discipline}</Tag></Row>
+            <span className="pp-label pp-muted">{[c.partner_name, c.trainer_name].filter(Boolean).join(' · ')}</span>
+            <span className="pp-label">{`Only ${groups(c)}`}</span>
+            <span className="pp-body">{`Why: ${c.breed_only_reason ?? '—'}`}</span>
+          </div>
+          <Row gap={8}>
+            <Button disabled={busy === c.id} onClick={() => decide(c, true)}>Approve</Button>
+            <Button variant="quiet" disabled={busy === c.id} onClick={() => decide(c, false)}>Turn down</Button>
+          </Row>
+        </div>
+      ))}
+    </section>
   );
 }
 
