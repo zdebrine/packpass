@@ -107,6 +107,15 @@ export const loadFitOverrides = async () => check(await db.rpc('partner_fit_over
 export const setFitOverride = async (dogId: string, on: boolean, note?: string) => {
   check(await db.rpc('partner_set_fit_override', { p_dog: dogId, p_on: on, p_note: note ?? null }));
 };
+/** Sends a cleared dog back for re-assessment: the clearance pauses and the owner is told why. `undo` restores it. */
+export const flagReassessment = async (dogId: string, type: 'social' | 'herding', reason: string, undo = false) => {
+  check(await db.rpc('flag_reassessment', { p_dog: dogId, p_type: type, p_reason: reason.trim(), p_undo: undo }));
+};
+export interface AdminClearance {
+  dog_id: string; dog_name: string; breed: string | null; owner_name: string; type: 'social' | 'herding'; partner_name: string;
+  assessed_on: string; expires_on: string | null; reassess_at: string | null; reassess_reason: string | null; reassess_by: string | null;
+}
+export const loadAdminClearances = async () => check(await db.rpc('admin_clearances')) as AdminClearance[];
 export const saveClass = async (id: string | null, fields: Record<string, unknown>) =>
   check(await db.rpc('partner_save_class', { p_id: id, p: fields })) as string;
 /** How many PackPass dogs could book a class with these gates today, and how many are Built for matches. */
@@ -328,6 +337,7 @@ export const decideVetRecord = async (dogId: string, approve: boolean, reason?: 
 
 /** Copy for the reason codes the partner functions raise. */
 const COPY: Record<string, string> = {
+  reason_required: 'Add a reason. The owner sees it.',
   not_partner: 'This account isn\'t linked to a partner yet.',
   below_booked: 'PackPass spots can\'t go below the dogs already booked. Cancel bookings from the roster first.',
   bad_capacity: 'Capacity has to be at least the PackPass spots, and at most 40.',

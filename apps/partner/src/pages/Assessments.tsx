@@ -97,7 +97,7 @@ function Result({ a, photo, onSent, fit, onFit }: { a: AssessmentRow; photo?: st
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="pp-label">Passport</span>
           {a.clearances.length ? a.clearances.map((k) => {
-            const exp = /expired/.test(k);
+            const exp = /expired|re-assess/.test(k);
             return <Badge key={k} tone={exp ? 'warning' : 'cleared'} icon={exp ? ShieldAlert : ShieldCheck}>{k}</Badge>;
           }) : <span className="pp-caption pp-muted">No clearances yet.</span>}
         </div>

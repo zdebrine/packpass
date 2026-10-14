@@ -146,6 +146,8 @@ export interface ClearanceRecord {
   workingOn: string[];
   quote: string | null;
   seen: boolean;
+  /** A partner or PackPass sent the dog back for re-assessment: why, and who. The clearance reads as expired. */
+  reassess: { reason: string; by: string } | null;
 }
 
 /** A session a dog went to (07 Log), with the trainer's note and any assessment result. */
