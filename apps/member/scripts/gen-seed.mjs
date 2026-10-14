@@ -61,10 +61,10 @@ ${rows(Object.values(trainers).map((t) => [t.id, TRAINER_PARTNER[t.id], t.name, 
 
 insert into public.class_types (id, partner_id, trainer_id, title, discipline, category, session_type, credits, duration_min,
   intensity, group_size, suits, suits_note, balance, description, image, premium, requires, grants, open_window,
-  min_age_months, max_age_months, min_weight_lb, max_weight_lb, requires_fixed, requirements) values
+  min_age_months, max_age_months, min_weight_lb, max_weight_lb, requires_fixed, built_for, requirements) values
 ${Object.values(classes).map((c) => `  (${[c.id, c.partnerId, c.trainerId, c.title, c.discipline, c.category.toLowerCase(), c.sessionType.toLowerCase(),
   c.credits, c.durationMin, c.intensity, c.groupSize, c.suits, c.suitsNote, c.balance.toLowerCase(), c.description, c.image, !!c.premium,
-  c.requires, c.grants, c.openWindow, c.minAgeMonths, c.maxAgeMonths, c.minWeightLb, c.maxWeightLb, !!c.requiresFixed].map(q).join(', ')}, ${q(JSON.stringify(c.requirements))}::jsonb)`).join(',\n')};
+  c.requires, c.grants, c.openWindow, c.minAgeMonths, c.maxAgeMonths, c.minWeightLb, c.maxWeightLb, !!c.requiresFixed, c.builtFor ?? []].map(q).join(', ')}, ${q(JSON.stringify(c.requirements))}::jsonb)`).join(',\n')};
 
 insert into public.training_paths (id, title, lede, grants, specialties) values
 ${rows(PATHS.map(([id, title, lede, grants, , specs]) => [id, title, lede, grants, specs]))};

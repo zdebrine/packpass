@@ -567,11 +567,12 @@ export const useApp = create<AppState>()(
               id: `dog-${Date.now()}`, name: d.dogName.trim(), photo: d.photo ?? undefined, breed: breedLabel(d.breedIds, d.mixed, d.breed), breedIds: d.breedIds,
               ...live.ageOf(d.birthYear, d.birthMonth + 1), since: now().getFullYear(), traits: d.traits,
               birthYear: d.birthYear, birthMonth: d.birthMonth + 1, weightLb: d.weight, fixed: d.fixed,
+              energy: d.energy, social: d.social, interests: d.interests,
             };
             set((s) => ({ dogs: [...s.dogs, dog], activeDogId: dog.id, addingDog: false, pendingVaccineDoc: null, dogRecords: { ...s.dogRecords, [dog.id]: pickRecord(s) } }));
           } else {
-            const { photo, traits } = get().draft;
-            set((s) => ({ dogs: s.dogs.map((d, i) => (i === 0 ? { ...d, photo: photo ?? undefined, traits } : d)), area: s.draft.area }));
+            const { photo, traits, energy, social, interests } = get().draft;
+            set((s) => ({ dogs: s.dogs.map((d, i) => (i === 0 ? { ...d, photo: photo ?? undefined, traits, energy, social, interests } : d)), area: s.draft.area }));
           }
           set({ signedIn: true, onboarded: true });
         },
@@ -744,7 +745,7 @@ export const useApp = create<AppState>()(
     },
     {
       name: 'packpass-member',
-      version: 7,
+      version: 8,
       storage: createJSONStorage(() => AsyncStorage),
       // Live mode keeps member data in Supabase; only preferences and the onboarding draft persist.
       partialize: (s) =>
@@ -792,6 +793,13 @@ export const useApp = create<AppState>()(
               return d.birthYear == null && x ? { ...d, breedIds: x.breedIds, birthYear: x.birthYear, birthMonth: x.birthMonth, weightLb: x.weightLb, fixed: x.fixed } : d;
             });
           }
+        }
+        // v8, class fit: sample dogs get the energy, sociability and interests fit ranks on.
+        if (version < 8 && Array.isArray(p.dogs)) {
+          p.dogs = p.dogs.map((d: Dog) => {
+            const x = sampleDogs[d.id];
+            return d.energy == null && x ? { ...d, energy: x.energy, social: x.social, interests: x.interests } : d;
+          });
         }
         return p as never;
       },

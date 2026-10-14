@@ -13,6 +13,7 @@ import { col, Page, useWide } from '@/ds/responsive';
 import { PhotoFill, Scrim } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { ClassRow } from '@/features/book/ClassRow';
+import { useFit } from '@/features/book/useFit';
 import { centerOf, Map, useMe } from '@/features/Map';
 import { eligibility, sessionsFor, timeLabel, view, type SessionView } from '@/lib/booking';
 import { now } from '@/lib/clock';
@@ -103,6 +104,7 @@ export default function Book() {
   const sociability = useApp((s) => s.draft.social);
   const rules = useRules();
   const dog = useDog();
+  const fit = useFit();
   const wide = useWide();
   const me = useMe();
   const pins = partnerPins();
@@ -119,7 +121,11 @@ export default function Book() {
   const notFor = (v: SessionView) => { const e = eligibility(v, rules, dog.name); return !e.ok && e.needs === 'fit' ? e.label : null; };
   const inDay = sessionsFor(cat, day).filter(matches);
   const outside = fits ? inDay.filter((v) => notFor(v)) : [];
-  const all = showHidden ? inDay : inDay.filter((v) => !outside.includes(v));
+  const shown = showHidden ? inDay : inDay.filter((v) => !outside.includes(v));
+  // With "Fits" on, the classes that suit the dog best come first (src/lib/fit.ts) and any shown greyed out go last;
+  // off, it's the day in time order.
+  const rank: Record<string, number> = Object.fromEntries(shown.map((v) => [v.session.id, outside.includes(v) ? -1 : fit(v.cls).score]));
+  const all = fits ? [...shown].sort((a, b) => rank[b.session.id] - rank[a.session.id]) : shown;
   const outsideClasses = [...new Set(outside.map((v) => v.cls.id))];
   const outsideWhy = [...new Set(outside.map((v) => notFor(v)!.replace(/^./, (x) => x.toLowerCase())))];
   const hiddenLine = outside.length ? (

@@ -1,8 +1,10 @@
 // Who a class is for: the age, size and spayed-or-neutered gates partners set on a class. The same rules
 // and codes as public.class_gate() (supabase/migrations/…_class_fit_gates.sql), so sample mode and live
-// mode agree. Breed never gates a class; it only ranks them (phase 2 of the breed-specific classes plan).
+// mode agree. Breed never gates a class; it only ranks them (fitFor, below).
 
-import type { ClassType, Dog } from '@/data/types';
+import { breedById, type Aptitude } from '@/data/breeds';
+import type { Energy } from '@/data/fixtures';
+import type { BalanceCategory, ClassType, Dog } from '@/data/types';
 
 export type GateCode = 'too_young' | 'too_old' | 'too_small' | 'too_large' | 'needs_fixed';
 
@@ -52,4 +54,91 @@ export function gateLabel(cls: ClassType, code: GateCode): string {
   if (code === 'too_young' || code === 'too_old') return ageLabel(cls.minAgeMonths, cls.maxAgeMonths)!;
   if (code === 'too_small' || code === 'too_large') return sizeLabel(cls.minWeightLb, cls.maxWeightLb)!;
   return 'Spayed or neutered dogs';
+}
+
+// ---- Fit: how well an open class suits the dog (phase 2). Ranking only; it never hides a class. ---------------
+// Weights from the plan, a starting guess to tune once bookings show what predicts them.
+
+export const WEIGHTS = { breed: 35, energy: 20, social: 15, interests: 15, balance: 10, history: 5 } as const;
+
+/** "Built for herding breeds", "Built for sighthounds". */
+export const BUILT_FOR: Record<Aptitude, string> = {
+  herding: 'herding breeds', sighthound: 'sighthounds', scenthound: 'scenthounds', retriever: 'retrievers', water: 'water dogs',
+  terrier: 'terriers', guardian: 'guardian breeds', bully: 'bully breeds', toy: 'toy breeds', companion: 'companion dogs',
+};
+export const builtForLabel = (a: Aptitude) => `Built for ${BUILT_FOR[a]}`;
+/** "Built for herding breeds and sighthounds". */
+export const builtForList = (tags: Aptitude[]) =>
+  `Built for ${tags.map((t) => BUILT_FOR[t]).join(', ').replace(/, ([^,]*)$/, ' and $1')}`;
+
+/** Onboarding's interests (01g) that each discipline answers. */
+const INTEREST_OF: Record<string, string> = {
+  Herding: 'Herding', Agility: 'Agility', Sprint: 'Sprint', Scent: 'Scent', Sniff: 'Sniff spaces', 'Open play': 'Open play', Play: 'Open play',
+  Skills: 'Skills', Behavior: 'Skills',
+};
+const ENERGY_RANK: Record<Energy, number> = { couch: 1, medium: 2, high: 3, working: 4 };
+/** The class intensity (1 to 5) each energy level wants. */
+const ENERGY_PACE: Record<Energy, number> = { couch: 1.5, medium: 2.5, high: 4, working: 5 };
+
+export type FitDog = Pick<Dog, 'breed' | 'breedIds' | 'energy' | 'social' | 'interests'>;
+export interface FitContext {
+  /** The balance the dog's month is shortest on (src/lib/stats.ts). */
+  short?: BalanceCategory | null;
+  /** Disciplines and partners the dog has been to. */
+  disciplines?: string[];
+  partners?: string[];
+}
+export interface Fit {
+  score: number;
+  parts: Record<keyof typeof WEIGHTS, number>;
+  /** The aptitude the dog shares with the class, when breed earned its tag (25 or more). */
+  builtFor: Aptitude | null;
+}
+
+/** The dog's aptitudes, from its breeds. A mix counts every breed in it. */
+export const aptitudesOf = (breedIds: string[] = []) => new Set(breedIds.flatMap((id) => breedById[id]?.aptitudes ?? []));
+
+function breedPart(cls: ClassType, dog: FitDog): { points: number; match: Aptitude | null } {
+  const tags = cls.builtFor ?? [];
+  const ids = dog.breedIds ?? [];
+  // A class built for no one, or a dog whose owner isn't sure, sits in the middle: never boosted, never penalized.
+  if (!tags.length || !ids.length) return { points: 15, match: null };
+  const mine = aptitudesOf(ids);
+  const match = tags.find((t) => mine.has(t)) ?? null;
+  if (!match) return { points: 0, match: null };
+  const mix = ids.length > 1 || /\bmix\b/i.test(dog.breed);
+  return { points: Math.round(WEIGHTS.breed * (mix ? 0.7 : 1)), match };
+}
+
+function energyPart(cls: ClassType, dog: FitDog) {
+  if (!dog.energy) return WEIGHTS.energy / 2;
+  if (cls.energy?.length) {
+    const gap = Math.min(...cls.energy.map((e) => Math.abs(ENERGY_RANK[e] - ENERGY_RANK[dog.energy!])));
+    return Math.max(0, WEIGHTS.energy - gap * 8);
+  }
+  return Math.round(WEIGHTS.energy * Math.max(0, 1 - Math.abs(ENERGY_PACE[dog.energy] - cls.intensity) / 4));
+}
+
+function socialPart(cls: ClassType, dog: FitDog) {
+  if (cls.groupSize <= 1) return WEIGHTS.social;
+  if (!dog.social) return Math.round(WEIGHTS.social / 2);
+  if (cls.sociability?.length) return cls.sociability.includes(dog.social) ? WEIGHTS.social : 0;
+  if (dog.social === 'Loves dogs') return WEIGHTS.social;
+  if (dog.social === 'Selective') return cls.groupSize <= 4 ? WEIGHTS.social : 6;
+  return 0;
+}
+
+/** How well an open class suits the dog, 0 to 100, with each part so the reason and the logging can use them. */
+export function fitFor(cls: ClassType, dog: FitDog, ctx: FitContext = {}): Fit {
+  const breed = breedPart(cls, dog);
+  const parts = {
+    breed: breed.points,
+    energy: energyPart(cls, dog),
+    social: socialPart(cls, dog),
+    interests: dog.interests?.includes(INTEREST_OF[cls.discipline] ?? '') ? WEIGHTS.interests : 0,
+    balance: ctx.short && cls.balance === ctx.short ? WEIGHTS.balance : 0,
+    history: ctx.disciplines?.includes(cls.discipline) || ctx.partners?.includes(cls.partnerId) ? WEIGHTS.history : 0,
+  };
+  const score = Object.values(parts).reduce((a, b) => a + b, 0);
+  return { score, parts, builtFor: breed.points >= 25 ? breed.match : null };
 }

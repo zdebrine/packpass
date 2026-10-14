@@ -170,3 +170,25 @@ test('a member adds a second dog from the Dog tab and switches between them', as
   await expect(ui.text('Juno is due for a hard day.')).toBeVisible();
   await expect(checkIn).toBeVisible();
 });
+
+test('a class built for herding breeds says so to a herding dog and stays open to others', async ({ page }) => {
+  const ui = visible(page);
+  const email = `breeds-${Date.now()}@example.com`;
+  const id = await account(email, 'goodpass123');
+  sql(`insert into dogs (owner_id, name, breed, birth_year, weight_lb, energy, sociability) values ('${id}', 'Juno', 'Border Collie', 2023, 38, 'working', 'loves_dogs')`);
+  const session = sql(`select s.id from sessions s where s.class_id = 'herding-fundamentals' and s.starts_at > now() order by s.starts_at limit 1`);
+
+  await page.goto('/');
+  await page.getByText('I already have an account').click();
+  await ui.boxes().nth(0).fill(email);
+  await ui.boxes().nth(1).fill('goodpass123');
+  await ui.button('Sign in').click();
+  await expect(ui.text(/Juno/)).toBeVisible();
+  await page.goto(`/class/${session}`);
+  await expect(ui.text('Built for herding breeds. Juno is a Border Collie.')).toBeVisible();
+
+  // A Lab sees the same class as open to every breed.
+  sql(`update dogs set breed_ids = '{labrador-retriever}' where owner_id = '${id}'`);
+  await page.reload();
+  await expect(ui.text('Open to all breeds. Built for herding breeds.')).toBeVisible();
+});

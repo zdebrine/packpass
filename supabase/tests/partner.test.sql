@@ -574,6 +574,40 @@ select p.as_user('00000000-0000-0000-0000-0000000000a1');
 select p.expect_error($$select public.partner_save_class((select c from p.drop), '{"title":"Plain group class","discipline":"Agility","category":"sport","session_type":"class","duration_min":60,"intensity":3,"group_size":6,"balance":"physical","min_age_months":24,"max_age_months":12}')$$, 'class_types_age_range');
 reset role;
 
+-- Built for (…_class_built_for.sql): saved with the class, kept when left out, cleared with an empty list.
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.partner_save_class((select c from p.drop), '{"title":"Plain group class","discipline":"Agility","category":"sport","session_type":"class","duration_min":60,"intensity":3,"group_size":6,"balance":"physical","built_for":["herding","sighthound"]}');
+reset role;
+select p.ok((select built_for = '{herding,sighthound}' and not credit_review from class_types where id = (select c from p.drop)), 'a partner saves who a class is built for');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.partner_save_class((select c from p.drop), '{"title":"Plain group class","discipline":"Agility","category":"sport","session_type":"class","duration_min":60,"intensity":3,"group_size":6,"balance":"physical"}');
+reset role;
+select p.ok((select built_for = '{herding,sighthound}' from class_types where id = (select c from p.drop)), 'saving without Built for keeps it');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.partner_save_class((select c from p.drop), '{"title":"Plain group class","discipline":"Agility","category":"sport","session_type":"class","duration_min":60,"intensity":3,"group_size":6,"balance":"physical","built_for":[]}');
+select p.expect_error($$select public.partner_save_class((select c from p.drop), '{"title":"Plain group class","discipline":"Agility","category":"sport","session_type":"class","duration_min":60,"intensity":3,"group_size":6,"balance":"physical","built_for":["poodle"]}')$$, 'invalid input value for enum');
+reset role;
+select p.ok((select built_for = '{}' from class_types where id = (select c from p.drop)), 'an empty list clears Built for');
+
+-- The editor's reach line counts dogs the gates let in, and the Built for matches among them.
+create table p.reach (what text, can_book int, built_for int);
+grant insert on p.reach to authenticated;
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+insert into p.reach select 'open', * from public.partner_class_reach('{"built_for":["herding"]}');
+insert into p.reach select 'big', * from public.partner_class_reach('{"min_weight_lb":50,"max_age_months":"","built_for":["herding"]}');
+select p.as_user('00000000-0000-0000-0000-0000000000a3');
+select p.expect_error($$select public.partner_class_reach('{}')$$, 'not_partner');
+reset role;
+select p.ok((select can_book = (select count(*) from dogs) from p.reach where what = 'open'), 'with no gates every dog can book');
+select p.ok((select built_for = (select count(*) from dogs d where public.dog_aptitudes(d.breed_ids) && '{herding}') and built_for > 0 and built_for < can_book
+             from p.reach where what = 'open'), 'Built for matches are the dogs with a herding breed');
+select p.ok((select can_book = (select count(*) from dogs where weight_lb is null or weight_lb >= 50) from p.reach where what = 'big'), 'a size gate leaves out smaller dogs');
+select p.expect_error($$set local role anon; select public.partner_class_reach('{}')$$, 'permission denied');
+
 -- ---- Partner photo uploads --------------------------------------------------------------------------
 reset role;
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000c0b1', 'media@ridgeline.co');

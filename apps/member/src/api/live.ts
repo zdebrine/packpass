@@ -3,7 +3,7 @@
 
 import { breedLabel } from '@/data/breeds';
 import { setCatalog } from '@/data/catalog';
-import { photoKey } from '@/data/fixtures';
+import { photoKey, type Energy } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
 import type { Booking, ClassType, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
@@ -16,6 +16,8 @@ const photo = (k: string | null | undefined, fallback: PhotoKey): PhotoSource =>
   k?.includes('/') ? { uri: partnerMediaUrl(k), cacheKey: k } : photoKey(k) ?? fallback;
 
 const cap = <T extends string>(s: string) => (s.charAt(0).toUpperCase() + s.slice(1)) as T;
+/** The partner dashboard stores a class's energy as its labels. */
+const ENERGY_KEY: Record<string, Energy> = { Couch: 'couch', Medium: 'medium', High: 'high', 'Working dog': 'working' };
 
 /** Throws the error's code when Supabase Auth gives one (e.g. over_email_send_rate_limit), else its message. */
 function check(r: { data: any; error: { message: string; code?: string } | null }): any {
@@ -107,6 +109,7 @@ export async function loadCatalog() {
       dropOff: k.drop_off ?? false, requirements: k.requirements ?? [],
       minAgeMonths: k.min_age_months ?? undefined, maxAgeMonths: k.max_age_months ?? undefined,
       minWeightLb: k.min_weight_lb ?? undefined, maxWeightLb: k.max_weight_lb ?? undefined, requiresFixed: k.requires_fixed ?? false,
+      builtFor: k.built_for ?? [], energy: (k.energy ?? []).map((e: string) => ENERGY_KEY[e]).filter(Boolean), sociability: k.sociability ?? [],
     }])),
     sessions: (sessions as any[]).map((s): Session => ({ id: s.id, classId: s.class_id, startsAt: new Date(s.starts_at), spotsLeft: s.spots_left })),
     pathSpecialties: Object.fromEntries((paths as any[]).map((p) => [p.id, p.specialties ?? []])),
@@ -205,6 +208,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
       id: d.id, name: d.name, photo: photoUrl.has(d.photo_path) ? { uri: photoUrl.get(d.photo_path)!, cacheKey: d.photo_path } : undefined, breed: breedLabel(d.breed_ids ?? [], d.mixed, d.mixed ? 'Mixed breed' : d.breed ?? ''), breedIds: d.breed_ids ?? [],
       ...ageOf(d.birth_year, d.birth_month), since: d.member_since, traits: d.traits ?? [],
       birthYear: d.birth_year ?? undefined, birthMonth: d.birth_month ?? undefined, weightLb: d.weight_lb ?? undefined, fixed: d.fixed ?? undefined,
+      energy: d.energy ?? undefined, social: SOCIAL_LABEL[d.sociability] ?? undefined, interests: d.interests ?? [],
     })),
     records: Object.fromEntries(dogIds.map((id) => [id, recordFor(id)])),
     bookings: bookings.map((b) => ({ id: b.id, sessionId: b.session_id, dogId: b.dog_id, credits: b.credits_charged, status: b.status === 'checked_in' ? 'checked_in' : 'booked' })),
@@ -312,6 +316,7 @@ export async function loadLog(): Promise<LogEntry[]> {
 // ---- Writes --------------------------------------------------------------------------------
 
 const SOCIABILITY: Record<string, string> = { 'Loves dogs': 'loves_dogs', Selective: 'selective', 'Prefers solo': 'prefers_solo' };
+const SOCIAL_LABEL: Record<string, string> = Object.fromEntries(Object.entries(SOCIABILITY).map(([k, v]) => [v, k]));
 
 /** Edits the dog's traits from the Passport. */
 export async function saveTraits(dogId: string, traits: string[]) {
