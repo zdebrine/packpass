@@ -177,10 +177,33 @@ select public.partner_record_result((select herding from p.asb), 'cleared', arra
 reset role;
 select p.ok(exists (select 1 from clearances where dog_id = (select juno from p.ids) and type = 'herding' and scope = 'partner' and partner_id = 'ridgeline' and assessor = 'Maren Holt'),
             'a pass grants Herding at this partner, signed by the trainer');
+select p.ok(public.booking_block((select juno from p.ids),
+  (select id from sessions where class_id = 'herding-assessment' and starts_at > now() order by starts_at limit 1)) = 'already_cleared',
+  'a dog that passed Herding can''t book the assessment again');
 set role authenticated;
 select p.as_user('00000000-0000-0000-0000-0000000000a1');
 select p.expect_error($$select public.partner_record_result((select herding from p.asb), 'cleared')$$, 'already_recorded');
 select p.expect_error($$select public.partner_record_result((select social from p.asb), 'cleared')$$, 'not_found');
+-- Re-assessment: Ridgeline sends Juno back for Herding with a reason; Eastside can't, it didn't assess Herding.
+select p.expect_error($$select public.flag_reassessment((select juno from p.ids), 'herding', '  ')$$, 'reason_required');
+select p.expect_error($$select public.admin_clearances()$$, 'permission denied');
+select p.ok(public.flag_reassessment((select juno from p.ids), 'herding', 'Pushed the gate twice this week.') = 1, 'a partner flags the Herding it granted');
+select p.as_user('00000000-0000-0000-0000-0000000000a2');
+select p.expect_error($$select public.flag_reassessment((select juno from p.ids), 'herding', 'x')$$, 'not_found');
+reset role;
+select p.ok(not public.has_clearance((select juno from p.ids), 'herding', 'ridgeline', current_date), 'the flag pauses the clearance');
+select p.ok(public.booking_block((select juno from p.ids),
+  (select id from sessions where class_id = 'herding-assessment' and starts_at > now() order by starts_at limit 1)) is distinct from 'already_cleared',
+  'and the assessment is bookable again');
+select p.ok(exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-0000000000a3' and kind = 'reassessment'
+  and title = 'Juno needs a Herding re-assessment' and body = 'Pushed the gate twice this week. · Maren Holt, Ridgeline Dog Sport'), 'the owner hears why and from whom');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
+select public.flag_reassessment((select juno from p.ids), 'herding', '', true);
+reset role;
+select p.ok(public.has_clearance((select juno from p.ids), 'herding', 'ridgeline', current_date), 'undo restores it');
+set role authenticated;
+select p.as_user('00000000-0000-0000-0000-0000000000a1');
 select p.as_user('00000000-0000-0000-0000-0000000000a2');
 reset role;
 delete from dog_paths where dog_id = (select juno from p.ids);

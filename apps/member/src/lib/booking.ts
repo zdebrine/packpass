@@ -28,7 +28,7 @@ export const timeLabel = (v: SessionView) => v.cls.openWindow ?? time(v.session.
 // The same rules as public.booking_block() / book_session() in supabase/migrations, with the
 // same reason codes, so sample mode and live mode behave alike.
 
-export type BlockCode = 'started' | GateCode | 'needs_herding' | 'needs_social' | 'records_denied' | 'vaccines';
+export type BlockCode = 'started' | 'already_cleared' | GateCode | 'needs_herding' | 'needs_social' | 'records_denied' | 'vaccines';
 export type BookError = BlockCode | 'already_booked' | 'full' | 'credits' | 'not_found';
 
 /** What the rules need to know about the member and dog. */
@@ -51,6 +51,8 @@ export interface RuleContext {
 
 export function blockFor(cls: ClassType, session: Session, ctx: RuleContext): BlockCode | null {
   if (session.startsAt <= now()) return 'started';
+  // An assessment the dog has already passed (Herding counts at the partner that assessed it).
+  if (cls.grants === 'herding' ? ctx.herdingAt.includes(cls.partnerId) : cls.grants === 'social' && ctx.hasSocial) return 'already_cleared';
   const gate = gateFor(cls, ctx.dog, session.startsAt);
   if (gate) return gate;
   if (cls.requires === 'herding' && !ctx.herdingAt.includes(cls.partnerId)) return 'needs_herding';
@@ -75,12 +77,17 @@ export function bookError(sessionId: string, dogId: string, ctx: RuleContext): B
 export type Eligibility =
   | { ok: true; cleared: boolean }
   | { ok: false; needs: 'herding' | 'social' | 'vaccines'; reason: string }
+  /** An assessment for a clearance the dog already holds: Book leaves it out. */
+  | { ok: false; needs: 'cleared'; reason: string }
   /** The class isn't for this dog (age, size, breed, spayed or neutered): nothing to unlock. `label` is the class's rule. */
   | { ok: false; needs: 'fit'; reason: string; label: string };
 
 /** For badges and the class detail box: can the dog book this class, and is it "Cleared"? */
 export function eligibility(v: SessionView, ctx: RuleContext, dogName = 'Juno'): Eligibility {
   const block = blockFor(v.cls, v.session, ctx);
+  if (block === 'already_cleared') {
+    return { ok: false, needs: 'cleared', reason: `${dogName} already passed this. The ${v.cls.grants === 'herding' ? 'Herding' : 'Social'} clearance is on the Passport.` };
+  }
   if (block === 'too_young' || block === 'too_old' || block === 'too_small' || block === 'too_large' || block === 'breed_only' || block === 'needs_fixed') {
     const label = gateLabel(v.cls, block);
     const rule = label.replace(/^Ages /, 'dogs aged ').replace(/^./, (x) => x.toLowerCase());

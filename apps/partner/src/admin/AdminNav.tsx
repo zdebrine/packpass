@@ -1,4 +1,4 @@
-import { Building2, ClipboardList, Gauge, Inbox, KeyRound, Syringe } from 'lucide-react';
+import { Building2, ClipboardList, Gauge, Inbox, KeyRound, ShieldCheck, Syringe } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
@@ -18,7 +18,7 @@ export function AdminNav() {
   }, [loc.pathname]);
   const links: [string, string, typeof ClipboardList, number?][] = [
     ['/admin', 'Review', ClipboardList, waiting.classes], ['/admin/applications', 'Applications', Inbox, waiting.applications],
-    ['/admin/vet-records', 'Vet records', Syringe, waiting.records],
+    ['/admin/vet-records', 'Vet records', Syringe, waiting.records], ['/admin/clearances', 'Clearances', ShieldCheck],
     ['/admin/partners', 'Partners', Building2], ['/admin/staff', 'Staff', KeyRound], ['/admin/fit', 'Fit', Gauge],
   ];
   return (

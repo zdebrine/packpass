@@ -197,6 +197,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
       clearanceRecords: rows.map((k): ClearanceRecord => ({
         id: k.id, type: k.type, scope: k.scope, partnerId: k.partner_id, assessedOn: k.assessed_on, expiresOn: k.expires_on,
         assessor: k.assessor, strengths: k.strengths ?? [], workingOn: k.working_on ?? [], quote: k.quote, seen: !!k.seen_at,
+        reassess: k.reassess_at ? { reason: k.reassess_reason ?? '', by: k.reassess_by ?? 'PackPass' } : null,
       })),
     };
   };
@@ -220,7 +221,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     bookings: bookings.map((b) => ({ id: b.id, sessionId: b.session_id, dogId: b.dog_id, credits: b.credits_charged, status: b.status === 'checked_in' ? 'checked_in' : 'booked' })),
     notifications: notes.map((n): Notif => ({
       id: n.id,
-      icon: n.kind === 'records_denied' ? 'shield-alert' : n.kind === 'class_missed' ? 'calendar-x' : n.kind === 'path_step' ? 'check' : n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : n.kind === 'waitlist_booked' ? 'calendar-check' : n.kind.startsWith('waitlist') || n.kind.startsWith('hold') ? 'clock' : 'message-square',
+      icon: n.kind === 'records_denied' || n.kind === 'reassessment' ? 'shield-alert' : n.kind === 'class_missed' ? 'calendar-x' : n.kind === 'path_step' ? 'check' : n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : n.kind === 'waitlist_booked' ? 'calendar-check' : n.kind.startsWith('waitlist') || n.kind.startsWith('hold') ? 'clock' : 'message-square',
       tone: n.kind === 'clearance_earned' ? 'clr' : n.kind === 'path_step' ? 'path' : 'n',
       title: n.title, body: n.body, time: relTime(n.created_at),
       cat: cap(n.category), isNew: Date.now() - new Date(n.created_at).getTime() < 3 * 86_400_000 || !n.read_at,

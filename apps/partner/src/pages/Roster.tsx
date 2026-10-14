@@ -1,4 +1,4 @@
-import { Check, Maximize2, Printer, QrCode, ShieldCheck, Syringe } from 'lucide-react';
+import { Check, Maximize2, Printer, QrCode, ShieldAlert, ShieldCheck, Syringe } from 'lucide-react';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -11,6 +11,7 @@ import { addDays, ageOf, austin, monthDay, time, weekday, ymd } from '@/lib/time
 import { useSigned } from '@/lib/useSigned';
 import { Avatar, Badge, Button, Chip, ErrorLine, Modal, Page, Row } from '@/ui/kit';
 import { checkInPayload, Qr } from '@/ui/Qr';
+import { ReassessModal, undoReassessment } from '@/ui/Reassess';
 import { Empty, Loading } from './Overview';
 
 const ENERGY: Record<string, string> = { couch: 'Couch', medium: 'Medium', high: 'High', working: 'Working dog' };
@@ -65,6 +66,7 @@ function SessionRoster({ s, meta, onQr }: { s: SessionView; meta: string; onQr: 
   const records = useSigned('vaccine-docs', data?.dogs.map((d) => d.record_path) ?? []);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [flagging, setFlagging] = useState<{ d: RosterDog; types: Kind[] } | null>(null);
   const today = ymd(s.start) === ymd(new Date());
   const act = async (id: string, fn: () => Promise<void>) => {
     setBusy(id); setError(null);
@@ -90,15 +92,18 @@ function SessionRoster({ s, meta, onQr }: { s: SessionView; meta: string; onQr: 
       <ErrorLine>{error}</ErrorLine>
       {!data ? <Loading /> : dogs.length ? (
         <div className="tbl">
-          <div className="tbl-head" style={{ gridTemplateColumns: ROSTER_COLS, minWidth: 900 }}>
+          <div className="tbl-head" style={{ gridTemplateColumns: ROSTER_COLS, minWidth: 930 }}>
             <span /><span>Dog</span><span>Energy</span><span>With dogs</span><span>Clearances</span><span>Trainer note</span><span>Vaccines</span><span />
           </div>
           {dogs.map((d) => <DogRow key={d.booking_id} d={d} photo={d.photo_path ? photos[d.photo_path] : undefined} record={d.record_path ? records[d.record_path] : undefined}
             busy={busy === d.booking_id || busy === d.dog_id}
             onToggle={() => act(d.booking_id, () => checkIn(d.booking_id, d.status === 'checked_in'))}
-            onVerify={() => act(d.dog_id, () => checkVaccines(d.dog_id))} />)}
+            onVerify={() => act(d.dog_id, () => checkVaccines(d.dog_id))}
+            onReassess={(types) => setFlagging({ d, types })}
+            onUndo={(type) => act(d.dog_id, () => undoReassessment(d.dog_id, type))} />)}
         </div>
       ) : <Empty>No PackPass dogs booked yet.</Empty>}
+      {flagging ? <ReassessModal dogId={flagging.d.dog_id} dogName={flagging.d.dog_name} types={flagging.types} onClose={() => setFlagging(null)} onDone={reload} /> : null}
       {data?.waiting.length ? (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 8 }}>
           <h2 className="pp-title">{`Waitlist · ${data.waiting.length}`}</h2>
@@ -120,14 +125,23 @@ function SessionRoster({ s, meta, onQr }: { s: SessionView; meta: string; onQr: 
   );
 }
 
-const ROSTER_COLS = '36px minmax(0,1.3fr) 88px 88px 120px minmax(0,1.4fr) 136px 108px';
+const ROSTER_COLS = '36px minmax(0,1.3fr) 88px 88px 150px minmax(0,1.4fr) 136px 108px';
 
-function DogRow({ d, photo, record, busy, onToggle, onVerify }: { d: RosterDog; photo?: string; record?: string; busy: boolean; onToggle: () => void; onVerify: () => void }) {
+type Kind = 'social' | 'herding';
+
+function DogRow({ d, photo, record, busy, onToggle, onVerify, onReassess, onUndo }: {
+  d: RosterDog; photo?: string; record?: string; busy: boolean; onToggle: () => void; onVerify: () => void;
+  onReassess: (types: Kind[]) => void; onUndo: (type: Kind) => void;
+}) {
   const on = d.status === 'checked_in';
+  // "Herding" is current; "Herding · re-assess" was flagged and waits on a new assessment.
+  const kind = (k: string) => k.split(' ')[0].toLowerCase() as Kind;
+  const current = d.clearances.filter((k) => !k.includes('re-assess')).map(kind);
+  const flagged = d.clearances.filter((k) => k.includes('re-assess')).map(kind);
   const traits = partnerTraits(d.traits);
   const warn = /expire|missing/i.test(d.vaccine_line);
   return (
-    <div className="tbl-row" style={{ gridTemplateColumns: ROSTER_COLS, minWidth: 900, minHeight: 48 }}>
+    <div className="tbl-row" style={{ gridTemplateColumns: ROSTER_COLS, minWidth: 930, minHeight: 48 }}>
       <Avatar name={d.dog_name} photo={photo} size={36} radius={8} />
       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <span className="pp-heading">{d.dog_name}</span>
@@ -135,8 +149,12 @@ function DogRow({ d, photo, record, busy, onToggle, onVerify }: { d: RosterDog; 
       </div>
       <span className="pp-caption">{d.energy ? ENERGY[d.energy] ?? d.energy : '–'}</span>
       <span className="pp-caption">{d.sociability ? SOCIAL[d.sociability] ?? d.sociability : '–'}</span>
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {d.clearances.length ? d.clearances.map((k) => <Badge key={k} tone="cleared" icon={ShieldCheck}>{k}</Badge>) : <Badge tone="needs">None yet</Badge>}
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+        {d.clearances.length ? d.clearances.map((k) => k.includes('re-assess')
+          ? <Badge key={k} tone="warning" icon={ShieldAlert}>{k}</Badge>
+          : <Badge key={k} tone="cleared" icon={ShieldCheck}>{k}</Badge>) : <Badge tone="needs">None yet</Badge>}
+        {current.length ? <button className="link pp-caption" disabled={busy} onClick={() => onReassess(current)}>Re-assess</button> : null}
+        {flagged.map((t) => <button key={t} className="link pp-caption" disabled={busy} onClick={() => onUndo(t)}>{`Undo ${t}`}</button>)}
       </div>
       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <span className="pp-caption ellipsis" title={d.last_note ?? undefined}>{d.last_note || '–'}</span>

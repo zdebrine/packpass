@@ -128,7 +128,8 @@ export default function Book() {
         .sort((a, b) => +a.startsAt - +b.startsAt)
         .map((s) => view(s.id)!)
         .filter(Boolean)
-        .map((v) => bookRow(v, rules, dog.name, fit(v.cls), (id) => activePaths.includes(id as never))),
+        .map((v) => bookRow(v, rules, dog.name, fit(v.cls), (id) => activePaths.includes(id as never)))
+        .filter((r): r is BookRow => !!r),
     [day, rules, dog.name, fit, activePaths],
   );
   const q = query.trim().toLowerCase();

@@ -26,9 +26,9 @@ export default function ClearanceDetail() {
   const bottom = useBottom(34);
   const { type } = useLocalSearchParams<{ type: string }>();
   const social = useApp((s) => s.social);
-  const recheck = nextSession('social-recheck');
   const passport = useClearances();
   const k = type === 'herding' ? passport.herding : passport.social;
+  const recheck = k.rebook ? nextSession(k.rebook) : k.type === 'social' ? nextSession('social-recheck') : undefined;
   const st = useClearanceStyle()(k);
   const facts: [string, string, string][] = [['Status', STATUS_LABEL[k.status], st.color], ...k.facts.map(([a, b]) => [a, b, c.ink] as [string, string, string])];
 
@@ -46,11 +46,11 @@ export default function ClearanceDetail() {
     <>
       {k.status === 'expired' ? (
         <View style={{ marginTop: 20, padding: 18, borderRadius: 12, backgroundColor: c.kennelRedSoft, gap: 12 }}>
-          <Text variant="label" weight="600" color={c.kennelRed}>Social clearance expired. Book a quick re-check to keep group classes open.</Text>
+          <Text variant="label" weight="600" color={c.kennelRed}>{k.note ?? 'Social clearance expired. Book a quick re-check to keep group classes open.'}</Text>
           {recheck ? (
-            <Button block onPress={() => router.replace(`/book/${recheck.session.id}`)}>{`Book a re-check · ${creditsLabel(recheck.cls.credits)}`}</Button>
+            <Button block onPress={() => router.replace(`/book/${recheck.session.id}`)}>{`Book a ${k.type === 'herding' ? 're-assessment' : 're-check'} · ${creditsLabel(recheck.cls.credits)}`}</Button>
           ) : (
-            <Text variant="caption" muted>No re-check times in the next 4 weeks. Check back soon.</Text>
+            <Text variant="caption" muted>{`No ${k.type === 'herding' ? 're-assessment' : 're-check'} times in the next 4 weeks. Check back soon.`}</Text>
           )}
         </View>
       ) : null}

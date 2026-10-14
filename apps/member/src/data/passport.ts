@@ -20,6 +20,8 @@ export interface Clearance {
   strengths?: string[];
   working?: string[];
   note?: string;
+  /** Expired by a re-assessment flag: the assessment class that clears it again. */
+  rebook?: string;
 }
 
 export const SOCIAL_UNLOCKS: Clearance['unlocks'] = [

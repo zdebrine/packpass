@@ -22,7 +22,7 @@ export function useImpressions(dogId: string, rows: SessionView[], rules: RuleCo
       seen.add(key);
       const e = eligibility(v, rules);
       const f = fit(v);
-      fresh.push({ session_id: v.session.id, surface, state: e.ok ? 'open' : e.needs === 'fit' ? 'no' : 'unlock', position, score: f.score, parts: f.signals, weights: currentWeights() });
+      fresh.push({ session_id: v.session.id, surface, state: e.ok ? 'open' : e.needs === 'fit' || e.needs === 'cleared' ? 'no' : 'unlock', position, score: f.score, parts: f.signals, weights: currentWeights() });
     });
     logImpressions(dogId, fresh.slice(0, 100)).catch(() => {});
     // Only a different set of rows, in a different order, is a new impression.

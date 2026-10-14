@@ -32,6 +32,11 @@ export function liveSocial(rows: ClearanceRecord[], log: LogEntry[], onPath = fa
     const where = partnerName(k.partnerId);
     const assessed = monthYear(k.assessedOn);
     const notes = { assessor: [k.assessor, `${where} · ${assessed}`].filter(Boolean).join(', '), strengths: k.strengths, working: k.workingOn };
+    if (!isValid(k) && k.reassess) {
+      return { type: 'social', name: 'Social', status: 'expired', eyebrow: 'Re-assessment needed', sub: `Asked by ${k.reassess.by}`,
+        facts: [['Asked by', k.reassess.by], ['First assessed', `${where} · ${assessed}`]], unlocks: SOCIAL_UNLOCKS,
+        note: `${k.reassess.reason} Group classes open again once a Social re-check passes.`, rebook: 'social-recheck', ...notes };
+    }
     if (!isValid(k)) {
       return { type: 'social', name: 'Social', status: 'expired', eyebrow: 'Verified · Expired', sub: `Expired · ${where}`,
         facts: [['Issued by', where], ['Assessed', assessed], ['Expired', monthYear(k.expiresOn!)]], unlocks: SOCIAL_UNLOCKS, ...notes };
@@ -63,6 +68,16 @@ export function liveSocial(rows: ClearanceRecord[], log: LogEntry[], onPath = fa
 export function liveHerding(rows: ClearanceRecord[]): Clearance {
   const valid = rows.filter((r) => r.type === 'herding' && isValid(r));
   const unlocks = herdingUnlocks();
+  const flagged = rows.find((r) => r.type === 'herding' && r.reassess);
+  if (!valid.length && flagged?.reassess) {
+    const where = partnerName(flagged.partnerId);
+    const again = Object.values(catalog.classes).find((c) => c.grants === 'herding' && c.partnerId === flagged.partnerId);
+    return {
+      type: 'herding', name: 'Herding', status: 'expired', eyebrow: 'Re-assessment needed', sub: `Asked by ${flagged.reassess.by}`,
+      facts: [['Asked by', flagged.reassess.by], ['First assessed', `${where} · ${monthYear(flagged.assessedOn)}`]], unlocks,
+      note: `${flagged.reassess.reason} Herding classes at ${where} open again once a re-assessment there passes.`, rebook: again?.id,
+    };
+  }
   if (!valid.length) return { ...HERDING, unlocks };
   const latest = valid[0];
   const where = valid.map((r) => partnerName(r.partnerId)).join(', ');
