@@ -177,6 +177,9 @@ select public.partner_record_result((select herding from p.asb), 'cleared', arra
 reset role;
 select p.ok(exists (select 1 from clearances where dog_id = (select juno from p.ids) and type = 'herding' and scope = 'partner' and partner_id = 'ridgeline' and assessor = 'Maren Holt'),
             'a pass grants Herding at this partner, signed by the trainer');
+select p.ok(public.booking_block((select juno from p.ids),
+  (select id from sessions where class_id = 'herding-assessment' and starts_at > now() order by starts_at limit 1)) = 'already_cleared',
+  'a dog that passed Herding can''t book the assessment again');
 set role authenticated;
 select p.as_user('00000000-0000-0000-0000-0000000000a1');
 select p.expect_error($$select public.partner_record_result((select herding from p.asb), 'cleared')$$, 'already_recorded');

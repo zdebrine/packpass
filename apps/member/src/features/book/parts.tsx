@@ -29,10 +29,11 @@ export interface BookRow {
   fit: Fit;
 }
 
-/** What a session means for the dog: open, one step away, or not for it, and why. */
-export function bookRow(v: SessionView, rules: RuleContext, dogName: string, fit: Fit, onPath: (id: string) => boolean): BookRow {
+/** What a session means for the dog: open, one step away, or not for it, and why. Null for an assessment the dog already passed. */
+export function bookRow(v: SessionView, rules: RuleContext, dogName: string, fit: Fit, onPath: (id: string) => boolean): BookRow | null {
   const e = eligibility(v, rules, dogName);
   const { cls } = v;
+  if (!e.ok && e.needs === 'cleared') return null;
   if (!e.ok && e.needs === 'fit') return { v, access: 'no', why: e.label, fit };
   if (!e.ok && e.needs === 'herding') {
     const a = assessmentFor(cls);

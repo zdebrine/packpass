@@ -159,6 +159,7 @@ select public.see_clearance((select id from clearances where type = 'social'));
 select t.ok((select seen_at is not null from clearances where type = 'social'), 'opening screen 13 marks it seen');
 select public.book_session(t.next_session('agility-drop-in'), (select juno from t.ids));
 select t.ok(true, 'with Social, group sport books');
+select t.ok(public.booking_block((select juno from t.ids), t.next_session('social-assessment')) = 'already_cleared', 'with Social, the Social assessment is no longer bookable');
 select t.expect_error($$select public.record_assessment((select juno from t.ids), 'social', 'eastside', 'x', 'cleared')$$, 'permission denied');
 
 -- ---- Notifications ---------------------------------------------------------------------------
