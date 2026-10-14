@@ -8,7 +8,7 @@ import { useData, usePartner } from '@/lib/partner';
 import { credits } from '@/lib/sessions';
 import { addDays, austin, mondayOf } from '@/lib/time';
 import { Badge, Button, ClassCard, Chip, EmptyState, ErrorLine, Field, Modal, Page, PageHead, Row, Tag, photoUrl } from '@/ui/kit';
-import { Clearance, Description, Discipline, DropOff, Duration, Energy, Group, Intensity, Name, PhotoGrid, Requirements, Social, TypeChips, typeLabel, type Patch } from './classParts';
+import { Ages, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PhotoGrid, Requirements, Sizes, Social, TypeChips, typeLabel, type Patch } from './classParts';
 
 const STATUS: Record<ClassType['status'], string> = { live: 'Live', in_review: 'In review', paused: 'Paused' };
 
@@ -118,7 +118,10 @@ function Editor({ cls, partnerName, gym, trainers }: { cls: ClassType; partnerNa
           <Clearance f={f} set={set} />
           <Energy f={f} set={set} label="Suitable energy" />
           <Social f={f} set={set} />
+          <Ages f={f} set={set} />
+          <Sizes f={f} set={set} />
           <div style={{ gridColumn: '1/-1' }}><Requirements f={f} set={set} /></div>
+          <Fixed f={f} set={set} />
           <DropOff f={f} set={set} />
           {gym ? (
             <Field label="Lead trainer">

@@ -1,5 +1,5 @@
 import {
-  Activity, ArrowRight, Award, BatteryFull, Bell, Bookmark, Cake, Calendar, CalendarCheck, CalendarSearch, CalendarX, Camera, Check,
+  Activity, ArrowRight, Award, Ban, BatteryFull, Bell, Bookmark, Cake, Calendar, CalendarCheck, CalendarSearch, CalendarX, Camera, Check,
   ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock, Fence, FileText, Flashlight, House, Link, List, Lock, LockOpen, Map, MapPin, MessageSquare,
   Minus, Navigation, Plus, RotateCcw, ScanLine, Search, Settings, Share, Shield, ShieldAlert, ShieldCheck, Star, Stethoscope, Syringe, Ticket,
   Trees, TrendingUp, Trophy, UserRound, Users, Wallet, X, Zap, type LucideIcon,
@@ -8,7 +8,7 @@ import {
 import { useTheme } from '@/theme/ThemeProvider';
 
 const ICONS = {
-  activity: Activity, 'arrow-right': ArrowRight, award: Award, 'battery-full': BatteryFull, bell: Bell, bookmark: Bookmark,
+  activity: Activity, 'arrow-right': ArrowRight, award: Award, ban: Ban, 'battery-full': BatteryFull, bell: Bell, bookmark: Bookmark,
   cake: Cake, calendar: Calendar, 'calendar-check': CalendarCheck, 'calendar-search': CalendarSearch, 'calendar-x': CalendarX, camera: Camera,
   check: Check, 'chevron-down': ChevronDown, 'chevron-left': ChevronLeft, 'chevron-right': ChevronRight, 'circle-alert': CircleAlert, clock: Clock,
   fence: Fence, 'file-text': FileText, flashlight: Flashlight, house: House, link: Link, list: List, lock: Lock, 'lock-open': LockOpen, map: Map, 'map-pin': MapPin,

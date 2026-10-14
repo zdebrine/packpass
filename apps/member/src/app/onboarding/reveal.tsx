@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
+import { breedLabel } from '@/data/breeds';
 import { now } from '@/lib/clock';
 import { AthleteCard } from '@/ds/cards';
 import { Button } from '@/ds/controls';
@@ -48,7 +49,7 @@ function Reveal() {
       <AthleteCard
         name={name}
         photo={d.photo ?? undefined}
-        breed={d.mixed ? 'Mixed breed' : d.breed || undefined}
+        breed={breedLabel(d.breedIds ?? [], d.mixed, d.mixed ? 'Mixed breed' : d.breed) || undefined}
         age={yrs < 1 ? 'Puppy' : `${yrs} yrs`}
         stage={yrs < 1 ? undefined : yrs < 8 ? 'Prime' : 'Senior'}
         since={now().getFullYear()}

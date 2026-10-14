@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { View } from 'react-native';
 
+import { breedById, searchBreeds } from '@/data/breeds';
 import { now } from '@/lib/clock';
 import { Button, Chip } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
@@ -33,12 +34,46 @@ function Details() {
   const wide = useWide();
 
   const intro = <Intro eyebrow="Step 2 of 5 · Details" title={`${name}'s details.`} lede="Trainers use these to set pace and group size." />;
+  // Breed search: picking from the list gives the dog canonical breeds (src/data/breeds.ts), which is what
+  // classes match on. A mix holds up to three; typed text that isn't a breed is kept as is.
+  const picked = d.breedIds ?? [];
+  const showName = !d.mixed && picked.length > 0 && breedById[picked[0]]?.name === d.breed;
+  const suggestions = showName ? [] : searchBreeds(d.breed).filter((b) => !picked.includes(b.id));
+  const pickBreed = (id: string) =>
+    d.mixed
+      ? update({ breedIds: [...picked, id].slice(0, 3), breed: '', notSure: false })
+      : update({ breedIds: [id], breed: breedById[id].name, notSure: false });
+  const typeBreed = (text: string) => update(d.mixed ? { breed: text, notSure: false } : { breed: text, breedIds: [], notSure: false });
+  const toggleMixed = () =>
+    d.mixed
+      ? update({ mixed: false, breedIds: picked.slice(0, 1), breed: picked[0] ? breedById[picked[0]].name : d.breed })
+      : update({ mixed: true, notSure: false, breed: '' });
+  const toggleNotSure = () => update(d.notSure ? { notSure: false } : { notSure: true, mixed: false, breedIds: [], breed: '' });
+  const breedNote = d.notSure
+    ? 'That’s fine. Every class still shows, and you can add a breed later.'
+    : d.mixed
+      ? picked.length >= 3 ? 'Three is the most. Tap one to remove it.' : 'Pick up to three breeds in the mix.'
+      : 'Pick from the list so classes match.';
   const breed = (
-    <FieldGroup label="Breed">
-      <Field value={d.breed} onChangeText={(breed) => update({ breed })} placeholder="Search breeds" left={<Icon name="search" color={c.inkMuted} />} autoCapitalize="words" />
+    <FieldGroup label="Breed" note={breedNote}>
+      {d.mixed && picked.length ? (
+        <ChipRow>
+          {picked.map((id) => (
+            <Chip key={id} selected icon="x" onPress={() => update({ breedIds: picked.filter((x) => x !== id) })}>{breedById[id]?.name ?? id}</Chip>
+          ))}
+        </ChipRow>
+      ) : null}
+      {d.mixed && picked.length >= 3 ? null : (
+        <Field value={d.breed} onChangeText={typeBreed} placeholder={d.mixed ? 'Add a breed' : 'Search breeds'} left={<Icon name="search" color={c.inkMuted} />} autoCapitalize="words" />
+      )}
+      {suggestions.length ? (
+        <ChipRow>
+          {suggestions.map((b) => <Chip key={b.id} icon="plus" onPress={() => pickBreed(b.id)}>{b.name}</Chip>)}
+        </ChipRow>
+      ) : null}
       <ChipRow>
-        <Chip selected={d.mixed} onPress={() => update({ mixed: !d.mixed })}>Mixed breed</Chip>
-        <Chip selected={d.notSure} onPress={() => update({ notSure: !d.notSure })}>Not sure</Chip>
+        <Chip selected={d.mixed} onPress={toggleMixed}>Mixed breed</Chip>
+        <Chip selected={d.notSure} onPress={toggleNotSure}>Not sure</Chip>
       </ChipRow>
     </FieldGroup>
   );

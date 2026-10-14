@@ -25,7 +25,11 @@ with daily(class_id, t, spots) as (values
   ('loose-leash', 6, '09:00', 1),
   ('social-recheck', 6, '10:00', 2),
   ('social-assessment', 3, '10:30', 3),
-  ('social-assessment', 6, '11:00', 3)
+  ('social-assessment', 6, '11:00', 3),
+  ('puppy-social', 2, '18:00', 4),
+  ('puppy-social', 6, '09:30', 4),
+  ('senior-strength', 1, '17:00', 5),
+  ('senior-strength', 5, '10:00', 5)
 ), days as (
   select (current_date + d) as day, d from generate_series(0, 27) d
 ), slots as (
@@ -55,8 +59,8 @@ begin
   values (p_user, 'Juno', 'female', 'Border Collie', 3, 2023, 38, true, 'working', 'loves_dogs', '{Herding,Sprint,Scent}',
           '{"pulls","nervous_dogs"}', 'Austin · South', 2026)
   returning id into juno;
-  insert into public.dogs (owner_id, name, sex, breed, birth_year, energy, sociability, member_since)
-  values (p_user, 'Otis', 'male', 'Labrador', 2020, 'medium', 'loves_dogs', 2026) returning id into otis;
+  insert into public.dogs (owner_id, name, sex, breed, birth_year, weight_lb, fixed, energy, sociability, member_since)
+  values (p_user, 'Otis', 'male', 'Labrador', 2020, 72, true, 'medium', 'loves_dogs', 2026) returning id into otis;
 
   insert into public.vaccinations (dog_id, type, expires_on, verified) values
     (juno, 'rabies', '2028-03-01', true), (juno, 'dhpp', '2027-01-01', true), (juno, 'bordetella', current_date + 15, true);

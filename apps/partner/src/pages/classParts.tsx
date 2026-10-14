@@ -5,7 +5,7 @@ import { useRef, useState, type CSSProperties } from 'react';
 import { errorCopy, uploadPartnerPhoto, type SessionType } from '@/lib/api';
 import { usePartner } from '@/lib/partner';
 import { isUpload } from '@/lib/photos';
-import { DISCIPLINES, ENERGY, PHOTOS, REQS, SOCIAL, TYPES, type ClassForm } from '@/lib/classForm';
+import { AGES, DISCIPLINES, ENERGY, PHOTOS, REQS, SIZES, SOCIAL, TYPES, ageLabel, sizeLabel, type ClassForm, type Range } from '@/lib/classForm';
 import { Chip, ErrorLine, Field, Ico, Row, Segmented, Stepper, Toggle, photoUrl } from '@/ui/kit';
 
 export type Patch = (p: Partial<ClassForm>) => void;
@@ -83,6 +83,43 @@ export const Requirements = ({ f, set }: { f: ClassForm; set: Patch }) => (
   <Field label="Requirements" note="Checked against each dog's Passport when they book.">
     <Row gap={6}>{REQS.map((x) => <Chip key={x} on={f.reqs.includes(x)} onClick={() => set({ reqs: toggle(f.reqs, x) })}>{x}</Chip>)}</Row>
   </Field>
+);
+
+const same = (a: Range, b: { min: number | null; max: number | null }) => a.min === b.min && a.max === b.max;
+
+/** Who it's for: age, size and spayed or neutered. Members outside these don't see the class as bookable. */
+export const Ages = ({ f, set }: { f: ClassForm; set: Patch }) => {
+  const custom = !AGES.some((a) => same(f.age, a));
+  return (
+    <Field label="Ages" note="Dogs outside this range can't book. They see the class greyed out with the reason.">
+      <Row gap={6}>
+        {AGES.map((a) => <Chip key={a.label} on={same(f.age, a)} onClick={() => set({ age: { min: a.min, max: a.max } })}>{a.label}</Chip>)}
+        {custom ? <Chip on>{ageLabel(f.age)}</Chip> : null}
+      </Row>
+    </Field>
+  );
+};
+
+export const Sizes = ({ f, set }: { f: ClassForm; set: Patch }) => {
+  const custom = !SIZES.some((a) => same(f.size, a));
+  return (
+    <Field label="Size" note="Use this when size matters for safety, like livestock or jumps.">
+      <Row gap={6}>
+        {SIZES.map((a) => <Chip key={a.label} on={same(f.size, a)} onClick={() => set({ size: { min: a.min, max: a.max } })}>{a.label}</Chip>)}
+        {custom ? <Chip on>{sizeLabel(f.size)}</Chip> : null}
+      </Row>
+    </Field>
+  );
+};
+
+export const Fixed = ({ f, set }: { f: ClassForm; set: Patch }) => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 0', boxShadow: 'inset 0 1px 0 var(--line),inset 0 -1px 0 var(--line)', gridColumn: '1/-1' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <span className="pp-label">Spayed or neutered only</span>
+      <span className="pp-caption pp-muted" style={{ textWrap: 'pretty' }}>Common for off-leash group play.</span>
+    </div>
+    <Toggle on={f.fixed} onChange={(fixed) => set({ fixed })} label="Spayed or neutered only" />
+  </div>
 );
 
 /** Group classes only: whether owners hand the dog over for the session. */

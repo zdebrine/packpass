@@ -1,6 +1,7 @@
 // Live mode: reads and writes go to Supabase. Every function here has a sample-data twin in the
 // store (src/store/app.ts), so the screens don't care which mode they run in.
 
+import { breedLabel } from '@/data/breeds';
 import { setCatalog } from '@/data/catalog';
 import { photoKey } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
@@ -104,6 +105,8 @@ export async function loadCatalog() {
       partnerId: k.partner_id, trainerId: k.trainer_id, image: photo(k.image, 'athletic_dog_catching_ball'), premium: k.premium,
       requires: k.requires ?? undefined, grants: k.grants ?? undefined, openWindow: k.open_window ?? undefined,
       dropOff: k.drop_off ?? false, requirements: k.requirements ?? [],
+      minAgeMonths: k.min_age_months ?? undefined, maxAgeMonths: k.max_age_months ?? undefined,
+      minWeightLb: k.min_weight_lb ?? undefined, maxWeightLb: k.max_weight_lb ?? undefined, requiresFixed: k.requires_fixed ?? false,
     }])),
     sessions: (sessions as any[]).map((s): Session => ({ id: s.id, classId: s.class_id, startsAt: new Date(s.starts_at), spotsLeft: s.spots_left })),
     pathSpecialties: Object.fromEntries((paths as any[]).map((p) => [p.id, p.specialties ?? []])),
@@ -199,8 +202,9 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
       renewsOn: profile.subscription_renews_on ?? profile.credits_reset_on ?? null, cancels: !!profile.subscription_cancels,
     },
     dogs: dogs.map((d) => ({
-      id: d.id, name: d.name, photo: photoUrl.has(d.photo_path) ? { uri: photoUrl.get(d.photo_path)!, cacheKey: d.photo_path } : undefined, breed: d.mixed ? 'Mixed breed' : d.breed ?? '',
+      id: d.id, name: d.name, photo: photoUrl.has(d.photo_path) ? { uri: photoUrl.get(d.photo_path)!, cacheKey: d.photo_path } : undefined, breed: breedLabel(d.breed_ids ?? [], d.mixed, d.mixed ? 'Mixed breed' : d.breed ?? ''), breedIds: d.breed_ids ?? [],
       ...ageOf(d.birth_year, d.birth_month), since: d.member_since, traits: d.traits ?? [],
+      birthYear: d.birth_year ?? undefined, birthMonth: d.birth_month ?? undefined, weightLb: d.weight_lb ?? undefined, fixed: d.fixed ?? undefined,
     })),
     records: Object.fromEntries(dogIds.map((id) => [id, recordFor(id)])),
     bookings: bookings.map((b) => ({ id: b.id, sessionId: b.session_id, dogId: b.dog_id, credits: b.credits_charged, status: b.status === 'checked_in' ? 'checked_in' : 'booked' })),
@@ -320,7 +324,9 @@ export async function createDog(d: OnboardingDraft) {
   const { data: auth } = await c.auth.getUser();
   if (!auth.user) throw new Error('not_signed_in');
   const dog = check(await c.from('dogs').insert({
-    owner_id: auth.user.id, name: d.dogName.trim(), sex: d.sex.toLowerCase(), breed: d.breed || null, mixed: d.mixed,
+    owner_id: auth.user.id, name: d.dogName.trim(), sex: d.sex.toLowerCase(), mixed: d.mixed,
+    // The database fills `breed` (the name rosters show) from breed_ids; typed text that isn't a known breed is kept.
+    breed: d.notSure ? null : d.breed.trim() || null, breed_ids: d.notSure ? [] : d.breedIds ?? [],
     birth_month: d.birthMonth + 1, birth_year: d.birthYear, weight_lb: d.weight, fixed: d.fixed,
     energy: d.energy, sociability: SOCIABILITY[d.social], interests: d.interests, traits: d.traits, area: d.area,
   }).select('id').single()) as { id: string };

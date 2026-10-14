@@ -95,6 +95,7 @@ export default function Book() {
   const [day, setDay] = useState(0);
   const [types, setTypes] = useState<SessionType[]>([]);
   const [fits, setFits] = useState(true);
+  const [showHidden, setShowHidden] = useState(false);
   const [query, setQuery] = useState('');
   const [partnerId, setPartnerId] = useState(() => (catalog.partners.ridgeline ? 'ridgeline' : Object.keys(catalog.partners)[0]));
   // Tapping a pin brings a collapsed map sheet back up.
@@ -114,7 +115,26 @@ export default function Book() {
     (!fits || fitsDog(v)) &&
     (!q || [v.cls.title, v.partner.name, v.trainer.name, v.cls.discipline].some((s) => s.toLowerCase().includes(q)));
 
-  const all = sessionsFor(cat, day).filter(matches);
+  // Classes the dog is outside of (age, size, spayed or neutered) hide while "Fits" is on, with a line saying so.
+  const notFor = (v: SessionView) => { const e = eligibility(v, rules, dog.name); return !e.ok && e.needs === 'fit' ? e.label : null; };
+  const inDay = sessionsFor(cat, day).filter(matches);
+  const outside = fits ? inDay.filter((v) => notFor(v)) : [];
+  const all = showHidden ? inDay : inDay.filter((v) => !outside.includes(v));
+  const outsideClasses = [...new Set(outside.map((v) => v.cls.id))];
+  const outsideWhy = [...new Set(outside.map((v) => notFor(v)!.replace(/^./, (x) => x.toLowerCase())))];
+  const hiddenLine = outside.length ? (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
+      <Icon name="ban" size={18} color={c.inkMuted} />
+      <Text variant="caption" muted style={{ flex: 1 }}>
+        {showHidden
+          ? `Showing classes ${dog.name} can't join, greyed out.`
+          : `Hiding ${outsideClasses.length === 1 ? '1 class' : `${outsideClasses.length} classes`} ${dog.name} can't join: ${outsideWhy.join(', ')}.`}
+      </Text>
+      <Press onPress={() => setShowHidden((x) => !x)} accessibilityRole="button" style={{ height: 32, paddingHorizontal: 12, borderRadius: 9999, justifyContent: 'center', backgroundColor: c.bg }}>
+        <Text variant="label" weight="600">{showHidden ? 'Hide' : 'Show'}</Text>
+      </Press>
+    </View>
+  ) : null;
   const hero = all.find((v) => v.cls.id === HERO_CLASS);
   const list = all.filter((v) => v.cls.id !== HERO_CLASS);
   const count = all.length;
@@ -232,6 +252,7 @@ export default function Book() {
               ))}
             </View>
             {count === 0 ? <Text muted>Nothing matches these filters. Clear one to see more.</Text> : null}
+            {hiddenLine ? <View style={{ marginTop: 20 }}>{hiddenLine}</View> : null}
           </>
         )}
       </Page>
@@ -344,6 +365,7 @@ export default function Book() {
         <View style={{ gap: 16, paddingHorizontal: 20 }}>
           {list.map((v) => <ClassRow key={v.session.id} v={v} />)}
           {count === 0 ? <Text muted>Nothing matches these filters. Clear one to see more.</Text> : null}
+          {hiddenLine}
         </View>
       </ScrollView>
     </Screen>
