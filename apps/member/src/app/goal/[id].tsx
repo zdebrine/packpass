@@ -11,7 +11,7 @@ import { col, Columns, Page, useWide } from '@/ds/responsive';
 import { Press } from '@/ds/Press';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
-import { activeBookings, credits as creditsLabel, nextSession } from '@/lib/booking';
+import { activeBookings, credits as creditsLabel, nextSession, nextSessionOf } from '@/lib/booking';
 import { useGoalTrainers, useGoals } from '@/lib/paths';
 import { useApp, useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -55,8 +55,10 @@ export default function GoalDetail() {
   const stepRows = g.steps.map((s, n) => {
     const d = dot[s.state];
     const isLast = n === g.steps.length - 1;
-    const next = s.classId ? nextSession(s.classId) : undefined;
-    const booked = !!s.classId && activeBookings(bookings.filter((b) => b.dogId === dog.id)).some((x) => x.booking.status === 'booked' && x.v.cls.id === s.classId);
+    // Any of the step's Path classes counts, so offer the soonest one and treat a booking in any of them as the step's.
+    const options = s.options ?? (s.classId ? [s.classId] : []);
+    const next = nextSessionOf(options);
+    const booked = activeBookings(bookings.filter((b) => b.dogId === dog.id)).some((x) => x.booking.status === 'booked' && options.includes(x.v.cls.id));
     return (
       <View key={s.title} style={{ flexDirection: 'row', gap: wide ? 16 : 14 }}>
         <View style={{ alignItems: 'center', width: wide ? 40 : 36 }}>

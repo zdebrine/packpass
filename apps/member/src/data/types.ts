@@ -129,7 +129,11 @@ export interface PathProgress {
   /** 1-based step the dog is on; past the last step when complete. */
   nextStep: number;
   completedAt: Date | null;
-  steps: { position: number; title: string; classId: string; doneAt: Date | null }[];
+  /**
+   * `options`: the step's Path classes the dog can join (its age, size, breed and spayed or neutered status fit),
+   * the step's own class first. `classId` is the first of them, or the step's own class when none fits.
+   */
+  steps: { position: number; title: string; classId: string; options: string[]; doneAt: Date | null }[];
 }
 
 /** A clearance on the dog's Passport, as the partner recorded it. */

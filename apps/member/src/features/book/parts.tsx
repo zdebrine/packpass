@@ -11,7 +11,7 @@ import { Icon } from '@/ds/Icon';
 import { Press } from '@/ds/Press';
 import { Gradient, Photo, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
-import { assessmentFor, credits, eligibility, nextSession, timeLabel, type RuleContext, type SessionView } from '@/lib/booking';
+import { assessmentFor, credits, eligibility, needsSocial, nextSession, timeLabel, type RuleContext, type SessionView } from '@/lib/booking';
 import { BUILT_FOR, type Fit } from '@/lib/fit';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius } from '@/theme/tokens';
@@ -55,7 +55,7 @@ export function bookRow(v: SessionView, rules: RuleContext, dogName: string, fit
     return { v, access: 'unlock', why: denied ? 'Needs a new vet record' : 'Needs current vaccines', fit, fix: { label: denied ? 'Upload a vet record' : 'Update vaccines', href: '/vaccines' } };
   }
   const why = [
-    cls.sessionType === 'Class' && cls.groupSize > 1 ? (rules.hasSocial ? 'Social cleared' : 'On your path') : null,
+    needsSocial(cls) ? (rules.hasSocial ? 'Social cleared' : 'On your path') : null,
     cls.requiresFixed ? 'Spayed or neutered' : null,
   ].filter(Boolean);
   return { v, access: 'open', why: why.length ? why.join(' · ') : cls.groupSize === 1 && cls.sessionType === 'Class' ? 'Solo session' : 'No clearance needed', fit };

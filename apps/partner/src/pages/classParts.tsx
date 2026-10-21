@@ -2,8 +2,8 @@
 import { Upload } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
-import { errorCopy, loadReach, uploadPartnerPhoto, type SessionType } from '@/lib/api';
-import { usePartner } from '@/lib/partner';
+import { errorCopy, loadPathSteps, loadReach, uploadPartnerPhoto, type SessionType } from '@/lib/api';
+import { useData, usePartner } from '@/lib/partner';
 import { isUpload } from '@/lib/photos';
 import { AGES, APTITUDES, BREED_ONLY_REASONS, DISCIPLINE_DEFAULTS, DISCIPLINES, ENERGY, PHOTOS, REQS, SIZES, SOCIAL, TYPES, ageLabel, emptyForm, payloadOf, sizeLabel, type ClassForm, type Range } from '@/lib/classForm';
 import { Chip, ErrorLine, Field, Ico, Row, Segmented, Stepper, Toggle, photoUrl } from '@/ui/kit';
@@ -90,6 +90,43 @@ export const Clearance = ({ f, set }: { f: ClassForm; set: Patch }) => {
         <Chip on={f.clearance === 'herding'} onClick={() => set({ clearance: 'herding' })}>Herding · assessed here</Chip>
       </Row>
     </Field>
+  );
+};
+
+/**
+ * Path class: the class counts for a step of a training path (Calm around dogs leads to the Social clearance).
+ * Dogs on the path can book it before they have the clearance, the path suggests it to dogs it fits, and checking in
+ * finishes the step. Not for assessments.
+ */
+export const PathClass = ({ f, set }: { f: ClassForm; set: Patch }) => {
+  const { data: steps } = useData(loadPathSteps, []);
+  const [open, setOpen] = useState(f.pathSteps.length > 0);
+  if (f.type === 'assessment') return null;
+  const on = open || f.pathSteps.length > 0;
+  const key = (s: { path_id: string; position: number }) => `${s.path_id}:${s.position}`;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 0', boxShadow: 'inset 0 1px 0 var(--line),inset 0 -1px 0 var(--line)', gridColumn: '1/-1' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <span className="pp-label">Path class</span>
+          <span className="pp-caption pp-muted" style={{ textWrap: 'pretty' }}>
+            Counts toward a training path. Dogs on the path can book it before they have the clearance, and checking in finishes the step.
+          </span>
+        </div>
+        <Toggle on={on} onChange={(v) => { setOpen(v); if (!v) set({ pathSteps: [] }); }} label="Path class" />
+      </div>
+      {on ? (
+        <Field label="Counts as" note={f.pathSteps.length ? 'The path suggests this class to dogs it fits.' : 'Pick the step this class counts for.'}>
+          <Row gap={6}>
+            {(steps ?? []).map((s) => (
+              <Chip key={key(s)} on={f.pathSteps.includes(key(s))} onClick={() => set({ pathSteps: toggle(f.pathSteps, key(s)).sort() })}>
+                {`${s.path_title} · Step ${s.position}: ${s.title}`}
+              </Chip>
+            ))}
+          </Row>
+        </Field>
+      ) : null}
+    </div>
   );
 };
 

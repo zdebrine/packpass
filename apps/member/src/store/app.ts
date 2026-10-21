@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { isLive } from '@/api/client';
 import * as live from '@/api/live';
 import { breedLabel, breedNamed } from '@/data/breeds';
+import { catalog } from '@/data/catalog';
 import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, OTIS_VACCINES, TRAIT_SPECIAL, type Energy } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
 import { planOf } from '@/data/plans';
@@ -309,7 +310,7 @@ export function ruleContext(s: Pick<AppState, 'social' | 'socialExpired' | 'acti
   return {
     hasSocial: s.social !== 'working' && !s.socialExpired,
     herdingAt: s.herdingAt,
-    pathClasses: s.activePaths.flatMap((p) => PATH_CLASSES[p]),
+    pathClasses: s.activePaths.flatMap((p) => catalog.pathClasses[p] ?? PATH_CLASSES[p] ?? []),
     recordsDenied: s.vaccineRecord?.review?.status === 'denied',
     vaccinesUntil: first ? new Date(y, m - 1, d) : null,
     credits: s.credits,

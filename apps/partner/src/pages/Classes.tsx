@@ -2,13 +2,13 @@ import { ImageIcon, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { errorCopy, loadSessions, removePartnerPhoto, saveClass, setBreedOnly, type ClassType } from '@/lib/api';
-import { breedOnlyChanged, formOf, payloadOf, pricingChanged, type ClassForm } from '@/lib/classForm';
+import { errorCopy, loadSessions, removePartnerPhoto, saveClass, setBreedOnly, setPathSteps, type ClassType } from '@/lib/api';
+import { breedOnlyChanged, formOf, pathStepsChanged, payloadOf, pricingChanged, type ClassForm } from '@/lib/classForm';
 import { useData, usePartner } from '@/lib/partner';
 import { credits } from '@/lib/sessions';
 import { addDays, austin, mondayOf } from '@/lib/time';
 import { Badge, Button, ClassCard, Chip, EmptyState, ErrorLine, Field, Modal, Page, PageHead, Row, Tag, photoUrl } from '@/ui/kit';
-import { Ages, BreedOnly, BuiltFor, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PhotoGrid, Reach, Requirements, Sizes, Social, TypeChips, typeLabel, type Patch } from './classParts';
+import { Ages, BreedOnly, BuiltFor, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PathClass, PhotoGrid, Reach, Requirements, Sizes, Social, TypeChips, typeLabel, type Patch } from './classParts';
 
 const STATUS: Record<ClassType['status'], string> = { live: 'Live', in_review: 'In review', paused: 'Paused' };
 
@@ -94,6 +94,7 @@ function Editor({ cls, partnerName, gym, trainers }: { cls: ClassType; partnerNa
       if (saved.breedOnly && !f.breedOnly) await setBreedOnly(cls.id, false, '');
       await saveClass(cls.id, payloadOf(f));
       if (f.breedOnly && breedOnlyChanged(saved, f)) await setBreedOnly(cls.id, true, f.breedOnlyReason);
+      if (pathStepsChanged(saved, f)) await setPathSteps(cls.id, f.type === 'assessment' ? [] : f.pathSteps);
       if (cls.image !== f.image) await removePartnerPhoto(cls.image).catch(() => undefined); // a replaced upload
       await reloadCatalog(); setDone(true);
     } catch (e) { setError(errorCopy(e)); } finally { setBusy(false); }
@@ -126,6 +127,7 @@ function Editor({ cls, partnerName, gym, trainers }: { cls: ClassType; partnerNa
           <div style={{ gridColumn: '1/-1' }}><Requirements f={f} set={set} /></div>
           <Fixed f={f} set={set} />
           <DropOff f={f} set={set} />
+          <PathClass f={f} set={set} />
           <div style={{ gridColumn: '1/-1' }}><BuiltFor f={f} set={set} /></div>
           <BreedOnly f={f} set={set} status={breedOnlyChanged(saved, f) ? null : cls.breed_only_status} />
           {gym ? (

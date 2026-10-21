@@ -49,6 +49,10 @@ export interface RuleContext {
   bookings: Booking[];
 }
 
+/** Classes that ask for a Social clearance: the partner set it, or a Herding group class (it needs both). */
+export const needsSocial = (cls: ClassType) =>
+  cls.requires === 'social' || (cls.requires === 'herding' && cls.sessionType === 'Class' && cls.groupSize > 1);
+
 export function blockFor(cls: ClassType, session: Session, ctx: RuleContext): BlockCode | null {
   if (session.startsAt <= now()) return 'started';
   // An assessment the dog has already passed (Herding counts at the partner that assessed it).
@@ -56,8 +60,7 @@ export function blockFor(cls: ClassType, session: Session, ctx: RuleContext): Bl
   const gate = gateFor(cls, ctx.dog, session.startsAt);
   if (gate) return gate;
   if (cls.requires === 'herding' && !ctx.herdingAt.includes(cls.partnerId)) return 'needs_herding';
-  const groupClass = cls.sessionType === 'Class' && cls.groupSize > 1;
-  if (groupClass && !ctx.hasSocial && !ctx.pathClasses.includes(cls.id)) return 'needs_social';
+  if (needsSocial(cls) && !ctx.hasSocial && !ctx.pathClasses.includes(cls.id)) return 'needs_social';
   if (ctx.recordsDenied) return 'records_denied';
   if (!ctx.vaccinesUntil || dayOffset(session.startsAt, ctx.vaccinesUntil) > 0) return 'vaccines';
   return null;
@@ -97,8 +100,7 @@ export function eligibility(v: SessionView, ctx: RuleContext, dogName = 'Juno'):
   if (block === 'needs_social') return { ok: false, needs: 'social', reason: 'This class needs a Social clearance first.' };
   if (block === 'records_denied') return { ok: false, needs: 'vaccines', reason: `PackPass denied ${dogName}'s vet record. Upload a new one to book.` };
   if (block === 'vaccines') return { ok: false, needs: 'vaccines', reason: `${dogName}'s vaccines need updating before this date.` };
-  const groupClass = v.cls.sessionType === 'Class' && v.cls.groupSize > 1;
-  return { ok: true, cleared: groupClass && ctx.hasSocial };
+  return { ok: true, cleared: needsSocial(v.cls) && ctx.hasSocial };
 }
 
 // ---- Lookups -------------------------------------------------------------------------------
@@ -111,6 +113,12 @@ export function nextSession(classId: string, fromDay = 0): SessionView | undefin
     .filter((x) => x.classId === classId && x.startsAt > now() && dayOffset(x.startsAt) >= fromDay)
     .sort(byStart)[0];
   return s ? view(s.id) : undefined;
+}
+
+/** The soonest session of any of these classes (a path step's Path classes) that hasn't started. */
+export function nextSessionOf(classIds: string[]): SessionView | undefined {
+  return classIds.map((id) => nextSession(id)).filter((x): x is SessionView => !!x)
+    .sort((a, b) => byStart(a.session, b.session))[0];
 }
 
 /** The first session of a class on a given day (0 = today). */
