@@ -101,9 +101,10 @@ export async function loadStaff(): Promise<{ staff: Staff; partner: Partner } | 
 // ---- Catalog ----
 export const loadClasses = async (partnerId: string) =>
   check(await db.from('class_types').select('*, path_step_classes(path_id, position)').eq('partner_id', partnerId).order('title')) as ClassType[];
-/** The steps of every training path a class can count for. Assessment steps finish with a pass, so they're left out. */
+/** The steps of every training path a class can count for. Assessment steps finish with a pass, so they're left out.
+ *  The step's own class is named by its foreign key: path_step_classes is a second way from path_steps to class_types. */
 export const loadPathSteps = async () =>
-  (check(await db.from('path_steps').select('path_id, position, title, training_paths(title), class_types(grants)').order('path_id').order('position')) as unknown as {
+  (check(await db.from('path_steps').select('path_id, position, title, training_paths(title), class_types!path_steps_class_id_fkey(grants)').order('path_id').order('position')) as unknown as {
     path_id: string; position: number; title: string; training_paths: { title: string } | null; class_types: { grants: string | null } | null;
   }[]).filter((s) => !s.class_types?.grants).map((s): PathStepOption => ({ path_id: s.path_id, position: s.position, title: s.title, path_title: s.training_paths?.title ?? s.path_id }));
 /** Marks a class as a Path class for these steps ("path_id:position"), or for none with an empty list. */

@@ -99,7 +99,7 @@ export const Clearance = ({ f, set }: { f: ClassForm; set: Patch }) => {
  * finishes the step. Not for assessments.
  */
 export const PathClass = ({ f, set }: { f: ClassForm; set: Patch }) => {
-  const { data: steps } = useData(loadPathSteps, []);
+  const { data: steps, error } = useData(loadPathSteps, []);
   const [open, setOpen] = useState(f.pathSteps.length > 0);
   if (f.type === 'assessment') return null;
   const on = open || f.pathSteps.length > 0;
@@ -124,6 +124,7 @@ export const PathClass = ({ f, set }: { f: ClassForm; set: Patch }) => {
               </Chip>
             ))}
           </Row>
+          <ErrorLine>{error ? 'Couldn\'t load the path steps. Reload the page to try again.' : null}</ErrorLine>
         </Field>
       ) : null}
     </div>
