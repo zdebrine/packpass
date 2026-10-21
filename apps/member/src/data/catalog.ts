@@ -11,6 +11,8 @@ export const catalog = {
   sessions: [...sampleSessions] as Session[],
   /** Live mode: the trainer specialties that suit each training path ("Trainers for this"). */
   pathSpecialties: {} as Record<string, string[]>,
+  /** Live mode: each training path's Path classes, the classes that count for one of its steps. */
+  pathClasses: {} as Record<string, string[]>,
 };
 
 export function setCatalog(next: Partial<typeof catalog>) {

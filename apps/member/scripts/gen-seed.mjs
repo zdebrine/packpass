@@ -72,6 +72,10 @@ ${rows(PATHS.map(([id, title, lede, grants, , specs]) => [id, title, lede, grant
 insert into public.path_steps (path_id, position, title, class_id) values
 ${rows(PATHS.flatMap(([id, , , , steps]) => steps.map(([title, cls], i) => [id, i + 1, title, cls])))};
 
+-- Path classes: each step's own class counts for it to start with (partners mark more in the class editor).
+insert into public.path_step_classes (path_id, position, class_id) values
+${rows(PATHS.flatMap(([id, , , , steps]) => steps.map(([, cls], i) => [id, i + 1, cls])))};
+
 -- Weekly timetable (Austin time). weekday null = every day, 0 = Sunday.
 insert into public.timetable (class_id, weekday, starts) values
 ${rows([...DAILY.map(([c, t]) => [c, null, t]), ...WEEKLY.map(([c, d, t]) => [c, d, t])])};

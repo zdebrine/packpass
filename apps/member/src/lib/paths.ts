@@ -32,7 +32,11 @@ export function liveGoal(p: PathProgress, dogName: string, log: LogEntry[]): Goa
         : when ? `Done ${monthDay(when)}` : 'Done';
       return { title: s.title, meta, state: 'done', stateLabel: label };
     }
-    if (started && s.position === p.nextStep) return { title: s.title, meta, state: 'next', stateLabel: 'Next', classId: s.classId };
+    if (started && s.position === p.nextStep) {
+      // None of the step's Path classes fit the dog (a seniors-only class, say): nothing to book yet.
+      if (!s.options.length) return { title: s.title, meta, state: 'next', stateLabel: `Next · No class for this step fits ${dogName} yet` };
+      return { title: s.title, meta, state: 'next', stateLabel: 'Next', classId: s.classId, options: s.options };
+    }
     if (i === last) {
       return { title: s.title, meta, state: 'final',
         stateLabel: p.grants ? `Unlocks the ${typeName(p.grants)} clearance${p.grants === 'social' ? ' and group sport' : ''}` : `Ends with ${s.title.charAt(0).toLowerCase()}${s.title.slice(1)}` };

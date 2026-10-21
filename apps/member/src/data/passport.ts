@@ -94,6 +94,8 @@ export interface PathStep {
   stateLabel: string;
   /** The class to book for this step. */
   classId?: string;
+  /** Live mode: every Path class for this step the dog can join. Book offers the soonest session of any of them. */
+  options?: string[];
 }
 export interface Goal {
   id: 'calm-around-dogs' | 'loose-leash-walking';

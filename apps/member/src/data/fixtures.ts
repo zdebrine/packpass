@@ -75,7 +75,7 @@ const C = (c: Omit<ClassType, 'dropOff'>): ClassType => ({
 });
 export const classes: Record<string, ClassType> = {
   'herding-fundamentals': C({
-    id: 'herding-fundamentals', title: 'Herding Fundamentals', discipline: 'Herding', category: 'Sport', sessionType: 'Class',
+    id: 'herding-fundamentals', title: 'Herding Fundamentals', discipline: 'Herding', category: 'Sport', sessionType: 'Class', requires: 'social',
     credits: 2, durationMin: 60, intensity: 4, groupSize: 6, suits: 'High energy', suitsNote: 'Loves dogs, selective', balance: 'Mental',
     description: 'Juno works a small flock of ducks on a fenced field with a trainer beside her. The session covers stock awareness, outruns and a calm stop. You stay on the field and learn the handling cues. Expect a tired, focused dog.',
     partnerId: 'ridgeline', trainerId: 'maren', image: 'dog_chilling', requirements: [VAX, AGE, LEASH],
@@ -94,25 +94,25 @@ export const classes: Record<string, ClassType> = {
     partnerId: 'ridgeline', trainerId: 'maren', image: 'dog_chilling', grants: 'herding', requirements: [VAX, AGE, LEASH],
   }),
   'agility-drop-in': C({
-    id: 'agility-drop-in', title: 'Agility drop-in', discipline: 'Agility', category: 'Sport', sessionType: 'Class',
+    id: 'agility-drop-in', title: 'Agility drop-in', discipline: 'Agility', category: 'Sport', sessionType: 'Class', requires: 'social',
     credits: 2, durationMin: 50, intensity: 4, groupSize: 8, suits: 'High energy', suitsNote: 'Loves dogs', balance: 'Physical',
     description: 'Tunnels, jumps and weave poles on the indoor turf. Dev sets a short course for each level and runs dogs one at a time. Bring treats Juno will work for.',
     partnerId: 'ridgeline', trainerId: 'dev', image: 'athletic_dog_catching_ball', requirements: [VAX, AGE, LEASH],
   }),
   'lure-sprint': C({
-    id: 'lure-sprint', title: 'Lure Sprint Heats', discipline: 'Sprint', category: 'Sport', sessionType: 'Class',
+    id: 'lure-sprint', title: 'Lure Sprint Heats', discipline: 'Sprint', category: 'Sport', sessionType: 'Class', requires: 'social',
     credits: 2, durationMin: 40, intensity: 5, groupSize: 8, suits: 'High energy', suitsNote: 'Sound in body', balance: 'Physical',
     description: 'Timed straight-line heats behind a lure on the long field. Three to four runs with rest between. Every heat is timed, so you can watch Juno get faster.',
     partnerId: 'eastfield', trainerId: 'dev', image: 'dog_running_on_beach', requirements: [VAX, AGE],
   }),
   fitness: C({
-    id: 'fitness', title: 'Fitness and conditioning', discipline: 'Fitness', category: 'Sport', sessionType: 'Class',
+    id: 'fitness', title: 'Fitness and conditioning', discipline: 'Fitness', category: 'Sport', sessionType: 'Class', requires: 'social',
     credits: 2, durationMin: 45, intensity: 3, groupSize: 6, suits: 'Any energy', suitsNote: 'Good with dogs nearby', balance: 'Physical',
     description: 'Balance work, cavaletti poles and core exercises that keep a sport dog sound. Low impact and a good partner to sprint and agility days.',
     partnerId: 'northside', trainerId: 'ana', image: 'dog_being_patient', requirements: [VAX, LEASH],
   }),
   'scent-work': C({
-    id: 'scent-work', title: 'Scent Work I', discipline: 'Scent', category: 'Scent', sessionType: 'Class',
+    id: 'scent-work', title: 'Scent Work I', discipline: 'Scent', category: 'Scent', sessionType: 'Class', requires: 'social',
     credits: 2, durationMin: 45, intensity: 2, groupSize: 6, suits: 'Any energy', suitsNote: 'Works alone, crated between turns', balance: 'Mental',
     description: 'Juno learns to find a target odor in boxes, then in a room. Dogs search one at a time, so it suits dogs who need space. Expect a calm, tired dog.',
     partnerId: 'northside', trainerId: 'ana', image: 'dog_and_owner_chilling', requirements: [VAX],
@@ -124,37 +124,37 @@ export const classes: Record<string, ClassType> = {
     partnerId: 'southfork', trainerId: 'lena', image: 'dog_wrapped_in_blanket', openWindow: 'Open 4:00 to 8:00 pm', requirements: [VAX],
   }),
   'open-field': C({
-    id: 'open-field', title: 'Open Field Session', discipline: 'Open play', category: 'Play', sessionType: 'Class',
+    id: 'open-field', title: 'Open Field Session', discipline: 'Open play', category: 'Play', sessionType: 'Class', requires: 'social',
     credits: 1, durationMin: 90, intensity: 3, groupSize: 20, suits: 'Any energy', suitsNote: 'Loves dogs', balance: 'Physical',
     description: 'Five fenced acres with a host on the field. Run, swim in the stock tank and play with other dogs. Leave when Juno is done.',
     partnerId: 'eastfield', trainerId: 'lena', image: 'dog_getting_pets_at_park', requirements: [VAX, AGE],
   }),
   'free-roam': C({
-    id: 'free-roam', title: 'Free roam', discipline: 'Open play', category: 'Play', sessionType: 'Class',
+    id: 'free-roam', title: 'Free roam', discipline: 'Open play', category: 'Play', sessionType: 'Class', requires: 'social',
     credits: 1, durationMin: 60, intensity: 3, groupSize: 12, suits: 'Any energy', suitsNote: 'Loves dogs', balance: 'Social',
     description: 'Off-leash play in the club yard with a handler watching the group. Dogs are matched by size and play style at the gate.',
     partnerId: 'eastside', trainerId: 'sam', image: 'dog_and_owner_chilling', requirements: [VAX, AGE, FIXED], requiresFixed: true,
   }),
   'puppy-social': C({
-    id: 'puppy-social', title: 'Puppy social', discipline: 'Play', category: 'Play', sessionType: 'Class',
+    id: 'puppy-social', title: 'Puppy social', discipline: 'Play', category: 'Play', sessionType: 'Class', requires: 'social',
     credits: 1, durationMin: 45, intensity: 2, groupSize: 6, suits: 'Any energy', suitsNote: 'Puppies only', balance: 'Social',
     description: 'Short, supervised play for puppies with a trainer setting the pace. Gentle greetings, a little confidence work and plenty of breaks.',
     partnerId: 'eastside', trainerId: 'sam', image: 'dog_wrapped_in_blanket', requirements: [VAX, { icon: 'cake', text: '4 to 12 months old' }], minAgeMonths: 4, maxAgeMonths: 12,
   }),
   'senior-strength': C({
-    id: 'senior-strength', title: 'Senior strength', discipline: 'Fitness', category: 'Sport', sessionType: 'Class',
+    id: 'senior-strength', title: 'Senior strength', discipline: 'Fitness', category: 'Sport', sessionType: 'Class', requires: 'social',
     credits: 2, durationMin: 40, intensity: 2, groupSize: 6, suits: 'Any energy', suitsNote: 'Good with dogs nearby', balance: 'Physical',
     description: 'Slow strength and balance work for older dogs: cavaletti at a walk, stand-sit-stand and gentle core work. Keeps joints moving without the pounding.',
     partnerId: 'northside', trainerId: 'ana', image: 'dog_sleeping_while_owner_reads', requirements: [VAX, { icon: 'cake', text: '8 years and up' }, LEASH], minAgeMonths: 96,
   }),
   'small-group-play': C({
-    id: 'small-group-play', title: 'Small-group play', discipline: 'Play', category: 'Play', sessionType: 'Class',
+    id: 'small-group-play', title: 'Small-group play', discipline: 'Play', category: 'Play', sessionType: 'Class', requires: 'social',
     credits: 1, durationMin: 45, intensity: 2, groupSize: 5, suits: 'Any energy', suitsNote: 'Selective dogs welcome', balance: 'Social',
     description: 'Five dogs, one trainer, a quiet yard. Sam picks calm play partners and steps in early. A good next step for dogs working on manners around other dogs.',
     partnerId: 'eastside', trainerId: 'sam', image: 'dogs_meeting_on_leash', requirements: [VAX, AGE],
   }),
   'focus-recall': C({
-    id: 'focus-recall', title: 'Focus and Recall', discipline: 'Skills', category: 'Skills', sessionType: 'Class',
+    id: 'focus-recall', title: 'Focus and Recall', discipline: 'Skills', category: 'Skills', sessionType: 'Class', requires: 'social',
     credits: 2, durationMin: 45, intensity: 2, groupSize: 6, suits: 'Any energy', suitsNote: 'Good with dogs nearby', balance: 'Mental',
     description: 'Eye contact, a reliable come and a solid wait, practiced with more distractions each round. You handle, Ana coaches.',
     partnerId: 'northside', trainerId: 'ana', image: 'dog_being_patient', requirements: [VAX, LEASH],

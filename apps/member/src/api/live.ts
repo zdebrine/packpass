@@ -80,7 +80,7 @@ export async function hasSession() {
 /** Loads partners, trainers, classes and the next 4 weeks of sessions into the shared catalog. */
 export async function loadCatalog() {
   const c = db();
-  const [partners, trainers, classes, sessions, paths, weights] = await Promise.all([
+  const [partners, trainers, classes, sessions, paths, pathClasses, weights] = await Promise.all([
     c.from('partners').select('*').then(check),
     c.from('trainers').select('*').then(check),
     c.from('class_types').select('*').then(check),
@@ -90,6 +90,7 @@ export async function loadCatalog() {
       .order('starts_at')
       .then(check),
     c.from('training_paths').select('id, specialties').then(check),
+    c.from('path_step_classes').select('path_id, class_id').then(check),
     // PackPass tunes these in Admin › Fit; the app's defaults stand in if they can't load.
     c.from('fit_weights').select('breed, energy, social, interests, balance, history').maybeSingle().then((r) => r.data, () => null),
   ]);
@@ -117,6 +118,7 @@ export async function loadCatalog() {
     }])),
     sessions: (sessions as any[]).map((s): Session => ({ id: s.id, classId: s.class_id, startsAt: new Date(s.starts_at), spotsLeft: s.spots_left })),
     pathSpecialties: Object.fromEntries((paths as any[]).map((p) => [p.id, p.specialties ?? []])),
+    pathClasses: (pathClasses as any[]).reduce((m: Record<string, string[]>, x) => ({ ...m, [x.path_id]: [...(m[x.path_id] ?? []), x.class_id] }), {}),
   });
 }
 
@@ -240,7 +242,9 @@ export async function loadPaths(dogId: string): Promise<PathProgress[]> {
   return rows.map((r) => ({
     id: r.path_id, title: r.title, lede: r.lede, grants: r.grants, startedAt: date(r.started_at), nextStep: r.next_step ?? 1,
     completedAt: date(r.completed_at),
-    steps: (r.steps ?? []).map((x: any) => ({ position: x.position, title: x.title, classId: x.class_id, doneAt: date(x.done_at) })),
+    steps: (r.steps ?? []).map((x: any) => ({
+      position: x.position, title: x.title, classId: x.class_id, options: x.options ?? [x.class_id], doneAt: date(x.done_at),
+    })),
   }));
 }
 

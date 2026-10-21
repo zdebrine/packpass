@@ -2,11 +2,11 @@ import { Check, ShieldCheck, UserRound, Users } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { errorCopy, saveClass, setBreedOnly } from '@/lib/api';
+import { errorCopy, loadPathSteps, saveClass, setBreedOnly, setPathSteps } from '@/lib/api';
 import { ageLabel, APTITUDES, emptyForm, estimate, payloadOf, sizeLabel, TYPES, type ClassForm } from '@/lib/classForm';
-import { usePartner } from '@/lib/partner';
+import { useData, usePartner } from '@/lib/partner';
 import { Badge, Button, ClassCard, Chip, ErrorLine, Field, Ico, Page, Row, photoUrl } from '@/ui/kit';
-import { Ages, BreedOnly, BuiltFor, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PhotoGrid, Reach, Requirements, Sizes, Social, typeLabel, type Patch } from './classParts';
+import { Ages, BreedOnly, BuiltFor, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PathClass, PhotoGrid, Reach, Requirements, Sizes, Social, typeLabel, type Patch } from './classParts';
 
 const STEPS: [string, string][] = [['Basics', 'Type, name, photo'], ['Format', 'Length, size, who leads'], ['Who it’s for', 'Fit and requirements'], ['Review', 'Send to PackPass']];
 const TYPE_ICON = { class: Users, private: UserRound, assessment: ShieldCheck };
@@ -34,6 +34,11 @@ export function NewClass() {
   const reach = firstGap === -1 ? 3 : firstGap;
   const missing = needs[step];
   const est = estimate(f);
+  const { data: pathSteps } = useData(loadPathSteps, []);
+  const stepLabel = (k: string) => {
+    const s = pathSteps?.find((x) => `${x.path_id}:${x.position}` === k);
+    return s ? `${s.path_title} · Step ${s.position}` : k;
+  };
   const card = (
     <ClassCard image={photoUrl(f.image)} discipline={f.discipline ?? typeLabel(f.type)} title={f.title.trim() || 'Class name'}
       meta={`${f.duration} min · ${partner.short_name || partner.name}`} credits={`${est} credit${est > 1 ? 's' : ''}`} spotsLeft={group} />
@@ -46,6 +51,7 @@ export function NewClass() {
     try {
       const id = await saveClass(null, payloadOf(f));
       if (f.breedOnly) await setBreedOnly(id, true, f.breedOnlyReason);
+      if (f.type !== 'assessment' && f.pathSteps.length) await setPathSteps(id, f.pathSteps);
       await reloadCatalog();
       setSentId(id);
     } catch (e) { setError(errorCopy(e)); } finally { setBusy(false); }
@@ -142,6 +148,7 @@ export function NewClass() {
                 <div style={{ gridColumn: '1/-1' }}><BuiltFor f={f} set={set} /></div>
                 <BreedOnly f={f} set={set} />
                 <DropOff f={f} set={set} />
+                <PathClass f={f} set={set} />
               </div>
             ) : (
               <div style={{ borderRadius: 16, boxShadow: 'inset 0 0 0 1px var(--line)', overflow: 'hidden' }}>
@@ -156,6 +163,7 @@ export function NewClass() {
                   ...(f.fixed ? [['Spayed or neutered', 'Required'] as [string, string]] : []),
                   ['Built for', f.builtFor.map((k) => APTITUDES.find((a) => a.key === k)?.label ?? k).join(', ') || 'Any breed'],
                   ...(f.breedOnly ? [['Only these breeds', `Asked for: ${f.breedOnlyReason.trim()}`] as [string, string]] : []),
+                  ...(f.type !== 'assessment' ? [['Path class', f.pathSteps.map(stepLabel).join(', ') || 'No'] as [string, string]] : []),
                   ['Requirements', f.reqs.join(', ') || 'None'],
                   ...(f.type === 'class' ? [['Owners', f.dropOff ? <Badge>Drop-off</Badge> : 'Stay with their dog'] as [string, ReactNode]] : []),
                 ]} />
