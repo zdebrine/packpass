@@ -16,7 +16,7 @@ Schema, security rules and booking logic for the member app. It's deployed to th
     `check_in` (partner QR or 4-digit code, from an hour before the start), `see_clearance`,
     `mark_notifications_read`, `start_path`.
   - `booking_block` explains why a dog can't book: `needs_social` (classes set to require Social, and Herding
-    group classes, need a Social clearance, except Path classes on the dog's own training path), `needs_herding` (Herding is assessed per partner),
+    group classes, need a Social clearance, except Path classes on the dog's own training path), `needs_herding` (Herding is assessed per partner; any other clearance gives `needs_<id>`),
     `vaccines` (Rabies, DHPP and Bordetella current on the day), `started`.
   - Service role only: `record_assessment` (partner dashboard; a pass grants the clearance, completes the
     path and notifies the owner) and `grant_monthly_credits` (run daily with pg_cron; rollover capped at one
@@ -124,6 +124,10 @@ Schema, security rules and booking logic for the member app. It's deployed to th
   `requires` says so (the catalog's group classes were set to Social to keep the old rule).
 - `migrations/…_admin_path_classes.sql` — PackPass, not partners, marks Path classes: `admin_set_path_steps`
   (PackPass › Review while reviewing a class, and PackPass › Paths) and `admin_path_classes` to list them.
+- `migrations/…_clearance_types.sql` — clearances are rows in `clearance_types` (name, network or partner
+  scope, expiry in months, a clearance group classes also need, draft/active/retired) instead of an enum.
+  Social and Herding keep their ids. `booking_block` returns `needs_<clearance id>` for any clearance a class
+  requires, and `record_assessment` takes scope and expiry from the clearance.
 - `catalog.sql` — generated: partners, trainers, classes, training paths and the timetable. Loaded into the
   hosted project. Partners now edit their own classes and schedule from the dashboard; new partners and
   trainers are still added here (or in the SQL editor).
