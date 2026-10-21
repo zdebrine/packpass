@@ -1,14 +1,14 @@
 // Training paths (10). Sample mode shows the designs' two paths (src/data/passport.ts); live mode builds
 // them from my_paths: the steps, which are done (and when), and which is next.
 import { isLive } from '@/api/client';
-import { catalog } from '@/data/catalog';
+import { catalog, clearanceName } from '@/data/catalog';
 import { goals as sampleGoals, type Goal, type PathStep, type PathTrainer } from '@/data/passport';
 import type { LogEntry, PathProgress } from '@/data/types';
 import { useApp, useDog } from '@/store/app';
 import { credits } from './booking';
 import { monthDay } from './dates';
 
-const typeName = (t: 'social' | 'herding') => (t === 'social' ? 'Social' : 'Herding');
+const typeName = clearanceName;
 
 /** "Private session · Sam Reyes · 3 credits" */
 function stepMeta(classId: string) {

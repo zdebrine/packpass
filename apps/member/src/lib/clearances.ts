@@ -1,9 +1,9 @@
-// The Passport's two clearances. Sample mode shows the designs' Juno (src/data/passport.ts); live mode
-// builds them from the dog's clearance rows and its assessment results in the Log.
+// The Passport's clearances: Social and Herding, then any PackPass added. Sample mode shows the designs' Juno
+// (src/data/passport.ts); live mode builds them from the dog's clearance rows and its assessment results in the Log.
 import { isLive } from '@/api/client';
 import { catalog } from '@/data/catalog';
 import { HERDING, SOCIAL_UNLOCKS, socialClearance, type Clearance } from '@/data/passport';
-import type { ClearanceRecord, LogEntry } from '@/data/types';
+import type { ClearanceInfo, ClearanceRecord, LogEntry } from '@/data/types';
 import { useApp, useDog } from '@/store/app';
 import { now as clock } from './clock';
 import { monthDay } from './dates';
@@ -90,6 +90,38 @@ export function liveHerding(rows: ClearanceRecord[]): Clearance {
   };
 }
 
+/** A clearance PackPass added: cleared, flagged or expired from the dog's rows, else what it takes to earn it. */
+export function liveOther(k: ClearanceInfo, rows: ClearanceRecord[]): Clearance {
+  const mine = rows.filter((r) => r.type === k.id);
+  const valid = mine.filter(isValid);
+  const needing = Object.values(catalog.classes).filter((c) => c.requires === k.id);
+  const unlocks: Clearance['unlocks'] = needing.slice(0, 4).map((c) => ({ icon: 'award', label: c.title, ex: catalog.partners[c.partnerId]?.name ?? '', photo: c.image }));
+  const assessments = Object.values(catalog.classes).filter((c) => c.grants === k.id);
+  const at = (partnerId: string) => assessments.find((c) => c.partnerId === partnerId)?.id ?? (k.scope === 'network' ? assessments[0]?.id : undefined);
+  const lasts = `${k.expiryMonths === 12 ? 'A year' : `${k.expiryMonths} months`}, ${k.scope === 'network' ? 'at every partner' : 'at the partner that assessed it'}`;
+  const latest = valid[0] ?? mine[0];
+  if (!latest) {
+    return { type: k.id, name: k.name, status: 'needs', eyebrow: 'Not assessed yet', sub: `Book a ${k.name} assessment`,
+      facts: [['Assessed at', k.scope === 'network' ? 'Any PackPass partner' : 'Each partner'], ['Assessed', 'Not yet'], ['Lasts', lasts]], unlocks,
+      note: k.description || `Some classes need a ${k.name} clearance. A short assessment with a trainer checks your dog is ready.`, rebook: assessments[0]?.id };
+  }
+  const where = partnerName(latest.partnerId);
+  const assessed = monthYear(latest.assessedOn);
+  const notes = { assessor: [latest.assessor, `${where} · ${assessed}`].filter(Boolean).join(', '), strengths: latest.strengths, working: latest.workingOn };
+  if (!valid.length && latest.reassess) {
+    return { type: k.id, name: k.name, status: 'expired', eyebrow: 'Re-assessment needed', sub: `Asked by ${latest.reassess.by}`,
+      facts: [['Asked by', latest.reassess.by], ['First assessed', `${where} · ${assessed}`]], unlocks,
+      note: `${latest.reassess.reason} Classes that need ${k.name} open again once a re-assessment passes.`, rebook: at(latest.partnerId), ...notes };
+  }
+  if (!valid.length) {
+    return { type: k.id, name: k.name, status: 'expired', eyebrow: 'Verified · Expired', sub: `Expired · ${where}`,
+      facts: [['Issued by', where], ['Assessed', assessed], ['Expired', monthYear(latest.expiresOn!)]], unlocks,
+      note: `${k.name} expired. Book a re-assessment to open its classes again.`, rebook: at(latest.partnerId), ...notes };
+  }
+  return { type: k.id, name: k.name, status: 'cleared', eyebrow: k.scope === 'network' ? 'Verified clearance' : 'Stays at the partner', sub: `${where} · ${assessed}`,
+    facts: [['Issued by', where], ['Assessed', assessed], ['Expires', latest.expiresOn ? monthYear(latest.expiresOn) : 'No expiry']], unlocks, ...notes };
+}
+
 /** Social and Herding for the Passport, the clearance sheet and the celebration screen. */
 export function useClearances() {
   const social = useApp((s) => s.social);
@@ -98,8 +130,13 @@ export function useClearances() {
   const log = useApp((s) => s.log);
   const onPath = useApp((s) => s.activePaths.includes('calm-around-dogs'));
   const dog = useDog();
-  if (!isLive || !rows) return { social: socialClearance(social, expired), herding: HERDING, socialRecord: null as ClearanceRecord | null };
+  if (!isLive || !rows) return { social: socialClearance(social, expired), herding: HERDING, others: [] as Clearance[], socialRecord: null as ClearanceRecord | null };
   // The Log has every dog's sessions; only this dog's assessments say where it stands.
   const mine = (log ?? []).filter((e) => e.dogId === dog.id);
-  return { social: liveSocial(rows, mine, onPath), herding: liveHerding(rows), socialRecord: rows.find((r) => r.type === 'social') ?? null };
+  // Clearances PackPass added: every one it offers, and any the dog holds that it has since retired.
+  const known = Object.values(catalog.clearanceTypes).filter((k) => k.id !== 'social' && k.id !== 'herding');
+  const extra = [...new Set(rows.map((r) => r.type))].filter((t) => t !== 'social' && t !== 'herding' && !known.some((k) => k.id === t))
+    .map((t): ClearanceInfo => ({ id: t, name: t.charAt(0).toUpperCase() + t.slice(1), description: '', scope: rows.find((r) => r.type === t)!.scope, expiryMonths: 12, groupAlsoRequires: null }));
+  const others = [...known, ...extra].map((k) => liveOther(k, rows));
+  return { social: liveSocial(rows, mine, onPath), herding: liveHerding(rows), others, socialRecord: rows.find((r) => r.type === 'social') ?? null };
 }

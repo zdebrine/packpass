@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { catalog } from '@/data/catalog';
+import { catalog, clearanceName } from '@/data/catalog';
 import type { Dog } from '@/data/types';
 import { Button, Tag } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
@@ -40,6 +40,14 @@ export function bookRow(v: SessionView, rules: RuleContext, dogName: string, fit
     return {
       v, access: 'unlock', why: 'Needs a Herding assessment', fit,
       fix: a ? { label: `Book the assessment · ${credits(a.cls.credits)}`, href: `/book/${a.session.id}` } : { label: 'See the class', href: `/class/${v.session.id}` },
+    };
+  }
+  if (!e.ok && e.needs === 'clearance') {
+    const a = assessmentFor(cls, e.clearance);
+    const name = clearanceName(e.clearance);
+    return {
+      v, access: 'unlock', why: `Needs a ${name} clearance`, fit,
+      fix: a ? { label: `Book a ${name} assessment · ${credits(a.cls.credits)}`, href: `/book/${a.session.id}` } : { label: 'See the class', href: `/class/${v.session.id}` },
     };
   }
   if (!e.ok && e.needs === 'social') {

@@ -1,4 +1,4 @@
-import { catalog, sessionById } from '@/data/catalog';
+import { catalog, clearanceName, sessionById } from '@/data/catalog';
 import type { Booking, ClassType, Partner, Session, Trainer } from '@/data/types';
 import { now } from './clock';
 import { dayOffset, time } from './dates';
@@ -28,7 +28,8 @@ export const timeLabel = (v: SessionView) => v.cls.openWindow ?? time(v.session.
 // The same rules as public.booking_block() / book_session() in supabase/migrations, with the
 // same reason codes, so sample mode and live mode behave alike.
 
-export type BlockCode = 'started' | 'already_cleared' | GateCode | 'needs_herding' | 'needs_social' | 'records_denied' | 'vaccines';
+/** `needs_<clearance id>`: needs_social, needs_herding, or a clearance PackPass added. */
+export type BlockCode = 'started' | 'already_cleared' | GateCode | `needs_${string}` | 'records_denied' | 'vaccines';
 export type BookError = BlockCode | 'already_booked' | 'full' | 'credits' | 'not_found';
 
 /** What the rules need to know about the member and dog. */
@@ -39,6 +40,8 @@ export interface RuleContext {
   hasSocial: boolean;
   /** Partners where the dog holds a Herding clearance. */
   herdingAt: string[];
+  /** The dog's other valid clearances (not Social or Herding), and where they count. */
+  cleared?: { type: string; partnerId: string; scope: 'network' | 'partner' }[];
   /** Classes that are steps on a path the dog is still working through. */
   pathClasses: string[];
   /** PackPass denied the dog's vet record; booking waits for a new upload. */
@@ -53,14 +56,31 @@ export interface RuleContext {
 export const needsSocial = (cls: ClassType) =>
   cls.requires === 'social' || (cls.requires === 'herding' && cls.sessionType === 'Class' && cls.groupSize > 1);
 
+/** Whether the dog holds a valid clearance that counts at this partner. */
+export function holdsClearance(ctx: RuleContext, type: string, partnerId: string) {
+  if (type === 'social') return ctx.hasSocial;
+  if (type === 'herding') return ctx.herdingAt.includes(partnerId);
+  return (ctx.cleared ?? []).some((k) => k.type === type && (k.scope === 'network' || k.partnerId === partnerId));
+}
+
+/** Clearances other than Social and Herding a class needs: the one it requires, then the one group classes also need. */
+function otherNeeds(cls: ClassType): string[] {
+  if (!cls.requires || cls.requires === 'social' || cls.requires === 'herding') return [];
+  const also = cls.sessionType === 'Class' && cls.groupSize > 1 ? catalog.clearanceTypes[cls.requires]?.groupAlsoRequires : null;
+  return also ? [cls.requires, also] : [cls.requires];
+}
+
 export function blockFor(cls: ClassType, session: Session, ctx: RuleContext): BlockCode | null {
   if (session.startsAt <= now()) return 'started';
   // An assessment the dog has already passed (Herding counts at the partner that assessed it).
-  if (cls.grants === 'herding' ? ctx.herdingAt.includes(cls.partnerId) : cls.grants === 'social' && ctx.hasSocial) return 'already_cleared';
+  if (cls.grants && holdsClearance(ctx, cls.grants, cls.partnerId)) return 'already_cleared';
   const gate = gateFor(cls, ctx.dog, session.startsAt);
   if (gate) return gate;
   if (cls.requires === 'herding' && !ctx.herdingAt.includes(cls.partnerId)) return 'needs_herding';
   if (needsSocial(cls) && !ctx.hasSocial && !ctx.pathClasses.includes(cls.id)) return 'needs_social';
+  for (const need of otherNeeds(cls)) {
+    if (!holdsClearance(ctx, need, cls.partnerId) && !ctx.pathClasses.includes(cls.id)) return `needs_${need}`;
+  }
   if (ctx.recordsDenied) return 'records_denied';
   if (!ctx.vaccinesUntil || dayOffset(session.startsAt, ctx.vaccinesUntil) > 0) return 'vaccines';
   return null;
@@ -80,6 +100,8 @@ export function bookError(sessionId: string, dogId: string, ctx: RuleContext): B
 export type Eligibility =
   | { ok: true; cleared: boolean }
   | { ok: false; needs: 'herding' | 'social' | 'vaccines'; reason: string }
+  /** A clearance PackPass added (not Social or Herding): `clearance` is its id. */
+  | { ok: false; needs: 'clearance'; clearance: string; reason: string }
   /** An assessment for a clearance the dog already holds: Book leaves it out. */
   | { ok: false; needs: 'cleared'; reason: string }
   /** The class isn't for this dog (age, size, breed, spayed or neutered): nothing to unlock. `label` is the class's rule. */
@@ -89,7 +111,7 @@ export type Eligibility =
 export function eligibility(v: SessionView, ctx: RuleContext, dogName = 'Juno'): Eligibility {
   const block = blockFor(v.cls, v.session, ctx);
   if (block === 'already_cleared') {
-    return { ok: false, needs: 'cleared', reason: `${dogName} already passed this. The ${v.cls.grants === 'herding' ? 'Herding' : 'Social'} clearance is on the Passport.` };
+    return { ok: false, needs: 'cleared', reason: `${dogName} already passed this. The ${clearanceName(v.cls.grants ?? 'social')} clearance is on the Passport.` };
   }
   if (block === 'too_young' || block === 'too_old' || block === 'too_small' || block === 'too_large' || block === 'breed_only' || block === 'needs_fixed') {
     const label = gateLabel(v.cls, block);
@@ -98,6 +120,10 @@ export function eligibility(v: SessionView, ctx: RuleContext, dogName = 'Juno'):
   }
   if (block === 'needs_herding') return { ok: false, needs: 'herding', reason: 'This class needs a Herding assessment first.' };
   if (block === 'needs_social') return { ok: false, needs: 'social', reason: 'This class needs a Social clearance first.' };
+  if (block?.startsWith('needs_') && block !== 'needs_fixed') {
+    const id = block.slice('needs_'.length);
+    return { ok: false, needs: 'clearance', clearance: id, reason: `This class needs a ${clearanceName(id)} clearance first.` };
+  }
   if (block === 'records_denied') return { ok: false, needs: 'vaccines', reason: `PackPass denied ${dogName}'s vet record. Upload a new one to book.` };
   if (block === 'vaccines') return { ok: false, needs: 'vaccines', reason: `${dogName}'s vaccines need updating before this date.` };
   return { ok: true, cleared: needsSocial(v.cls) && ctx.hasSocial };
@@ -128,9 +154,13 @@ export function sessionOn(classId: string, day: number): SessionView | undefined
 }
 
 /** The assessment that unlocks a gated class, at the same partner. */
-export function assessmentFor(cls: ClassType): SessionView | undefined {
-  const a = Object.values(catalog.classes).find((c) => c.grants === cls.requires && c.partnerId === cls.partnerId);
-  return a ? nextSession(a.id) : undefined;
+/** The next assessment for the clearance a class needs (`type`, else what it requires): at its partner first, and for a network-wide clearance at any partner. */
+export function assessmentFor(cls: ClassType, type = cls.requires): SessionView | undefined {
+  const all = Object.values(catalog.classes).filter((c) => c.grants === type);
+  const here = all.find((c) => c.partnerId === cls.partnerId);
+  if (here) return nextSession(here.id);
+  if (catalog.clearanceTypes[type ?? '']?.scope !== 'network') return undefined;
+  return all.map((c) => nextSession(c.id)).filter((x): x is SessionView => !!x).sort((a, b) => +a.session.startsAt - +b.session.startsAt)[0];
 }
 
 /** Other start times for the same class on the same day (booking sheet time chips). */

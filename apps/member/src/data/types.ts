@@ -23,7 +23,20 @@ export type PhotoKey =
 export type Category = 'Sport' | 'Scent' | 'Play' | 'Skills';
 export type SessionType = 'Class' | 'Private' | 'Assessment';
 export type BalanceCategory = 'Physical' | 'Mental' | 'Social';
-export type ClearanceType = 'social' | 'herding';
+/** Social and Herding, or a clearance PackPass added (its id from clearance_types). */
+export type ClearanceType = 'social' | 'herding' | (string & {});
+
+/** A clearance PackPass offers (supabase/migrations/…_clearance_types.sql). */
+export interface ClearanceInfo {
+  id: string;
+  name: string;
+  description: string;
+  /** network: every partner honours it. partner: only the partner that granted it. */
+  scope: 'network' | 'partner';
+  expiryMonths: number;
+  /** Group classes that need this clearance also need this one (Herding needs Social). */
+  groupAlsoRequires: string | null;
+}
 
 export interface Partner {
   id: string;
@@ -171,7 +184,7 @@ export interface LogEntry {
   /** Who wrote the note (the trainer signed in on the dashboard). */
   noteBy: string | null;
   assessment: {
-    type: 'social' | 'herding';
+    type: ClearanceType;
     outcome: 'cleared' | 'not_yet';
     quote: string | null;
     strengths: string[];

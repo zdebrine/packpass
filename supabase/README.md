@@ -133,6 +133,9 @@ Schema, security rules and booking logic for the member app. It's deployed to th
   `admin_save_path` (steps can change until a dog starts the path, then only their wording),
   `admin_set_class_clearance` (Review sets what a class requires or grants) and `admin_class_options`. A trigger
   stops a retired clearance being granted.
+- `migrations/…_clearance_names.sql` — the roster's Passport badges and the "not yet" notification use the
+  clearance's name. The apps read `clearance_types` (and the partner dashboard `clearance_criteria` for the
+  assessment rubric), so a clearance PackPass adds shows up by name everywhere.
 - `catalog.sql` — generated: partners, trainers, classes, training paths and the timetable. Loaded into the
   hosted project. Partners now edit their own classes and schedule from the dashboard; new partners and
   trainers are still added here (or in the SQL editor).

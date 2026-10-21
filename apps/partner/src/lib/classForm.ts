@@ -63,7 +63,7 @@ export const TYPES: { key: SessionType; label: string; note: string }[] = [
 
 export interface ClassForm {
   title: string; discipline: string | null; type: SessionType; image: string | null; duration: number; intensity: number; group: number;
-  energy: string[]; social: string[]; clearance: 'social' | 'herding' | null; reqs: string[]; description: string; trainerId: string | null;
+  energy: string[]; social: string[]; clearance: string | null; reqs: string[]; description: string; trainerId: string | null;
   /** Owners leave the dog with the trainer. Group classes only; privates and assessments never are. */
   dropOff: boolean;
   /** Age in months and weight in lb the class is for; null ends are open. */

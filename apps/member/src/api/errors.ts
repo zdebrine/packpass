@@ -1,6 +1,8 @@
 // Copy for the reason codes raised by the booking rules (supabase/migrations/…_booking_functions.sql
 // and src/lib/booking.ts use the same codes).
 
+import { clearanceName } from '@/data/catalog';
+
 const COPY: Record<string, string> = {
   started: 'This session has already started.',
   too_young: 'This class is for older dogs.',
@@ -56,6 +58,8 @@ const COPY: Record<string, string> = {
 /** Short, human sentence for an error code or a raw error. */
 export function errorCopy(e: unknown) {
   const msg = typeof e === 'string' ? e : e instanceof Error ? e.message : (e as { message?: string })?.message ?? '';
+  // needs_<clearance id> for a clearance PackPass added.
+  if (!COPY[msg] && /^needs_[a-z]/.test(msg)) return `This class needs a ${clearanceName(msg.slice(6))} clearance first.`;
   return COPY[msg] ?? (msg || 'Something went wrong. Try again.');
 }
 

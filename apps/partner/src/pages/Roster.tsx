@@ -13,6 +13,7 @@ import { Avatar, Badge, Button, Chip, ErrorLine, Modal, Page, Row } from '@/ui/k
 import { checkInPayload, Qr } from '@/ui/Qr';
 import { ReassessModal, undoReassessment } from '@/ui/Reassess';
 import { Empty, Loading } from './Overview';
+import { clearanceFromLabel, clearanceName } from '@/lib/clearances';
 
 const ENERGY: Record<string, string> = { couch: 'Couch', medium: 'Medium', high: 'High', working: 'Working dog' };
 const SOCIAL: Record<string, string> = { loves_dogs: 'Loves dogs', selective: 'Selective', prefers_solo: 'Prefers solo' };
@@ -127,7 +128,7 @@ function SessionRoster({ s, meta, onQr }: { s: SessionView; meta: string; onQr: 
 
 const ROSTER_COLS = '36px minmax(0,1.3fr) 88px 88px 150px minmax(0,1.4fr) 136px 108px';
 
-type Kind = 'social' | 'herding';
+type Kind = string;
 
 function DogRow({ d, photo, record, busy, onToggle, onVerify, onReassess, onUndo }: {
   d: RosterDog; photo?: string; record?: string; busy: boolean; onToggle: () => void; onVerify: () => void;
@@ -135,7 +136,7 @@ function DogRow({ d, photo, record, busy, onToggle, onVerify, onReassess, onUndo
 }) {
   const on = d.status === 'checked_in';
   // "Herding" is current; "Herding · re-assess" was flagged and waits on a new assessment.
-  const kind = (k: string) => k.split(' ')[0].toLowerCase() as Kind;
+  const kind = (k: string) => clearanceFromLabel(k);
   const current = d.clearances.filter((k) => !k.includes('re-assess')).map(kind);
   const flagged = d.clearances.filter((k) => k.includes('re-assess')).map(kind);
   const traits = partnerTraits(d.traits);
@@ -154,7 +155,7 @@ function DogRow({ d, photo, record, busy, onToggle, onVerify, onReassess, onUndo
           ? <Badge key={k} tone="warning" icon={ShieldAlert}>{k}</Badge>
           : <Badge key={k} tone="cleared" icon={ShieldCheck}>{k}</Badge>) : <Badge tone="needs">None yet</Badge>}
         {current.length ? <button className="link pp-caption" disabled={busy} onClick={() => onReassess(current)}>Re-assess</button> : null}
-        {flagged.map((t) => <button key={t} className="link pp-caption" disabled={busy} onClick={() => onUndo(t)}>{`Undo ${t}`}</button>)}
+        {flagged.map((t) => <button key={t} className="link pp-caption" disabled={busy} onClick={() => onUndo(t)}>{`Undo ${clearanceName(t)}`}</button>)}
       </div>
       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <span className="pp-caption ellipsis" title={d.last_note ?? undefined}>{d.last_note || '–'}</span>

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 
 import { errorCopy, flagReassessment } from '@/lib/api';
+import { clearanceName } from '@/lib/clearances';
 import { Button, ErrorLine, Field, Modal, Segmented } from './kit';
 
-type Kind = 'social' | 'herding';
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+type Kind = string;
 
 /**
  * Re-assessment: send a cleared dog back for a new assessment, with a reason the owner reads. The clearance pauses
@@ -23,8 +23,8 @@ export function ReassessModal({ dogId, dogName, types, onClose, onDone }: { dogI
     <Modal eyebrow={dogName} title="Ask for a re-assessment" onClose={onClose}
       footer={<><ErrorLine>{error}</ErrorLine><Button variant="quiet" onClick={onClose}>Cancel</Button><Button disabled={busy || !reason.trim()} onClick={send}>{busy ? 'Sending…' : 'Send'}</Button></>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {types.length > 1 ? <Segmented label="Clearance" options={types.map((t) => ({ value: t, label: cap(t) }))} value={type} onChange={setType} /> : null}
-        <Field label="Reason" note={`${dogName}'s ${cap(type)} clearance pauses now. The owner gets this reason and is asked to book a re-assessment.`}>
+        {types.length > 1 ? <Segmented label="Clearance" options={types.map((t) => ({ value: t, label: clearanceName(t) }))} value={type} onChange={setType} /> : null}
+        <Field label="Reason" note={`${dogName}'s ${clearanceName(type)} clearance pauses now. The owner gets this reason and is asked to book a re-assessment.`}>
           <textarea className="area" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Three sessions in a row ended early after rough play. Worth a fresh look before more group classes." />
         </Field>
       </div>
