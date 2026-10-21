@@ -8,6 +8,8 @@ import { Empty, Loading } from '@/pages/Overview';
 import { PathStepPicker, stepKey } from './Paths';
 
 const TYPE = { class: 'Class', private: 'Private', assessment: 'Assessment' } as const;
+// class_types.credits is checked to 1–8 in the schema.
+const MAX_CREDITS = 8;
 
 /** PackPass › Review: new classes waiting for a credit cost, and live classes whose pricing changed. */
 export function Review() {
@@ -114,7 +116,7 @@ function Section({ title, rows, paths, onDone }: { title: string; rows: ReviewCl
 
 function ReviewCard({ c, paths, onDone }: { c: ReviewClass; paths: Paths; onDone: () => void }) {
   const suggested = estimateFor(c.duration_min, c.intensity, c.session_type, c.group_size);
-  const [credits, setCredits] = useState(c.credits ?? suggested);
+  const [credits, setCredits] = useState(Math.min(MAX_CREDITS, c.credits ?? suggested));
   const [premium, setPremium] = useState(c.premium);
   const saved = paths.of(c.id);
   const [steps, setSteps] = useState<string[] | null>(null);
@@ -160,7 +162,7 @@ function ReviewCard({ c, paths, onDone }: { c: ReviewClass; paths: Paths; onDone
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <span className="pp-label" style={{ fontWeight: 600 }}>Credit cost</span>
-        <Stepper label="credits" value={credits} onDec={() => setCredits(Math.max(1, credits - 1))} onInc={() => setCredits(Math.min(20, credits + 1))} decDisabled={credits <= 1} incDisabled={credits >= 20} />
+        <Stepper label="credits" value={credits} onDec={() => setCredits(Math.max(1, credits - 1))} onInc={() => setCredits(Math.min(MAX_CREDITS, credits + 1))} decDisabled={credits <= 1} incDisabled={credits >= MAX_CREDITS} />
         <span className="pp-caption pp-muted">{`Formula suggests ${suggested}.${c.credits != null && c.credit_review ? ` Was ${c.credits}; current bookings keep their price.` : ''}`}</span>
         <Row gap={10} wrap={false} style={{ justifyContent: 'space-between' }}>
           <span className="pp-label">Premium</span>
