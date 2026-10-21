@@ -291,7 +291,7 @@ export interface ReviewClass {
   id: string; partner_id: string; partner_name: string; trainer_name: string | null; title: string; discipline: string; session_type: SessionType;
   duration_min: number; intensity: number; group_size: number; credits: number | null; premium: boolean; status: ClassType['status'];
   credit_review: boolean; description: string | null; image: string | null; energy: string[]; sociability: string[];
-  requires: 'social' | 'herding' | null; grants: 'social' | 'herding' | null;
+  requires: string | null; grants: string | null;
   built_for: string[]; breed_only_reason: string | null; breed_only_status: 'pending' | 'approved' | 'rejected' | null;
 }
 export interface AdminPartner {
@@ -309,9 +309,28 @@ export const setClassReview = async (id: string, credits: number | null, premium
 /** A class PackPass can mark as a Path class (supabase/migrations/…_admin_path_classes.sql), with the steps it counts for. */
 export interface AdminPathClass {
   id: string; title: string; partner_name: string; status: ClassType['status']; session_type: SessionType; group_size: number;
-  min_age_months: number | null; max_age_months: number | null; requires: 'social' | 'herding' | null; steps: { path_id: string; position: number }[];
+  min_age_months: number | null; max_age_months: number | null; requires: string | null; steps: { path_id: string; position: number }[];
 }
 export const loadAdminPathClasses = async () => check(await db.rpc('admin_path_classes')) as AdminPathClass[];
+/** Clearances PackPass manages (supabase/migrations/…_clearance_admin.sql). Social and Herding are two of them. */
+export interface ClearanceCriterion { label: string; required: boolean }
+export interface AdminClearanceType {
+  id: string; name: string; description: string; scope: 'network' | 'partner'; expiry_months: number; group_also_requires: string | null;
+  status: 'draft' | 'active' | 'retired'; criteria: ClearanceCriterion[]; paths: { id: string; title: string }[];
+  requiring_classes: number; granting_classes: number; dogs_cleared: number;
+}
+export const loadClearanceTypes = async () => check(await db.rpc('admin_clearance_types')) as AdminClearanceType[];
+export const saveClearanceType = async (fields: Partial<Omit<AdminClearanceType, 'paths' | 'requiring_classes' | 'granting_classes' | 'dogs_cleared'>>) =>
+  check(await db.rpc('admin_save_clearance', { p: fields })) as string;
+export const setClassClearance = async (id: string, requires: string | null, grants: string | null) => {
+  check(await db.rpc('admin_set_class_clearance', { p_class: id, p_requires: requires, p_grants: grants }));
+};
+export interface AdminTrainingPath { id: string; title: string; lede: string; grants: string | null; started: number; steps: { title: string; class_id: string }[] }
+export const loadTrainingPaths = async () => check(await db.rpc('admin_training_paths')) as AdminTrainingPath[];
+export const saveTrainingPath = async (fields: { id?: string; title: string; lede?: string; grants?: string | null; steps?: { title: string; class_id: string }[] }) =>
+  check(await db.rpc('admin_save_path', { p: fields })) as string;
+export interface AdminClassOption { id: string; title: string; partner_name: string; session_type: SessionType; grants: string | null; status: ClassType['status'] }
+export const loadClassOptions = async () => check(await db.rpc('admin_class_options')) as AdminClassOption[];
 export const decideBreedOnly = async (id: string, approve: boolean) => { check(await db.rpc('admin_set_breed_only', { p_class: id, p_approve: approve })); };
 /** Class fit (supabase/migrations/…_fit_weights.sql): how often dogs book what Book showed them, and the weights the app ranks with. */
 export type FitPart = 'breed' | 'energy' | 'social' | 'interests' | 'balance' | 'history';
@@ -398,6 +417,16 @@ const COPY: Record<string, string> = {
   bad_file: 'Upload a PDF, JPG or PNG.',
   bad_photo_file: 'Upload a JPG, PNG or WebP photo.',
   photo_too_big: 'That photo is over 15 MB.',
+  name_required: 'Give it a name.',
+  name_taken: 'That name is already used.',
+  scope_locked: 'Dogs already hold this clearance, so who honours it can\'t change.',
+  invalid_group_requirement: 'A clearance can\'t also require itself.',
+  clearance_retired: 'That clearance is retired.',
+  title_required: 'Give the path a title.',
+  steps_required: 'Add at least one step.',
+  step_title_required: 'Every step needs a title.',
+  step_class_required: 'Pick a class for every step.',
+  path_in_use: 'Dogs have started this path, so its steps can be reworded but not changed.',
   bad_photo: 'That photo belongs to another partner.',
 };
 export const errorCopy = (e: unknown) => {

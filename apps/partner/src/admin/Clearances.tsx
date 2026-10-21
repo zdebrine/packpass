@@ -7,12 +7,14 @@ import { monthDay } from '@/lib/time';
 import { Badge, Button, ErrorLine, Field } from '@/ui/kit';
 import { ReassessModal, undoReassessment } from '@/ui/Reassess';
 import { Empty, Loading } from '@/pages/Overview';
+import { ClearanceTypes } from './ClearanceTypes';
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const month = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
 /**
- * PackPass › Clearances: every dog's current Social and Herding clearances. Ask for a re-assessment when a dog
+ * PackPass › Clearances: the clearances PackPass offers and their paths (ClearanceTypes), then every dog's
+ * current clearances. Ask for a re-assessment when a dog
  * should be seen again (the clearance pauses and the owner gets the reason); flagged dogs stay at the top until
  * they pass again. Undo restores a clearance flagged by mistake.
  */
@@ -33,8 +35,13 @@ export function Clearances() {
       <header style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span className="pp-caption pp-muted">PackPass · Clearances</span>
         <h1 className="pp-page-title" style={{ margin: 0 }}>Clearances</h1>
-        <span className="pp-label pp-muted">Ask for a re-assessment when a dog should be seen again, after a long break or a run of rough sessions. The clearance pauses and the owner gets your reason.</span>
+        <span className="pp-label pp-muted">What each clearance means, how a dog earns it, and which dogs hold one.</span>
       </header>
+      <ClearanceTypes />
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <h2 className="pp-title" style={{ margin: 0 }}>Dogs</h2>
+        <span className="pp-label pp-muted">Ask for a re-assessment when a dog should be seen again, after a long break or a run of rough sessions. The clearance pauses and the owner gets your reason.</span>
+      </section>
       <div style={{ maxWidth: 360 }}><Field label="Find a dog"><input className="field" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Dog, owner or partner" /></Field></div>
       <ErrorLine>{error}</ErrorLine>
       {rows.length ? (
