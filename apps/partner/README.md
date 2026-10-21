@@ -15,7 +15,7 @@ npm run build      # type-checks, then builds to dist/
 
 ## Accounts
 
-Live at **https://packpass-partner.vercel.app** (Vercel project `packpass-partner`, root `apps/partner`; every push
+Live at **https://partners.packpass.app** (Vercel project `packpass-partner`, root `apps/partner`; every push
 to the branch redeploys).
 
 Staff sign in with an ordinary Supabase account linked to a partner. Owners add their own trainers and
