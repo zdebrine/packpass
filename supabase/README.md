@@ -128,6 +128,11 @@ Schema, security rules and booking logic for the member app. It's deployed to th
   scope, expiry in months, a clearance group classes also need, draft/active/retired) instead of an enum.
   Social and Herding keep their ids. `booking_block` returns `needs_<clearance id>` for any clearance a class
   requires, and `record_assessment` takes scope and expiry from the clearance.
+- `migrations/…_clearance_admin.sql` — PackPass › Clearances: `admin_clearance_types` and `admin_save_clearance`
+  (create, edit, draft/active/retired, and the rubric in `clearance_criteria`), `admin_training_paths` and
+  `admin_save_path` (steps can change until a dog starts the path, then only their wording),
+  `admin_set_class_clearance` (Review sets what a class requires or grants) and `admin_class_options`. A trigger
+  stops a retired clearance being granted.
 - `catalog.sql` — generated: partners, trainers, classes, training paths and the timetable. Loaded into the
   hosted project. Partners now edit their own classes and schedule from the dashboard; new partners and
   trainers are still added here (or in the SQL editor).

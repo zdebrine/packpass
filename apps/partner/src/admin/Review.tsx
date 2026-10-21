@@ -1,9 +1,9 @@
 import { useState } from 'react';
 
-import { adminRemovePhoto, decideBreedOnly, errorCopy, loadAdminPathClasses, loadPartnerPhotos, loadPathSteps, loadReviewQueue, setClassReview, setPathSteps, type PartnerPhoto, type PathStepOption, type ReviewClass } from '@/lib/api';
+import { adminRemovePhoto, decideBreedOnly, errorCopy, loadAdminPathClasses, loadClearanceTypes, loadPartnerPhotos, loadPathSteps, loadReviewQueue, setClassClearance, setClassReview, setPathSteps, type AdminClearanceType, type PartnerPhoto, type PathStepOption, type ReviewClass } from '@/lib/api';
 import { APTITUDES, estimateFor } from '@/lib/classForm';
 import { useData } from '@/lib/partner';
-import { Button, ErrorLine, Row, Stepper, Tag, Toggle, photoUrl } from '@/ui/kit';
+import { Button, ErrorLine, Field, Row, Stepper, Tag, Toggle, photoUrl } from '@/ui/kit';
 import { Empty, Loading } from '@/pages/Overview';
 import { PathStepPicker, stepKey } from './Paths';
 
@@ -14,9 +14,10 @@ export function Review() {
   const { data, reload } = useData(loadReviewQueue, []);
   const { data: steps } = useData(loadPathSteps, []);
   const { data: pathClasses } = useData(loadAdminPathClasses, []);
+  const { data: clearances } = useData(loadClearanceTypes, []);
   if (!data) return <Loading />;
-  // The steps each class counts for now; PackPass decides this while reviewing (partners don't).
-  const paths = { steps: steps ?? [], of: (id: string) => (pathClasses?.find((c) => c.id === id)?.steps ?? []).map(stepKey) };
+  // The steps each class counts for now, and the clearances to pick from; PackPass decides both while reviewing.
+  const paths = { steps: steps ?? [], of: (id: string) => (pathClasses?.find((c) => c.id === id)?.steps ?? []).map(stepKey), clearances: clearances ?? [] };
   const fresh = data.filter((c) => c.status === 'in_review');
   const repriced = data.filter((c) => c.status !== 'in_review' && c.credit_review);
   const breedOnly = data.filter((c) => c.breed_only_status === 'pending');
@@ -100,7 +101,7 @@ function Photos() {
   );
 }
 
-type Paths = { steps: PathStepOption[]; of: (id: string) => string[] };
+type Paths = { steps: PathStepOption[]; of: (id: string) => string[]; clearances: AdminClearanceType[] };
 
 function Section({ title, rows, paths, onDone }: { title: string; rows: ReviewClass[]; paths: Paths; onDone: () => void }) {
   return (
@@ -117,11 +118,15 @@ function ReviewCard({ c, paths, onDone }: { c: ReviewClass; paths: Paths; onDone
   const [premium, setPremium] = useState(c.premium);
   const saved = paths.of(c.id);
   const [steps, setSteps] = useState<string[] | null>(null);
+  const assessment = c.session_type === 'assessment';
+  // An assessment grants a clearance; any other class can require one. The partner's choice is the starting point.
+  const [clearance, setClearance] = useState((assessment ? c.grants : c.requires) ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const act = async (status: 'live' | 'paused') => {
     setBusy(true); setError(null);
     try {
+      if (clearance !== ((assessment ? c.grants : c.requires) ?? '')) await setClassClearance(c.id, assessment ? null : clearance || null, assessment ? clearance || null : null);
       if (steps && JSON.stringify(steps) !== JSON.stringify(saved)) await setPathSteps(c.id, steps);
       await setClassReview(c.id, credits, premium, status); onDone();
     } catch (e) { setError(errorCopy(e)); setBusy(false); }
@@ -129,8 +134,8 @@ function ReviewCard({ c, paths, onDone }: { c: ReviewClass; paths: Paths; onDone
   const facts = [
     TYPE[c.session_type], `${c.duration_min} min`, `Intensity ${c.intensity} of 5`,
     c.session_type === 'class' ? `Up to ${c.group_size} dogs` : 'One dog',
-    c.requires ? `Needs ${c.requires === 'social' ? 'Social' : 'Herding'}` : null, c.grants ? `Grants ${c.grants === 'social' ? 'Social' : 'Herding'}` : null,
   ].filter(Boolean).join(' · ');
+  const pickable = paths.clearances.filter((k) => k.status !== 'retired' || k.id === clearance);
 
   return (
     <div className="card" style={{ display: 'grid', gridTemplateColumns: '120px minmax(0,1fr) 260px', gap: 22, padding: 20, alignItems: 'start' }}>
@@ -145,6 +150,12 @@ function ReviewCard({ c, paths, onDone }: { c: ReviewClass; paths: Paths; onDone
         <span className="pp-label">{facts}</span>
         {c.energy.length || c.sociability.length ? <span className="pp-caption pp-muted">{[c.energy.join(', '), c.sociability.join(', ')].filter(Boolean).join(' · ')}</span> : null}
         {c.description ? <p className="pp-body" style={{ margin: '4px 0 0', textWrap: 'pretty' }}>{c.description}</p> : null}
+        <Field label={assessment ? 'Grants' : 'Requires'} note={assessment ? 'Passing this assessment gives the dog this clearance.' : 'Dogs need this clearance to book.'}>
+          <select className="field" style={{ maxWidth: 320 }} value={clearance} onChange={(e) => setClearance(e.target.value)} aria-label={assessment ? 'Clearance it grants' : 'Clearance it requires'}>
+            <option value="">{assessment ? 'Pick a clearance…' : 'No clearance'}</option>
+            {pickable.map((k) => <option key={k.id} value={k.id}>{`${k.name}${k.status === 'draft' ? ' (draft)' : ''}`}</option>)}
+          </select>
+        </Field>
         {c.session_type !== 'assessment' && paths.steps.length ? <PathStepPicker steps={paths.steps} value={steps ?? saved} onChange={setSteps} /> : null}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
