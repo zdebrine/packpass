@@ -29,7 +29,7 @@ async function portalConfiguration(): Promise<string> {
   const found = await stripe.billingPortal.configurations.list({ active: true, limit: 100 });
   const ours = found.data.find((c) => c.metadata?.packpass === 'member');
   if (ours) return ours.id;
-  const site = Deno.env.get('SITE_URL') ?? 'https://packpass-landing.vercel.app';
+  const site = Deno.env.get('SITE_URL') ?? 'https://www.packpass.app';
   const created = await stripe.billingPortal.configurations.create({
     business_profile: { headline: 'PackPass membership', privacy_policy_url: `${site}/privacy`, terms_of_service_url: `${site}/terms` },
     features: {

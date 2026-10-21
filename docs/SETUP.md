@@ -15,17 +15,17 @@ Edge Function secrets, EAS or Vercel.
 | Resend API key | Supabase sends sign-in emails through Resend | Supabase Auth › SMTP password (set by the script) | **To do** |
 | Code-based email templates | Sign-up, reset and invite emails carry a 6-digit code | Supabase Auth › Email Templates (set by the script) | **To do** |
 | Supabase personal access token | Lets `setup-auth.mjs` change Auth settings | Your shell only, or the Claude environment | **To do** (setup only) |
-| Site URL and redirect URLs | Where any email link lands (codes don't need it) | Supabase Auth › URL Configuration (script: `SITE_URL`) | Can do now: `https://packpass-partner.vercel.app` |
+| Site URL and redirect URLs | Where any email link lands (codes don't need it) | Supabase Auth › URL Configuration (script: `SITE_URL`) | **To do:** Site URL `https://app.packpass.app`; redirect URLs `https://app.packpass.app/**`, `https://partners.packpass.app/**`, `https://www.packpass.app/**`, `packpass://**` |
 | EAS project | Push tokens, phone builds | `eas init` writes the id into `apps/member/app.json` | To do |
 | Apple push key (.p8) / Android FCM key | Push on real phones | EAS credentials (`eas credentials`) | To do, with store accounts |
 | Apple Developer and Google Play accounts | TestFlight and store builds | Apple / Google | To do |
 | Apple and Google sign-in | The "Continue with Apple/Google" buttons (show "coming soon" now) | Supabase Auth › Providers, plus Apple/Google consoles | Later |
 | Stripe keys (test mode) | Plans, credit top-ups, Founding Pack, partner payouts (Connect) | `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` as Edge Function secrets. The apps need no Stripe key (payments open Stripe's hosted Checkout) | Done (test mode); see section 3 |
 | Maps key | A real map instead of the drawn one | Google Maps or Mapbox key in the app config | Later |
-| Vercel project | Hosting the partner dashboard | `packpass-partner` → packpass-partner.vercel.app (Supabase values come from `apps/partner/.env`) | Done |
-| Vercel project for the member app on the web | Members sign in, book and pay in a browser (`apps/member` web build) | `packpass-member`, root `apps/member`, settings in `apps/member/vercel.json`, no env vars needed (`apps/member/.env` is public). Add its URL to Supabase Auth's redirect URLs | **To do** |
+| Vercel project | Hosting the partner dashboard | `packpass-partner` → partners.packpass.app (Supabase values come from `apps/partner/.env`) | Done |
+| Vercel project for the member app on the web | Members sign in, book and pay in a browser (`apps/member` web build) | `packpass-member` → app.packpass.app, root `apps/member`, settings in `apps/member/vercel.json`, no env vars needed (`apps/member/.env` is public) | Done |
 | Member app link on the website | The "Open in your browser" button next to the store buttons | `VITE_MEMBER_APP_URL` in `apps/web/.env` (shows once `VITE_APP_LIVE=true`) | Later, with launch |
-| Vercel project for the website | Hosting the public site (`apps/web`) | New project, root `apps/web`, no env vars needed (`apps/web/.env` is public) | **To do** |
+| Vercel project for the website | Hosting the public site (`apps/web`) | `packpass-landing` → www.packpass.app, root `apps/web`, no env vars needed (`apps/web/.env` is public) | Done |
 | Support email | Shown on the website's /privacy, /terms and /support pages | `VITE_SUPPORT_EMAIL` on the `packpass-landing` Vercel project (defaults to support@packpass.app) | **To do** once the domain's mailbox exists |
 | App store links | The website's download buttons | `VITE_IOS_URL`, `VITE_ANDROID_URL` in `apps/web/.env` | Later, once listed |
 
@@ -94,7 +94,9 @@ Supabase's test sender: links instead of codes, a couple of emails an hour, and 
   - Going live: swap both secrets for live ones and add a live-mode webhook endpoint. Credits without a plan are
     set in `credit_policy`: a 2-credit trial on sign-up and no free monthly grant (`migrations/…_launch_credits.sql`).
 - **Maps:** a Google Maps (or Mapbox) key for real maps on the class and booking screens.
-- **Dashboard address:** when you have a domain, add it to the `packpass-partner` Vercel project and use it as
-  the Site URL (`SITE_URL=https://… node supabase/scripts/setup-auth.mjs`). Until then
-  `SITE_URL=https://packpass-partner.vercel.app` keeps any email link from landing on localhost.
+- **Domains:** packpass.app is on Cloudflare DNS (records set to DNS only) and points at Vercel:
+  `www.packpass.app` (packpass.app redirects there) → `packpass-landing`, `partners.packpass.app` →
+  `packpass-partner`, `app.packpass.app` → `packpass-member`. The `*.vercel.app` addresses still work. Set the
+  Auth Site URL with `SITE_URL=https://app.packpass.app node supabase/scripts/setup-auth.mjs`, and the
+  `SITE_URL` Edge Function secret to `https://www.packpass.app` (billing portal privacy and terms links).
 - **Leaked password protection:** Supabase › Authentication › Attack Protection, where your plan offers it.
