@@ -222,7 +222,11 @@ test('a herding-breeds-only class turns a Lab away until the partner marks it As
     await expect(ui.text('Open to Otis')).toBeVisible();
     await page.getByLabel('See all Sport').filter({ visible: true }).click();
     await expect(ui.text('Nearest first')).toBeVisible();
-    await expect(ui.text(/open to Otis$/)).toBeVisible();
+    // Book opens on today, which can have no Sport classes left (late in the day, or before the seed's first day), so pick the herding class's own day.
+    const chip = sql(`select case when (starts_at at time zone 'America/Chicago')::date = (now() at time zone 'America/Chicago')::date then 'Today'
+      else to_char(starts_at at time zone 'America/Chicago', 'Dy FMDD') end from sessions where id = '${session}'`);
+    await ui.button(chip).click();
+    await expect(ui.text(/^[1-9]\d* class(es)? · \d+ open to Otis$/)).toBeVisible();
     await expect.poll(() => Number(sql(`select count(*) from match_impressions where dog_id = '${dog}' and surface = 'list' and weights ->> 'breed' = '35' and (score_parts ->> 'breed')::numeric <= 1`))).toBeGreaterThan(0);
   } finally {
     sql(`update class_types set breed_only = false where id = 'herding-livestock'`);
