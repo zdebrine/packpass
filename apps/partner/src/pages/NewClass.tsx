@@ -7,6 +7,7 @@ import { ageLabel, APTITUDES, emptyForm, estimate, payloadOf, sizeLabel, TYPES, 
 import { usePartner } from '@/lib/partner';
 import { Badge, Button, ClassCard, Chip, ErrorLine, Field, Ico, Page, Row, photoUrl } from '@/ui/kit';
 import { Ages, BreedOnly, BuiltFor, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PhotoGrid, Reach, Requirements, Sizes, Social, typeLabel, type Patch } from './classParts';
+import { clearanceName } from '@/lib/clearances';
 
 const STEPS: [string, string][] = [['Basics', 'Type, name, photo'], ['Format', 'Length, size, who leads'], ['Who it’s for', 'Fit and requirements'], ['Review', 'Send to PackPass']];
 const TYPE_ICON = { class: Users, private: UserRound, assessment: ShieldCheck };
@@ -152,7 +153,7 @@ export function NewClass() {
                 ]} />
                 <Review title="Who it’s for" onEdit={() => setStep(2)} rows={[
                   ['Energy', f.energy.join(', ') || '—'], ...(group > 1 ? [['With other dogs', f.social.join(', ') || '—'] as [string, string]] : []),
-                  [f.type === 'assessment' ? 'Grants' : 'Requires', f.clearance === 'social' ? 'Social' : f.clearance === 'herding' ? 'Herding' : 'No clearance'], ['Ages', ageLabel(f.age) ?? 'Any age'], ['Size', sizeLabel(f.size) ?? 'Any size'],
+                  [f.type === 'assessment' ? 'Grants' : 'Requires', f.clearance ? clearanceName(f.clearance) : 'No clearance'], ['Ages', ageLabel(f.age) ?? 'Any age'], ['Size', sizeLabel(f.size) ?? 'Any size'],
                   ...(f.fixed ? [['Spayed or neutered', 'Required'] as [string, string]] : []),
                   ['Built for', f.builtFor.map((k) => APTITUDES.find((a) => a.key === k)?.label ?? k).join(', ') || 'Any breed'],
                   ...(f.breedOnly ? [['Only these breeds', `Asked for: ${f.breedOnlyReason.trim()}`] as [string, string]] : []),

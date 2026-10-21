@@ -8,8 +8,8 @@ export interface Trainer { id: string; partner_id: string; name: string; credent
 export interface ClassType {
   id: string; partner_id: string; trainer_id: string | null; title: string; discipline: string; category: 'sport' | 'scent' | 'play' | 'skills';
   session_type: SessionType; credits: number | null; duration_min: number; intensity: number; group_size: number; suits: string | null; suits_note: string | null;
-  balance: 'physical' | 'mental' | 'social'; description: string | null; image: string | null; premium: boolean; requires: 'social' | 'herding' | null;
-  grants: 'social' | 'herding' | null; open_window: string | null; requirements: { icon: string; text: string }[]; status: 'live' | 'in_review' | 'paused';
+  balance: 'physical' | 'mental' | 'social'; description: string | null; image: string | null; premium: boolean; requires: string | null;
+  grants: string | null; open_window: string | null; requirements: { icon: string; text: string }[]; status: 'live' | 'in_review' | 'paused';
   credit_review: boolean; energy: string[]; sociability: string[];
   /** Owners leave the dog with the trainer (group classes only). */
   drop_off: boolean;
@@ -33,7 +33,7 @@ export interface RosterDog {
 }
 export interface NoteRow { booking_id: string; session_id: string; starts_at: string; class_title: string; dog_name: string; breed: string | null; owner_name: string; photo_path: string | null; note: string | null; skills: string[]; sent_at: string | null }
 export interface AssessmentRow {
-  booking_id: string; starts_at: string; class_title: string; grants: 'social' | 'herding'; duration_min: number; dog_id: string; dog_name: string; breed: string | null;
+  booking_id: string; starts_at: string; class_title: string; grants: string; duration_min: number; dog_id: string; dog_name: string; breed: string | null;
   owner_name: string; photo_path: string | null; traits: string[]; clearances: string[]; outcome: 'cleared' | 'not_yet' | null; strengths: string[]; working_on: string[]; quote: string | null;
 }
 export interface EarningsMonth { month: string; sessions: number; dogs: number; credits: number; amount_cents: number }
@@ -122,11 +122,11 @@ export const setFitOverride = async (dogId: string, on: boolean, note?: string) 
   check(await db.rpc('partner_set_fit_override', { p_dog: dogId, p_on: on, p_note: note ?? null }));
 };
 /** Sends a cleared dog back for re-assessment: the clearance pauses and the owner is told why. `undo` restores it. */
-export const flagReassessment = async (dogId: string, type: 'social' | 'herding', reason: string, undo = false) => {
+export const flagReassessment = async (dogId: string, type: string, reason: string, undo = false) => {
   check(await db.rpc('flag_reassessment', { p_dog: dogId, p_type: type, p_reason: reason.trim(), p_undo: undo }));
 };
 export interface AdminClearance {
-  dog_id: string; dog_name: string; breed: string | null; owner_name: string; type: 'social' | 'herding'; partner_name: string;
+  dog_id: string; dog_name: string; breed: string | null; owner_name: string; type: string; partner_name: string;
   assessed_on: string; expires_on: string | null; reassess_at: string | null; reassess_reason: string | null; reassess_by: string | null;
 }
 export const loadAdminClearances = async () => check(await db.rpc('admin_clearances')) as AdminClearance[];

@@ -131,7 +131,7 @@ export default function DogProfile() {
   const vaccines = useApp((s) => s.vaccines);
   const passport = useClearances();
   const paths = useGoals();
-  const clearances = [passport.social, passport.herding];
+  const clearances = [passport.social, passport.herding, ...passport.others];
   const wide = useWide();
   const pathname = usePathname();
   // The card column sticks only while it sits beside the content; once the columns wrap it would ride over them.

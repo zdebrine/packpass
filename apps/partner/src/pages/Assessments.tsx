@@ -2,6 +2,7 @@ import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 
 import { errorCopy, loadAssessments, loadFitOverrides, recordResult, setFitOverride, type AssessmentRow } from '@/lib/api';
+import { clearanceName, useClearances } from '@/lib/clearances';
 import { useData, usePartner } from '@/lib/partner';
 import { partnerTraits, useTraits } from '@/lib/traits';
 import { monthDay, time, weekday, ymd } from '@/lib/time';
@@ -9,6 +10,7 @@ import { useSigned } from '@/lib/useSigned';
 import { Avatar, Badge, Button, Checkbox, ErrorLine, Field, Page, Toggle } from '@/ui/kit';
 import { Empty, Loading } from './Overview';
 
+// Used when PackPass hasn't written a rubric for the clearance on PackPass › Clearances.
 const RUBRIC: Record<string, string[]> = {
   social: ['Greets new dogs calmly', 'Reads and respects signals', 'Recovers after a startle', 'Play stays balanced', 'Comes away from play when called'],
   herding: ['Stock awareness', 'Responds to a stop', 'Takes direction off stock', 'Pressure on stock', 'Calm at the gate'],
@@ -21,6 +23,7 @@ export function Assessments() {
   const { data: fits, reload: reloadFits } = useData(loadFitOverrides, []);
   const [sel, setSel] = useState<string | null>(null);
   const photos = useSigned('dog-photos', data?.map((a) => a.photo_path) ?? []);
+  useClearances(); // re-renders with clearance names once they load
   if (!data) return <Loading />;
   const now = new Date();
   const a = data.find((x) => x.booking_id === sel) ?? data.find((x) => !x.outcome && new Date(x.starts_at) < now) ?? data[0];
@@ -43,7 +46,7 @@ export function Assessments() {
                   style={{ gridTemplateColumns: '36px minmax(0,1fr) auto', minHeight: 56, background: on ? 'var(--hover)' : undefined, boxShadow: on ? 'inset 2px 0 0 var(--ink),inset 0 -1px 0 var(--line)' : undefined }}>
                   <Avatar name={x.dog_name} photo={x.photo_path ? photos[x.photo_path] : undefined} size={36} radius={8} />
                   <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                    <span className="pp-heading ellipsis">{`${x.dog_name} · ${cap(x.grants)}`}</span>
+                    <span className="pp-heading ellipsis">{`${x.dog_name} · ${clearanceName(x.grants)}`}</span>
                     <span className="pp-caption pp-muted">{when(new Date(x.starts_at))}</span>
                   </div>
                   <Badge tone={st === 'Needs result' ? 'needs' : 'neutral'}>{st}</Badge>
@@ -62,7 +65,10 @@ export function Assessments() {
 function Result({ a, photo, onSent, fit, onFit }: { a: AssessmentRow; photo?: string; onSent: () => void; fit: boolean; onFit: () => void }) {
   const { partner } = usePartner();
   const done = !!a.outcome;
-  const items = RUBRIC[a.grants] ?? [];
+  const k = useClearances().find((c) => c.id === a.grants);
+  const name = clearanceName(a.grants);
+  const items = k?.criteria.length ? k.criteria.map((c) => c.label) : RUBRIC[a.grants] ?? [];
+  const required = new Set(k?.criteria.filter((c) => c.required).map((c) => c.label) ?? []);
   const [score, setScore] = useState<Record<string, 's' | 'w' | undefined>>(() =>
     Object.fromEntries([...a.strengths.map((x) => [x, 's']), ...a.working_on.map((x) => [x, 'w'])]));
   const [grant, setGrant] = useState(a.outcome === 'cleared');
@@ -80,7 +86,9 @@ function Result({ a, photo, onSent, fit, onFit }: { a: AssessmentRow; photo?: st
       onSent();
     } catch (e) { setError(errorCopy(e)); setBusy(false); }
   };
-  const herding = a.grants === 'herding';
+  const herding = (k?.scope ?? (a.grants === 'herding' ? 'partner' : 'network')) === 'partner';
+  const months = k?.expiry_months ?? 12;
+  const missing = [...required].filter((i) => score[i] !== 's');
   useTraits(); // re-renders once the trait catalog loads
   const traits = partnerTraits(a.traits);
 
@@ -90,7 +98,7 @@ function Result({ a, photo, onSent, fit, onFit }: { a: AssessmentRow; photo?: st
         <Avatar name={a.dog_name} photo={photo} size={56} radius={12} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
           <span className="pp-caption pp-muted">{`${when(new Date(a.starts_at))} · ${a.duration_min} min · ${a.breed ?? 'Dog'} · ${a.owner_name}`}</span>
-          <h2 className="pp-page-title">{`${a.dog_name} · ${cap(a.grants)} assessment`}</h2>
+          <h2 className="pp-page-title">{`${a.dog_name} · ${name} assessment`}</h2>
         </div>
       </div>
       <div className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -111,7 +119,7 @@ function Result({ a, photo, onSent, fit, onFit }: { a: AssessmentRow; photo?: st
           </div>
           {items.map((i) => (
             <div key={i} className="tbl-row" style={{ gridTemplateColumns: RUBRIC_COLS, minHeight: 44 }}>
-              <span className="pp-body">{i}</span>
+              <span className="pp-body">{i}{required.has(i) ? <span className="pp-caption pp-muted">{' · Required'}</span> : null}</span>
               <Radio on={score[i] === 's'} label={`${i}: Strength`} filled onClick={() => set(i, 's')} />
               <Radio on={score[i] === 'w'} label={`${i}: Working on`} onClick={() => set(i, 'w')} />
             </div>
@@ -121,13 +129,14 @@ function Result({ a, photo, onSent, fit, onFit }: { a: AssessmentRow; photo?: st
       <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <h3 className="pp-title">Outcome</h3>
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-          <Checkbox on={grant} disabled={done} onChange={setGrant}>{herding ? 'Mark as assessed here' : `Grant ${cap(a.grants)} clearance`}</Checkbox>
+          <Checkbox on={grant} disabled={done} onChange={setGrant}>{herding ? 'Mark as assessed here' : `Grant ${name} clearance`}</Checkbox>
           {!grant ? <Checkbox on={goal} disabled={done} onChange={setGoal}>Create a goal</Checkbox> : null}
         </div>
         <span className="pp-caption pp-muted" style={{ textWrap: 'pretty' }}>{herding
-          ? `Herding results show as assessed at ${partner.name} and don't transfer to other partners.`
-          : grant ? `${cap(a.grants)} clearances transfer to every PackPass partner and expire after 12 months.`
-          : `Not yet. A goal puts the training path back to ${cap(a.grants)} on ${a.dog_name}'s Passport.`}</span>
+          ? `${name} results show as assessed at ${partner.name} and don't transfer to other partners.`
+          : grant ? `${name} clearances transfer to every PackPass partner and expire after ${months === 12 ? '12 months' : months === 1 ? '1 month' : `${months} months`}.`
+          : `Not yet. A goal puts the training path back to ${name} on ${a.dog_name}'s Passport.`}</span>
+        {grant && missing.length && !done ? <span className="pp-caption" style={{ color: 'var(--kennel-red)', textWrap: 'pretty' }}>{`Not every required item is a strength yet: ${missing.join(', ')}.`}</span> : null}
       </section>
       <AssessedFit a={a} on={fit} onDone={onFit} />
       <Field label="Note to owner">
@@ -187,4 +196,3 @@ const Radio = ({ on, label, filled, onClick }: { on: boolean; label: string; fil
   </button>
 );
 
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

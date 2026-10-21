@@ -6,7 +6,7 @@ import { setCatalog } from '@/data/catalog';
 import { photoKey, type Energy } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
-import type { Booking, ClassType, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
+import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
 import type { DogRecord, OnboardingDraft } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { setWeights, type Weights } from '@/lib/fit';
@@ -80,7 +80,7 @@ export async function hasSession() {
 /** Loads partners, trainers, classes and the next 4 weeks of sessions into the shared catalog. */
 export async function loadCatalog() {
   const c = db();
-  const [partners, trainers, classes, sessions, paths, pathClasses, weights] = await Promise.all([
+  const [partners, trainers, classes, sessions, paths, pathClasses, weights, clearanceTypes] = await Promise.all([
     c.from('partners').select('*').then(check),
     c.from('trainers').select('*').then(check),
     c.from('class_types').select('*').then(check),
@@ -93,6 +93,8 @@ export async function loadCatalog() {
     c.from('path_step_classes').select('path_id, class_id').then(check),
     // PackPass tunes these in Admin › Fit; the app's defaults stand in if they can't load.
     c.from('fit_weights').select('breed, energy, social, interests, balance, history').maybeSingle().then((r) => r.data, () => null),
+    // Social, Herding and any clearance PackPass added; the built-in pair stands in if they can't load.
+    c.from('clearance_types').select('id, name, description, scope, expiry_months, group_also_requires').order('position').then((r) => r.data, () => null),
   ]);
   if (weights) setWeights(weights as Weights);
   setCatalog({
@@ -119,6 +121,11 @@ export async function loadCatalog() {
     sessions: (sessions as any[]).map((s): Session => ({ id: s.id, classId: s.class_id, startsAt: new Date(s.starts_at), spotsLeft: s.spots_left })),
     pathSpecialties: Object.fromEntries((paths as any[]).map((p) => [p.id, p.specialties ?? []])),
     pathClasses: (pathClasses as any[]).reduce((m: Record<string, string[]>, x) => ({ ...m, [x.path_id]: [...(m[x.path_id] ?? []), x.class_id] }), {}),
+    ...(clearanceTypes?.length ? {
+      clearanceTypes: Object.fromEntries((clearanceTypes as any[]).map((k): [string, ClearanceInfo] => [k.id, {
+        id: k.id, name: k.name, description: k.description ?? '', scope: k.scope, expiryMonths: k.expiry_months, groupAlsoRequires: k.group_also_requires ?? null,
+      }])),
+    } : {}),
   });
 }
 

@@ -2,6 +2,7 @@ import { ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 
 import { errorCopy, loadAdminClearances, type AdminClearance } from '@/lib/api';
+import { clearanceName } from '@/lib/clearances';
 import { useData } from '@/lib/partner';
 import { monthDay } from '@/lib/time';
 import { Badge, Button, ErrorLine, Field } from '@/ui/kit';
@@ -9,7 +10,6 @@ import { ReassessModal, undoReassessment } from '@/ui/Reassess';
 import { Empty, Loading } from '@/pages/Overview';
 import { ClearanceTypes } from './ClearanceTypes';
 
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const month = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
 /**
@@ -53,7 +53,7 @@ export function Clearances() {
                 <span className="pp-heading">{r.dog_name}</span>
                 <span className="pp-caption pp-muted ellipsis">{[r.breed, r.owner_name].filter(Boolean).join(' · ')}</span>
               </div>
-              <span className="pp-caption">{`${cap(r.type)} · ${r.partner_name}`}</span>
+              <span className="pp-caption">{`${clearanceName(r.type)} · ${r.partner_name}`}</span>
               <span className="pp-caption">{month(r.assessed_on)}</span>
               {r.reassess_at ? (
                 <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-start' }}>

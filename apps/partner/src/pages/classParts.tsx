@@ -7,6 +7,7 @@ import { usePartner } from '@/lib/partner';
 import { isUpload } from '@/lib/photos';
 import { AGES, APTITUDES, BREED_ONLY_REASONS, DISCIPLINE_DEFAULTS, DISCIPLINES, ENERGY, PHOTOS, REQS, SIZES, SOCIAL, TYPES, ageLabel, emptyForm, payloadOf, sizeLabel, type ClassForm, type Range } from '@/lib/classForm';
 import { Chip, ErrorLine, Field, Ico, Row, Segmented, Stepper, Toggle, photoUrl } from '@/ui/kit';
+import { useClearances } from '@/lib/clearances';
 
 export type Patch = (p: Partial<ClassForm>) => void;
 
@@ -79,15 +80,19 @@ export const Social = ({ f, set }: { f: ClassForm; set: Patch }) => (
   <Field label="With other dogs"><Row gap={6}>{SOCIAL.map((x) => <Chip key={x} on={f.social.includes(x)} onClick={() => set({ social: toggle(f.social, x) })}>{x}</Chip>)}</Row></Field>
 );
 
+/** PackPass confirms the clearance when it reviews the class; the partner's pick is where it starts. */
 export const Clearance = ({ f, set }: { f: ClassForm; set: Patch }) => {
   const grants = f.type === 'assessment';
+  const list = useClearances().filter((k) => k.status === 'active' || k.id === f.clearance);
+  const picked = list.find((k) => k.id === f.clearance);
+  const note = grants
+    ? picked ? `${picked.scope === 'network' ? `${picked.name} counts at every PackPass partner.` : `${picked.name} stays with your facility.`} PackPass confirms this when it reviews the class.` : 'Pick the clearance a pass gives. PackPass confirms it when it reviews the class.'
+    : f.clearance ? 'Dogs without it see Needs assessment and are sent to book one. PackPass confirms this when it reviews the class.' : 'Any dog with current vaccines can book.';
   return (
-    <Field label={grants ? 'Grants clearance' : 'Requires clearance'}
-      note={grants ? 'Social transfers to every partner. Herding stays with your facility.' : f.clearance ? 'Dogs without it see Needs assessment and are sent to book one.' : 'Any dog with current vaccines can book.'}>
+    <Field label={grants ? 'Grants clearance' : 'Requires clearance'} note={note}>
       <Row gap={6}>
         <Chip on={!f.clearance} onClick={() => set({ clearance: null })}>None</Chip>
-        <Chip on={f.clearance === 'social'} onClick={() => set({ clearance: 'social' })}>Social</Chip>
-        <Chip on={f.clearance === 'herding'} onClick={() => set({ clearance: 'herding' })}>Herding · assessed here</Chip>
+        {list.map((k) => <Chip key={k.id} on={f.clearance === k.id} onClick={() => set({ clearance: k.id })}>{k.scope === 'partner' ? `${k.name} · assessed here` : k.name}</Chip>)}
       </Row>
     </Field>
   );

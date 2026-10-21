@@ -27,7 +27,8 @@ export default function ClearanceDetail() {
   const { type } = useLocalSearchParams<{ type: string }>();
   const social = useApp((s) => s.social);
   const passport = useClearances();
-  const k = type === 'herding' ? passport.herding : passport.social;
+  const k = type === 'herding' ? passport.herding : passport.others.find((o) => o.type === type) ?? passport.social;
+  const other = k.type !== 'social' && k.type !== 'herding';
   const recheck = k.rebook ? nextSession(k.rebook) : k.type === 'social' ? nextSession('social-recheck') : undefined;
   const st = useClearanceStyle()(k);
   const facts: [string, string, string][] = [['Status', STATUS_LABEL[k.status], st.color], ...k.facts.map(([a, b]) => [a, b, c.ink] as [string, string, string])];
@@ -48,9 +49,9 @@ export default function ClearanceDetail() {
         <View style={{ marginTop: 20, padding: 18, borderRadius: 12, backgroundColor: c.kennelRedSoft, gap: 12 }}>
           <Text variant="label" weight="600" color={c.kennelRed}>{k.note ?? 'Social clearance expired. Book a quick re-check to keep group classes open.'}</Text>
           {recheck ? (
-            <Button block onPress={() => router.replace(`/book/${recheck.session.id}`)}>{`Book a ${k.type === 'herding' ? 're-assessment' : 're-check'} · ${creditsLabel(recheck.cls.credits)}`}</Button>
+            <Button block onPress={() => router.replace(`/book/${recheck.session.id}`)}>{`Book a ${k.type === 'social' ? 're-check' : 're-assessment'} · ${creditsLabel(recheck.cls.credits)}`}</Button>
           ) : (
-            <Text variant="caption" muted>{`No ${k.type === 'herding' ? 're-assessment' : 're-check'} times in the next 4 weeks. Check back soon.`}</Text>
+            <Text variant="caption" muted>{`No ${k.type === 'social' ? 're-check' : 're-assessment'} times in the next 4 weeks. Check back soon.`}</Text>
           )}
         </View>
       ) : null}
@@ -68,7 +69,7 @@ export default function ClearanceDetail() {
       {k.status === 'needs' ? (
         <View style={{ marginTop: 20, padding: 18, borderRadius: 12, backgroundColor: c.surfaceRaised, gap: 12 }}>
           <Text variant="label">{k.note}</Text>
-          <Button block onPress={() => { const a = nextSession(k.type === 'herding' ? 'herding-assessment' : 'social-assessment'); if (a) router.replace(`/book/${a.session.id}`); }}>Book assessment</Button>
+          <Button block onPress={() => { const a = nextSession(other ? k.rebook ?? '' : k.type === 'herding' ? 'herding-assessment' : 'social-assessment'); if (a) router.replace(`/book/${a.session.id}`); }}>Book assessment</Button>
         </View>
       ) : null}
 

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ScrollView, Share, View, type DimensionValue } from 'react-native';
 
 import { errorCopy } from '@/api/errors';
+import { catalog, clearanceName } from '@/data/catalog';
 import { Button, Tag } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
 import { Badge, Bars, Footer, IconButton, Screen, useTop } from '@/ds/layout';
@@ -84,7 +85,7 @@ export default function ClassDetail() {
   const started = session.startsAt <= now();
   // The showing dog's booking only. A notification about another dog's class names that dog (?dog=), which shows it.
   const booking = bookingFor(bookings.filter((b) => b.dogId === juno.id), session.id);
-  const assessment = !el.ok && el.needs === 'herding' ? assessmentFor(cls) : undefined;
+  const assessment = el.ok ? undefined : el.needs === 'herding' ? assessmentFor(cls) : el.needs === 'clearance' ? assessmentFor(cls, el.clearance) : undefined;
   const firstVaccine = [...vaccines].sort((a, b) => (a.expires < b.expires ? -1 : 1))[0];
   const group = cls.groupSize === 1 ? (cls.sessionType === 'Private' ? '1:1 · Private' : 'Your dogs only') : `${cls.groupSize} dogs · ${session.spotsLeft === 0 ? 'full' : `${session.spotsLeft} left`}`;
   const refund = booking ? cancelRefund(session.startsAt, booking.credits) : 0;
@@ -129,6 +130,8 @@ export default function ClassDetail() {
                 ? 'It opens again if the clearance runs out.'
                 : el.needs === 'herding'
                 ? 'Herding partners assess every dog on livestock themselves.'
+                : el.needs === 'clearance'
+                ? catalog.clearanceTypes[el.clearance]?.description || `A ${clearanceName(el.clearance)} assessment with a trainer opens it.`
                 : el.needs === 'social'
                   ? onCalmPath
                     ? `${juno.name} is working on it. Finish Calm around dogs to open group classes.`

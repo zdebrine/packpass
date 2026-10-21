@@ -1,5 +1,6 @@
 // What the Log (07) and Today's month header show. Sample mode keeps the designs' September; live mode
 // works it out from the sessions the dog went to (my_log).
+import { clearanceName } from '@/data/catalog';
 import { activeDays, monthBalance, pastSessions } from '@/data/fixtures';
 import { milestones as sampleMilestones, RECHECK_QUOTE } from '@/data/passport';
 import type { LogEntry, PhotoKey, PhotoSource } from '@/data/types';
@@ -53,7 +54,7 @@ const monthOf = (y: number, m: number, entries: LogEntry[], at: Date): LogMonth 
 };
 
 const hoursLabel = (min: number) => String(Math.round((min / 60) * 10) / 10);
-const typeName = (t: 'social' | 'herding') => (t === 'social' ? 'Social' : 'Herding');
+const typeName = clearanceName;
 
 /** all: sessions the dog went to. missed: no-shows, which show in the list but don't count towards anything. */
 export function liveLog(all: LogEntry[], missed: LogEntry[], dogId: string | undefined, dogName: string, social: SocialStage, at = clock()): LogView {
