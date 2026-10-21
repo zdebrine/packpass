@@ -26,9 +26,9 @@ grant execute on all functions in schema pc to authenticated;
 insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-0000000007c1', 'chaco@owner.co', '{"name":"Zed Owner"}'),
   ('00000000-0000-0000-0000-0000000007c2', 'pathclass@eastside.co', '{"name":"Eastside Trainer"}'),
-  ('00000000-0000-0000-0000-0000000007c3', 'pathclass@northside.co', '{"name":"Northside Trainer"}');
+  ('00000000-0000-0000-0000-0000000007c4', 'pathclass@packpass.co', '{"name":"PackPass Admin"}');
+insert into packpass_admins (user_id) values ('00000000-0000-0000-0000-0000000007c4');
 select public.link_partner_staff('pathclass@eastside.co', 'eastside', 'trainer', 'sam');
-select public.link_partner_staff('pathclass@northside.co', 'northside', 'trainer', 'ana');
 
 create table pc.ids (k text primary key, id uuid);
 with x as (insert into dogs (owner_id, name, birth_year, birth_month, weight_lb, fixed)
@@ -91,13 +91,14 @@ create table pc.sess as select pc.session((select id from pc.social)) id;
 select pc.ok(public.booking_block(pc.chaco(), (select id from pc.sess)) = 'needs_social', 'a class set to Social needs it');
 
 set role authenticated;
-select pc.as_user('00000000-0000-0000-0000-0000000007c3');
-select pc.expect_error($$select public.partner_set_path_steps((select id from pc.social), '[{"path_id":"calm-around-dogs","position":3}]')$$, 'not_found');
 select pc.as_user('00000000-0000-0000-0000-0000000007c2');
-select public.partner_set_path_steps((select id from pc.social), '[{"path_id":"calm-around-dogs","position":3},{"path_id":"calm-around-dogs","position":4}]');
+select pc.expect_error($$select public.admin_set_path_steps((select id from pc.social), '[{"path_id":"calm-around-dogs","position":3}]')$$, 'not_admin');
+select pc.expect_error($$select * from public.admin_path_classes()$$, 'not_admin');
+select pc.as_user('00000000-0000-0000-0000-0000000007c4');
+select public.admin_set_path_steps((select id from pc.social), '[{"path_id":"calm-around-dogs","position":3},{"path_id":"calm-around-dogs","position":4}]');
 reset role;
 select pc.ok((select array_agg(position) from path_step_classes where class_id = (select id from pc.social)) = '{3}',
-             'a partner marks its class for a step (not the assessment step)');
+             'PackPass marks a class for a step (not the assessment step)');
 select pc.ok(public.booking_block(pc.chaco(), (select id from pc.sess)) is null, 'Chaco, on the path, can book the Path class');
 set role authenticated;
 select pc.as_user('00000000-0000-0000-0000-0000000007c1');
@@ -113,8 +114,10 @@ select pc.ok((select next_step from dog_paths where dog_id = pc.chaco() and path
 
 -- Unmarking it takes it off the path.
 set role authenticated;
-select pc.as_user('00000000-0000-0000-0000-0000000007c2');
-select public.partner_set_path_steps((select id from pc.social), '[]');
+select pc.as_user('00000000-0000-0000-0000-0000000007c4');
+select pc.ok((select steps from public.admin_path_classes() where id = (select id from pc.social)) = '[{"path_id": "calm-around-dogs", "position": 3}]'::jsonb,
+             'PackPass sees the steps a class counts for');
+select public.admin_set_path_steps((select id from pc.social), '[]');
 reset role;
 select pc.ok(not exists (select 1 from path_step_classes where class_id = (select id from pc.social)), 'an empty list unmarks the class');
 

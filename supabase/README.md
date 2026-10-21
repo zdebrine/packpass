@@ -117,11 +117,13 @@ Schema, security rules and booking logic for the member app. It's deployed to th
   owner label, a plain partner label, its onboarding group and the training path it starts. `dogs.traits` now
   holds ids; the migration backfills old labels through `trait_ids()` and keeps anything else as is (apps show
   unknown ids raw). Also `class_types.drop_off` (group classes only), saved by `partner_save_class`.
-- `migrations/…_path_classes.sql` — `path_step_classes`: the Path classes for each training-path step, set by
-  partners with `partner_set_path_steps` (starts as each step's own class). Checking in to any of them finishes
+- `migrations/…_path_classes.sql` — `path_step_classes`: the Path classes for each training-path step (starts
+  as each step's own class). Checking in to any of them finishes
   the step, a dog on the path can book them before it has Social, and `my_paths` lists each step's `options` (the
   ones the dog's age, size, breed and spayed or neutered status fit). Also: a class needs Social only when
   `requires` says so (the catalog's group classes were set to Social to keep the old rule).
+- `migrations/…_admin_path_classes.sql` — PackPass, not partners, marks Path classes: `admin_set_path_steps`
+  (PackPass › Review while reviewing a class, and PackPass › Paths) and `admin_path_classes` to list them.
 - `catalog.sql` — generated: partners, trainers, classes, training paths and the timetable. Loaded into the
   hosted project. Partners now edit their own classes and schedule from the dashboard; new partners and
   trainers are still added here (or in the SQL editor).
