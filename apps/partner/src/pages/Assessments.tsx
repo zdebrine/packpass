@@ -23,10 +23,10 @@ export function Assessments() {
   const { data: fits, reload: reloadFits } = useData(loadFitOverrides, []);
   const [sel, setSel] = useState<string | null>(null);
   const photos = useSigned('dog-photos', data?.map((a) => a.photo_path) ?? []);
+  useClearances(); // re-renders with clearance names once they load
   if (!data) return <Loading />;
   const now = new Date();
   const a = data.find((x) => x.booking_id === sel) ?? data.find((x) => !x.outcome && new Date(x.starts_at) < now) ?? data[0];
-  useClearances(); // re-renders with clearance names once they load
   const status = (x: AssessmentRow) => (x.outcome ? 'Sent' : new Date(x.starts_at) < now ? 'Needs result' : 'Booked');
 
   return (
