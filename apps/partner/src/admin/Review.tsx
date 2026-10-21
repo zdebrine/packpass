@@ -1,17 +1,22 @@
 import { useState } from 'react';
 
-import { adminRemovePhoto, decideBreedOnly, errorCopy, loadPartnerPhotos, loadReviewQueue, setClassReview, type PartnerPhoto, type ReviewClass } from '@/lib/api';
+import { adminRemovePhoto, decideBreedOnly, errorCopy, loadAdminPathClasses, loadPartnerPhotos, loadPathSteps, loadReviewQueue, setClassReview, setPathSteps, type PartnerPhoto, type PathStepOption, type ReviewClass } from '@/lib/api';
 import { APTITUDES, estimateFor } from '@/lib/classForm';
 import { useData } from '@/lib/partner';
 import { Button, ErrorLine, Row, Stepper, Tag, Toggle, photoUrl } from '@/ui/kit';
 import { Empty, Loading } from '@/pages/Overview';
+import { PathStepPicker, stepKey } from './Paths';
 
 const TYPE = { class: 'Class', private: 'Private', assessment: 'Assessment' } as const;
 
 /** PackPass › Review: new classes waiting for a credit cost, and live classes whose pricing changed. */
 export function Review() {
   const { data, reload } = useData(loadReviewQueue, []);
+  const { data: steps } = useData(loadPathSteps, []);
+  const { data: pathClasses } = useData(loadAdminPathClasses, []);
   if (!data) return <Loading />;
+  // The steps each class counts for now; PackPass decides this while reviewing (partners don't).
+  const paths = { steps: steps ?? [], of: (id: string) => (pathClasses?.find((c) => c.id === id)?.steps ?? []).map(stepKey) };
   const fresh = data.filter((c) => c.status === 'in_review');
   const repriced = data.filter((c) => c.status !== 'in_review' && c.credit_review);
   const breedOnly = data.filter((c) => c.breed_only_status === 'pending');
@@ -23,8 +28,8 @@ export function Review() {
         <span className="pp-label pp-muted">Set the credit cost and put each class live. Live classes open on Book and partners can schedule them.</span>
       </header>
       {data.length ? null : <Empty>Nothing waiting. New classes and price changes from partners show up here.</Empty>}
-      {fresh.length ? <Section title={`New classes · ${fresh.length}`} rows={fresh} onDone={reload} /> : null}
-      {repriced.length ? <Section title={`Pricing changed · ${repriced.length}`} rows={repriced} onDone={reload} /> : null}
+      {fresh.length ? <Section title={`New classes · ${fresh.length}`} rows={fresh} paths={paths} onDone={reload} /> : null}
+      {repriced.length ? <Section title={`Pricing changed · ${repriced.length}`} rows={repriced} paths={paths} onDone={reload} /> : null}
       {breedOnly.length ? <BreedOnly rows={breedOnly} onDone={reload} /> : null}
       <Photos />
     </div>
@@ -95,24 +100,31 @@ function Photos() {
   );
 }
 
-function Section({ title, rows, onDone }: { title: string; rows: ReviewClass[]; onDone: () => void }) {
+type Paths = { steps: PathStepOption[]; of: (id: string) => string[] };
+
+function Section({ title, rows, paths, onDone }: { title: string; rows: ReviewClass[]; paths: Paths; onDone: () => void }) {
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <h2 className="pp-title" style={{ margin: 0 }}>{title}</h2>
-      {rows.map((c) => <ReviewCard key={c.id} c={c} onDone={onDone} />)}
+      {rows.map((c) => <ReviewCard key={c.id} c={c} paths={paths} onDone={onDone} />)}
     </section>
   );
 }
 
-function ReviewCard({ c, onDone }: { c: ReviewClass; onDone: () => void }) {
+function ReviewCard({ c, paths, onDone }: { c: ReviewClass; paths: Paths; onDone: () => void }) {
   const suggested = estimateFor(c.duration_min, c.intensity, c.session_type, c.group_size);
   const [credits, setCredits] = useState(c.credits ?? suggested);
   const [premium, setPremium] = useState(c.premium);
+  const saved = paths.of(c.id);
+  const [steps, setSteps] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const act = async (status: 'live' | 'paused') => {
     setBusy(true); setError(null);
-    try { await setClassReview(c.id, credits, premium, status); onDone(); } catch (e) { setError(errorCopy(e)); setBusy(false); }
+    try {
+      if (steps && JSON.stringify(steps) !== JSON.stringify(saved)) await setPathSteps(c.id, steps);
+      await setClassReview(c.id, credits, premium, status); onDone();
+    } catch (e) { setError(errorCopy(e)); setBusy(false); }
   };
   const facts = [
     TYPE[c.session_type], `${c.duration_min} min`, `Intensity ${c.intensity} of 5`,
@@ -133,6 +145,7 @@ function ReviewCard({ c, onDone }: { c: ReviewClass; onDone: () => void }) {
         <span className="pp-label">{facts}</span>
         {c.energy.length || c.sociability.length ? <span className="pp-caption pp-muted">{[c.energy.join(', '), c.sociability.join(', ')].filter(Boolean).join(' · ')}</span> : null}
         {c.description ? <p className="pp-body" style={{ margin: '4px 0 0', textWrap: 'pretty' }}>{c.description}</p> : null}
+        {c.session_type !== 'assessment' && paths.steps.length ? <PathStepPicker steps={paths.steps} value={steps ?? saved} onChange={setSteps} /> : null}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <span className="pp-label" style={{ fontWeight: 600 }}>Credit cost</span>

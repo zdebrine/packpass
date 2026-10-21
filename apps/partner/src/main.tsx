@@ -8,6 +8,7 @@ import { Applications } from '@/admin/Applications';
 import { Clearances } from '@/admin/Clearances';
 import { Fit } from '@/admin/Fit';
 import { Partners as AdminPartners } from '@/admin/Partners';
+import { Paths } from '@/admin/Paths';
 import { Review } from '@/admin/Review';
 import { Staff as AdminStaff } from '@/admin/Staff';
 import { VetRecords } from '@/admin/VetRecords';
@@ -33,6 +34,7 @@ const adminRoutes = (
     <Route path="admin/applications" element={<Applications />} />
     <Route path="admin/vet-records" element={<VetRecords />} />
     <Route path="admin/clearances" element={<Clearances />} />
+    <Route path="admin/paths" element={<Paths />} />
     <Route path="admin/partners" element={<AdminPartners />} />
     <Route path="admin/staff" element={<AdminStaff />} />
     <Route path="admin/fit" element={<Fit />} />

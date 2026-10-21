@@ -76,16 +76,13 @@ export interface ClassForm {
   /** Asks PackPass to make the class open only to dogs whose breeds share a Built for aptitude, and why. */
   breedOnly: boolean;
   breedOnlyReason: string;
-  /** Training-path steps ("path_id:position") the class counts for. Dogs on the path can book it before they have
-   *  the path's clearance, and checking in finishes the step (partner_set_path_steps). Empty: not a Path class. */
-  pathSteps: string[];
 }
 
 export const emptyForm = (trainerId: string | null): ClassForm => ({
   title: '', discipline: null, type: 'class', image: null, duration: 60, intensity: 3, group: 8, energy: [], social: [], clearance: null,
   reqs: ['Rabies', 'DHPP', 'Bordetella'], description: '', trainerId, dropOff: false,
   age: { min: 6, max: null }, size: { min: null, max: null }, fixed: false, builtFor: [],
-  breedOnly: false, breedOnlyReason: '', pathSteps: [],
+  breedOnly: false, breedOnlyReason: '',
 });
 
 /** Reads a saved class back into the form (older classes keep their fit in suits / suits_note). */
@@ -107,7 +104,6 @@ export function formOf(c: ClassType): ClassForm {
       : { min: /12 months|1 year/i.test(text) ? 12 : /6 months/i.test(text) ? 6 : null, max: null },
     size: { min: c.min_weight_lb, max: c.max_weight_lb }, fixed: c.requires_fixed, builtFor: c.built_for ?? [],
     breedOnly: c.breed_only ?? false, breedOnlyReason: c.breed_only_reason ?? '',
-    pathSteps: (c.path_step_classes ?? []).map((x) => `${x.path_id}:${x.position}`).sort(),
   };
 }
 
@@ -152,7 +148,3 @@ export const pricingChanged = (a: ClassForm, b: ClassForm) => a.duration !== b.d
 export const estimateFor = (duration: number, intensity: number, type: SessionType, group: number) =>
   Math.max(1, Math.round((duration / 30) * 0.5 + intensity * 0.3 + ((type === 'class' ? group : 1) <= 1 ? 1.5 : group <= 6 ? 0.5 : 0)));
 export const estimate = (f: ClassForm) => estimateFor(f.duration, f.intensity, f.type, f.group);
-
-/** Whether the Path class steps need saving (partner_set_path_steps). Assessments are never Path classes. */
-export const pathStepsChanged = (saved: ClassForm, f: ClassForm) =>
-  JSON.stringify(saved.pathSteps) !== JSON.stringify(f.type === 'assessment' ? [] : f.pathSteps);

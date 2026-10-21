@@ -18,8 +18,6 @@ export interface ClassType {
   /** Breed aptitudes the class is built for: ranks it for matching dogs, and gates it only once PackPass approves breed_only. */
   built_for: string[];
   breed_only: boolean; breed_only_reason: string | null; breed_only_status: 'pending' | 'approved' | 'rejected' | null;
-  /** The training-path steps this is a Path class for (public.path_step_classes). */
-  path_step_classes: { path_id: string; position: number }[];
 }
 /** A training-path step a class can be a Path class for. */
 export interface PathStepOption { path_id: string; position: number; title: string; path_title: string }
@@ -100,16 +98,16 @@ export async function loadStaff(): Promise<{ staff: Staff; partner: Partner } | 
 
 // ---- Catalog ----
 export const loadClasses = async (partnerId: string) =>
-  check(await db.from('class_types').select('*, path_step_classes(path_id, position)').eq('partner_id', partnerId).order('title')) as ClassType[];
+  check(await db.from('class_types').select('*').eq('partner_id', partnerId).order('title')) as ClassType[];
 /** The steps of every training path a class can count for. Assessment steps finish with a pass, so they're left out.
  *  The step's own class is named by its foreign key: path_step_classes is a second way from path_steps to class_types. */
 export const loadPathSteps = async () =>
   (check(await db.from('path_steps').select('path_id, position, title, training_paths(title), class_types!path_steps_class_id_fkey(grants)').order('path_id').order('position')) as unknown as {
     path_id: string; position: number; title: string; training_paths: { title: string } | null; class_types: { grants: string | null } | null;
   }[]).filter((s) => !s.class_types?.grants).map((s): PathStepOption => ({ path_id: s.path_id, position: s.position, title: s.title, path_title: s.training_paths?.title ?? s.path_id }));
-/** Marks a class as a Path class for these steps ("path_id:position"), or for none with an empty list. */
+/** PackPass marks a class as a Path class for these steps ("path_id:position"), or for none with an empty list. */
 export const setPathSteps = async (id: string, steps: string[]) => {
-  check(await db.rpc('partner_set_path_steps', {
+  check(await db.rpc('admin_set_path_steps', {
     p_class: id, p_steps: steps.map((k) => ({ path_id: k.slice(0, k.lastIndexOf(':')), position: Number(k.slice(k.lastIndexOf(':') + 1)) })),
   }));
 };
@@ -308,6 +306,12 @@ export const loadReviewQueue = async () => check(await db.rpc('admin_review_queu
 export const setClassReview = async (id: string, credits: number | null, premium: boolean, status: 'live' | 'paused' | 'in_review') => {
   check(await db.rpc('admin_set_class', { p_class: id, p_credits: credits, p_premium: premium, p_status: status }));
 };
+/** A class PackPass can mark as a Path class (supabase/migrations/…_admin_path_classes.sql), with the steps it counts for. */
+export interface AdminPathClass {
+  id: string; title: string; partner_name: string; status: ClassType['status']; session_type: SessionType; group_size: number;
+  min_age_months: number | null; max_age_months: number | null; requires: 'social' | 'herding' | null; steps: { path_id: string; position: number }[];
+}
+export const loadAdminPathClasses = async () => check(await db.rpc('admin_path_classes')) as AdminPathClass[];
 export const decideBreedOnly = async (id: string, approve: boolean) => { check(await db.rpc('admin_set_breed_only', { p_class: id, p_approve: approve })); };
 /** Class fit (supabase/migrations/…_fit_weights.sql): how often dogs book what Book showed them, and the weights the app ranks with. */
 export type FitPart = 'breed' | 'energy' | 'social' | 'interests' | 'balance' | 'history';
