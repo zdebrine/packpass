@@ -124,6 +124,7 @@ function RootLayout() {
             <Stack.Screen name="missed/[id]" options={page} />
             <Stack.Screen name="month" options={page} />
             <Stack.Screen name="series-date/[bookingId]" options={sheet} />
+            <Stack.Screen name="log-activity" options={sheet} />
           </Stack>
         </WebFrame>
       </ThemeProvider>

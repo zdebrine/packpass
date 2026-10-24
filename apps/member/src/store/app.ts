@@ -9,8 +9,10 @@ import { breedLabel, breedNamed } from '@/data/breeds';
 import { catalog } from '@/data/catalog';
 import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, OTIS_VACCINES, SAMPLE_WAIVERS, SAMPLE_WAIVERS_SIGNED, TRAIT_SPECIAL, type Energy } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
+import { SAMPLE_HOME_LOG } from '@/data/homeLog';
 import { planOf } from '@/data/plans';
-import type { Booking, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, Series, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import { activityById } from '@/data/practice';
+import type { Booking, ClearanceRecord, Dog, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, Series, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
 import { now } from '@/lib/clock';
 import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
@@ -194,6 +196,12 @@ interface AppState extends Demo {
   log: LogEntry[] | null;
   /** Live mode: classes the dogs missed (no-shows, supabase/migrations/…_missed_classes.sql), newest first. */
   missed: LogEntry[];
+  /** Walks, park trips and practice logged between classes, every dog, newest first (Log at home). */
+  homeLog: HomeActivity[];
+  /** Logs one activity for each of input.dogIds; resolves with the new ids. */
+  logHome: (input: HomeActivityInput) => Promise<string[]>;
+  editHome: (id: string, input: HomeActivityInput) => Promise<void>;
+  deleteHome: (id: string) => Promise<void>;
   /** Missed classes (booking ids) the member has seen the Missed class screen for, so it opens once for each. */
   seenMissed: string[];
   seeMissed: (bookingId: string) => void;
@@ -306,6 +314,7 @@ const fresh = {
   socialClearanceId: null as string | null,
   log: null as LogEntry[] | null,
   missed: [] as LogEntry[],
+  homeLog: (isLive ? [] : SAMPLE_HOME_LOG) as HomeActivity[],
   seenMissed: [] as string[],
   clearanceRecords: null as ClearanceRecord[] | null,
   paths: null as PathProgress[] | null,
@@ -320,7 +329,7 @@ const fresh = {
 // Live mode starts empty and fills from Supabase on sign-in.
 if (isLive) {
   Object.assign(fresh, {
-    dogs: [], dogRecords: {}, credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], waivers: [], waiversSigned: {}, remoteNotifications: [], remoteSeries: [], seriesRules: [], log: [], missed: [], clearanceRecords: [], paths: [], account: { name: '', email: '' },
+    dogs: [], dogRecords: {}, credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], waivers: [], waiversSigned: {}, remoteNotifications: [], remoteSeries: [], seriesRules: [], log: [], missed: [], homeLog: [], clearanceRecords: [], paths: [], account: { name: '', email: '' },
   });
 }
 
@@ -624,7 +633,7 @@ export const useApp = create<AppState>()(
         },
         signOut: async () => {
           if (isLive) await live.signOut(get().pushToken);
-          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [], missed: [], clearanceRecords: [], paths: [] } : {}) });
+          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [], missed: [], homeLog: [], clearanceRecords: [], paths: [] } : {}) });
         },
         setDogPhoto: async (dogId, dataUri) => {
           if (isLive) {
@@ -662,7 +671,7 @@ export const useApp = create<AppState>()(
             return;
           }
           await live.loadCatalog();
-          const [m, log] = await Promise.all([live.loadMember(), live.loadLog().catch(() => null)]);
+          const [m, log, homeLog] = await Promise.all([live.loadMember(), live.loadLog().catch(() => null), live.loadHomeLog().catch(() => null)]);
           if (!m) {
             set({ ready: true, signedIn: false, onboarded: false });
             return;
@@ -686,6 +695,7 @@ export const useApp = create<AppState>()(
             readNotifications: m.readNotifications,
             log: log ? log.filter((e) => !e.missed) : get().log,
             missed: log ? log.filter((e) => e.missed) : get().missed,
+            homeLog: homeLog ?? get().homeLog,
             account: { name: m.name, email: m.email },
             emailReminders: m.emailReminders,
             membership: m.membership,
@@ -773,6 +783,37 @@ export const useApp = create<AppState>()(
           set((s) => ({ bookings: s.bookings.map((b) => (b.id === bookingId ? { ...b, status: 'checked_in' } : b)) }));
         },
         clearBookings: () => set({ bookings: [], seriesRules: [] }),
+        logHome: async (input) => {
+          if (isLive) {
+            const ids = await live.logHome(input);
+            set({ homeLog: await live.loadHomeLog() });
+            return ids;
+          }
+          const rows = [...new Set(input.dogIds)].map((dogId, i): HomeActivity => ({
+            id: `home-${Date.now()}-${i}`, dogId, kind: input.kind, doneAt: input.doneAt, durationMin: input.durationMin,
+            balance: input.balance ?? activityById(input.kind).balance, skills: input.skills, rating: input.rating,
+            note: input.note.trim() || null, drillId: input.drillId ?? null, reps: input.reps ?? null,
+          }));
+          set((s) => ({ homeLog: [...rows, ...s.homeLog].sort((a, b) => +b.doneAt - +a.doneAt) }));
+          return rows.map((r) => r.id);
+        },
+        editHome: async (id, input) => {
+          if (isLive) {
+            await live.editHome(id, input);
+            set({ homeLog: await live.loadHomeLog() });
+            return;
+          }
+          set((s) => ({
+            homeLog: s.homeLog.map((h) => (h.id === id ? {
+              ...h, kind: input.kind, doneAt: input.doneAt, durationMin: input.durationMin, balance: input.balance ?? activityById(input.kind).balance,
+              skills: input.skills, rating: input.rating, note: input.note.trim() || null,
+            } : h)).sort((a, b) => +b.doneAt - +a.doneAt),
+          }));
+        },
+        deleteHome: async (id) => {
+          if (isLive) await live.deleteHome(id);
+          set((s) => ({ homeLog: s.homeLog.filter((h) => h.id !== id) }));
+        },
         setCredits: (credits) => set({ credits }),
         signWaiver: async (waiverId, name) => {
           if (name.trim().length < 2) throw new Error('bad_name');
@@ -844,10 +885,15 @@ export const useApp = create<AppState>()(
           : {
               dogs: s.dogs, activeDogId: s.activeDogId, dogRecords: s.dogRecords, addingDog: s.addingDog, origin: s.origin, area: s.area, appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
               readNotifications: s.readNotifications, emailReminders: s.emailReminders, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, seriesRules: s.seriesRules, social: s.social, socialExpired: s.socialExpired,
-              behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines, vaccineRecord: s.vaccineRecord, waiversSigned: s.waiversSigned,
+              behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines, vaccineRecord: s.vaccineRecord, waiversSigned: s.waiversSigned, homeLog: s.homeLog,
               seenRecordDenials: s.seenRecordDenials, seenMissed: s.seenMissed,
             },
       onRehydrateStorage: () => () => syncDistances(),
+      // Stored dates come back as strings.
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<AppState>;
+        return { ...current, ...p, ...(p.homeLog ? { homeLog: p.homeLog.map((h) => ({ ...h, doneAt: new Date(h.doneAt) })) } : {}) };
+      },
       migrate: (persisted, version) => {
         const p = { ...(persisted as Record<string, any>) };
         // v1 stored month swaps by title; start them fresh.

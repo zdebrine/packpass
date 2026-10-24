@@ -2,6 +2,7 @@
 
 import type { Aptitude } from './breeds';
 import type { Energy } from './fixtures';
+import type { ActivityKind, Balance, Rating } from './practice';
 
 /** A photo in assets/photos, named for what it shows. */
 export type PhotoKey =
@@ -190,6 +191,38 @@ export interface ClearanceRecord {
 }
 
 /** A session a dog went to (07 Log), with the trainer's note and any assessment result. */
+/** Something an owner logged between classes (Log at home, supabase/migrations/…_log_at_home.sql). */
+export interface HomeActivity {
+  id: string;
+  dogId: string;
+  kind: ActivityKind;
+  doneAt: Date;
+  durationMin: number;
+  /** Null: Something else with no balance picked. */
+  balance: Balance | null;
+  /** Skill ids (src/data/practice.ts). */
+  skills: string[];
+  rating: Rating | null;
+  note: string | null;
+  drillId: string | null;
+  reps: number | null;
+}
+
+/** What the Log activity sheet sends: one activity, for one or more dogs. */
+export interface HomeActivityInput {
+  dogIds: string[];
+  kind: ActivityKind;
+  doneAt: Date;
+  durationMin: number;
+  skills: string[];
+  rating: Rating | null;
+  note: string;
+  /** Something else: the balance the owner picked. */
+  balance?: Balance | null;
+  drillId?: string | null;
+  reps?: number | null;
+}
+
 export interface LogEntry {
   bookingId: string;
   dogId: string;

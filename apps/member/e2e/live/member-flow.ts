@@ -215,9 +215,23 @@ const S = () => useApp.getState();
   await S().refresh();
   const logged = S().log!.find((e) => e.bookingId === ran.id);
   ok(logged?.note === 'Fast on the recall. Needs a longer warm-up.' && logged.noteBy === 'Dev Patel', 'a session that ran is in the Log with the trainer\'s note');
-  const view = liveLog(S().log!, S().missed, dog, 'Juno', S().social);
-  ok(view.stats[0][0] === String(S().log!.filter((e) => e.startsAt.getMonth() === new Date().getMonth()).length) && view.sessions[0].trainer.startsWith('Dev Patel · '),
+  const view = liveLog(S().log!, S().missed, S().homeLog, dog, 'Juno', S().social);
+  const firstRow = view.feed[0]?.rows[0];
+  ok(view.stats[2][0] === String(S().log!.filter((e) => e.dogId === dog).length) && firstRow?.type === 'class' && firstRow.trainer.startsWith('Dev Patel · '),
      'and counts toward the month');
+
+  // Log at home: a walk logged for the dog counts at half weight, then is edited and deleted.
+  const physicalBefore = view.balance.find((b) => b.key === 'physical')!.done;
+  const [walkId] = await S().logHome({ dogIds: [dog], kind: 'walk', doneAt: new Date(Date.now() - 3_600_000), durationMin: 30, skills: ['loose_leash'], rating: 'good', note: 'Passed two dogs without a lunge.' });
+  ok(S().homeLog.length === 1 && S().homeLog[0].id === walkId && S().homeLog[0].balance === 'physical' && S().homeLog[0].note === 'Passed two dogs without a lunge.', 'a walk logged at home is saved');
+  const withWalk = liveLog(S().log!, S().missed, S().homeLog, dog, 'Juno', S().social);
+  ok(withWalk.balance.find((b) => b.key === 'physical')!.done === physicalBefore + 0.5, 'and counts as half a physical session');
+  ok(withWalk.feed.some((g) => g.rows.some((r) => r.type === 'home' && r.title === 'Walk · 30 min' && r.tags.includes('Loose leash'))), 'and shows in the Activity feed');
+  await S().editHome(walkId, { dogIds: [dog], kind: 'sniff', doneAt: S().homeLog[0].doneAt, durationMin: 45, skills: ['decompression'], rating: 'mixed', note: '' });
+  ok(S().homeLog[0].kind === 'sniff' && S().homeLog[0].balance === 'mental' && S().homeLog[0].durationMin === 45 && S().homeLog[0].note === null, 'editing it saves every field');
+  await S().deleteHome(walkId);
+  await S().refresh();
+  ok(S().homeLog.length === 0, 'and deleting removes it');
   const stats = statsOf(S().log!.filter((e) => e.dogId === dog));
   ok(stats.sessions === S().log!.length && stats.disciplines >= 1 && stats.levels[0].level === 1, 'the Athlete Card counts sessions and disciplines from the Log');
 
@@ -228,7 +242,7 @@ const S = () => useApp.getState();
   await S().refresh();
   ok(S().missed.some((e) => e.bookingId === skipped.id) && !S().log!.some((e) => e.bookingId === skipped.id), 'it is a missed class, kept out of the Log\'s counts');
   ok(S().remoteNotifications!.some((x) => x.href === `/missed/${skipped.id}?dog=${dog}` && x.icon === 'calendar-x'), 'and the member is told');
-  ok(liveLog(S().log!, S().missed, dog, 'Juno', S().social).sessions.some((x) => x.missed && x.href === `/missed/${skipped.id}`), 'the Log lists it as missed');
+  ok(liveLog(S().log!, S().missed, S().homeLog, dog, 'Juno', S().social).feed.some((g) => g.rows.some((x) => x.type === 'class' && x.missed && x.href === `/missed/${skipped.id}`)), 'the Log lists it as missed');
   S().seeMissed(skipped.id);
   ok(S().seenMissed.includes(skipped.id), 'and the Missed class screen opens once');
 

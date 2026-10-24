@@ -136,9 +136,17 @@ Schema, security rules and booking logic for the member app. It's deployed to th
 - `migrations/…_clearance_names.sql` — the roster's Passport badges and the "not yet" notification use the
   clearance's name. The apps read `clearance_types` (and the partner dashboard `clearance_criteria` for the
   assessment rubric), so a clearance PackPass adds shows up by name everywhere.
+- `migrations/…_log_at_home.sql` (v3 phase 3) — Log at home. `skills` and `drills` (the practice catalog, readable
+  signed out), `home_activities` (what a member did with a dog at home: kind, when, minutes, the balance it counts
+  toward, skills, how it went, a note, the drill and reps) and `dog_focus_skills` (what a dog is working on, seeded
+  from its traits and active training paths by `seed_focus_skills` and triggers; a skill the owner removed stays
+  removed). `log_home_activity` writes one row per dog picked, `edit_home_activity`, `delete_home_activity`, and
+  `set_practice_goal` (days a week, reminder time on `dogs`). Rows are only written through these functions.
 - `catalog.sql` — generated: partners, trainers, classes, training paths and the timetable. Loaded into the
   hosted project. Partners now edit their own classes and schedule from the dashboard; new partners and
   trainers are still added here (or in the SQL editor).
+- `practice.sql` — generated from the app's practice catalog (`npm run gen:practice` in `apps/member`): 15 skills and
+  48 drills, upserted, with drills taken out of the app marked inactive. Safe to run again on the hosted project.
 - `seed.sql` — local only, generated from the app's sample data (`npm run gen:seed` in `apps/member`): 5 partners,
   17 classes, 2 training paths and 4 weeks of sessions. `select public.seed_demo_member('<user id>')` gives a
   signed-up account Juno's Passport as the designs show it.
@@ -161,9 +169,9 @@ Expo with `--clear` (Metro caches env values).
   shim for `auth` and `storage`) and runs `booking.test.sql` (104 checks: each rule, credits, holds, reminders,
   the waitlist, RLS and storage policies) `partner.test.sql` (168 checks: staff access, teams and invites, one partner never
   reaching another's data, and each dashboard function) and `multi_dog.test.sql` (one owner, two dogs: each books
-  on its own records from the shared credits, holds and the waitlist per dog, links that name the dog) and `dog_links.test.sql` (each of the notifications above opens the dog it's about). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
+  on its own records from the shared credits, holds and the waitlist per dog, links that name the dog) and `dog_links.test.sql` (each of the notifications above opens the dog it's about) and `log_at_home.test.sql` (the practice catalog, focus skills, logging, editing and deleting home activities, and another member kept out). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
-  PostgREST, with a stand-in for Supabase Auth and Storage: 118 checks, from sign-up with a dog photo and vet record to adding a second dog, a password reset, account settings and deleting the account.
+  PostgREST, with a stand-in for Supabase Auth and Storage: 126 checks, from sign-up with a dog photo and vet record to adding a second dog, a password reset, account settings and deleting the account.
 - `e2e/run.sh` — screen tests (Playwright, Chromium): builds the member app for web, the partner dashboard and
   the website against that same local stack and clicks through them. A new member signs up, onboards a dog, adds
   vaccines, books and cancels; a returning member signs in; a member adds a second dog and switches between them; a partner checks a dog in and uploads a trainer photo;

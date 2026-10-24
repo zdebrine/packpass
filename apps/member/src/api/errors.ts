@@ -4,6 +4,11 @@
 import { clearanceName } from '@/data/catalog';
 
 const COPY: Record<string, string> = {
+  bad_time: 'Pick a time in the past year, not in the future.',
+  bad_duration: 'Pick how long it was, up to 10 hours.',
+  bad_skill: 'One of those skills isn\'t in the list any more. Pick again.',
+  bad_note: 'Keep the note under 280 characters.',
+  no_dog: 'Pick at least one dog.',
   started: 'This session has already started.',
   too_young: 'This class is for older dogs.',
   too_old: 'This class is for younger dogs.',
