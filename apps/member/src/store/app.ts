@@ -15,7 +15,7 @@ import { activityById, defaultFocus } from '@/data/practice';
 import type { Booking, ClearanceRecord, Dog, FocusSkill, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, PracticeRemind, Series, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
 import { now } from '@/lib/clock';
 import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
-import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
+import { bookError, cancelHoursOf, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
 import { unsignedWaiver } from '@/lib/ready';
 import { monthEnd, ruleFor, ruleSessions, seriesPlan, type SeriesRule } from '@/lib/series';
 
@@ -562,8 +562,8 @@ export const useApp = create<AppState>()(
           const w = get().waitlist.find((x) => !x.offerUntil && (view(x.sessionId)?.session.startsAt.getTime() ?? 0) > now().getTime());
           if (!w) return null;
           const v = view(w.sessionId)!;
-          if (v.session.startsAt.getTime() - now().getTime() < 12 * 3_600_000) {
-            // Same as fill_from_waitlist inside 12 hours: the spot is held for this dog for 2 hours.
+          if (v.session.startsAt.getTime() - now().getTime() < cancelHoursOf(v.cls) * 3_600_000) {
+            // Same as fill_from_waitlist inside the free cancel window: the spot is held for this dog for 2 hours.
             const offerUntil = new Date(Math.min(now().getTime() + 2 * 3_600_000, v.session.startsAt.getTime())).toISOString();
             set((st) => ({ waitlist: st.waitlist.map((x) => (x === w ? { ...x, place: 1, offerUntil } : x)) }));
             return { sessionId: w.sessionId, outcome: 'offered' };
@@ -773,12 +773,12 @@ export const useApp = create<AppState>()(
             await thenRefresh(() => live.cancel(bookingId));
             return;
           }
-          // Same rule as cancel_booking: the spot goes back, credits come back until 12 hours before.
+          // Same rule as cancel_booking: the spot goes back, credits come back until the class's window.
           const b = get().bookings.find((x) => x.id === bookingId);
           if (!b || b.status !== 'booked') throw new Error('not_cancellable');
           const v = view(b.sessionId);
           if (v) v.session.spotsLeft += 1;
-          const refund = v ? cancelRefund(v.session.startsAt, b.credits) : 0;
+          const refund = v ? cancelRefund(v.session.startsAt, b.credits, cancelHoursOf(v.cls)) : 0;
           set((s) => ({
             bookings: s.bookings.map((x) => (x.id === bookingId ? { ...x, status: 'cancelled' } : x)),
             credits: s.credits + refund,

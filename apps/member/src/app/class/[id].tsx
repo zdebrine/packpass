@@ -14,7 +14,7 @@ import { Text } from '@/ds/Text';
 import { useFit } from '@/features/book/useFit';
 import { WaitlistActions } from '@/features/book/Waitlist';
 import { Map, useMe } from '@/features/Map';
-import { assessmentFor, bookingFor, cancelRefund, checkInClosesAt, credits as creditsLabel, eligibility, view } from '@/lib/booking';
+import { assessmentFor, bookingFor, cancelHoursOf, cancelRefund, checkInClosesAt, credits as creditsLabel, eligibility, view } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { cancelCopy, dayTime, monthDay, relativeDay, time } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
@@ -95,13 +95,21 @@ export default function ClassDetail() {
   const assessment = el.ok ? undefined : el.needs === 'herding' ? assessmentFor(cls) : el.needs === 'clearance' ? assessmentFor(cls, el.clearance) : undefined;
   const firstVaccine = [...vaccines].sort((a, b) => (a.expires < b.expires ? -1 : 1))[0];
   const group = cls.groupSize === 1 ? (cls.sessionType === 'Private' ? '1:1 · Private' : 'Your dogs only') : `${cls.groupSize} dogs · ${session.spotsLeft === 0 ? 'full' : `${session.spotsLeft} left`}`;
-  const refund = booking ? cancelRefund(session.startsAt, booking.credits) : 0;
+  const hours = cancelHoursOf(cls);
+  // Minimum enrollment: below it at the cutoff, the partner's class is called off and refunded (enforce_minimums).
+  const minRow = cls.minDogs ? (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 10 }}>
+      <View style={{ width: 8, height: 8, borderRadius: 9999, backgroundColor: c.inkMuted, marginTop: 6 }} />
+      <Text variant="label" style={{ flex: 1 }}>{`Runs with at least ${cls.minDogs} dogs. If fewer are booked ${cls.minCutoffHours ?? 12} hours before, it's called off and your credits come back.`}</Text>
+    </View>
+  ) : null;
+  const refund = booking ? cancelRefund(session.startsAt, booking.credits, hours) : 0;
   const cancel = async () => {
     if (!booking) return;
     setBusy(true);
     try {
       await cancelBooking(booking.id);
-      setNotice(refund ? `Cancelled. ${creditsLabel(refund)} back in your balance.` : 'Cancelled. Inside 12 hours, so the credits were used.');
+      setNotice(refund ? `Cancelled. ${creditsLabel(refund)} back in your balance.` : `Cancelled. Inside ${hours} hours, so the credits were used.`);
     } catch (e) {
       setNotice(errorCopy(e));
     } finally {
@@ -232,14 +240,14 @@ export default function ClassDetail() {
           <Text variant="caption" center={!wide} color={refund ? c.inkMuted : c.kennelRed}>
             {refund
               ? `${creditsLabel(refund)} ${refund === 1 ? 'goes' : 'go'} back to your balance, and the spot opens for someone else.`
-              : `It starts within 12 hours, so the ${creditsLabel(booking.credits)} won't come back.`}
+              : `It starts within ${hours} hours, so the ${creditsLabel(booking.credits)} won't come back.`}
           </Text>
           <Button block disabled={busy} onPress={() => setConfirming(false)}>Keep booking</Button>
           <Button block variant="quiet" fill={quietFill} disabled={busy} onPress={cancel}>{busy ? 'Cancelling…' : 'Yes, cancel'}</Button>
         </>
       ) : booking ? (
         <>
-          <Text variant="caption" muted center={!wide}>{`Booked for ${dayTime(session.startsAt)}. ${cancelCopy(session.startsAt)}.`}</Text>
+          <Text variant="caption" muted center={!wide}>{`Booked for ${dayTime(session.startsAt)}. ${cancelCopy(session.startsAt, hours)}.`}</Text>
           {booking.status === 'checked_in' ? (
             <Button block variant="quiet" fill={quietFill} disabled>Checked in</Button>
           ) : (
@@ -305,13 +313,13 @@ export default function ClassDetail() {
               <Text variant="heading" muted>{cls.credits === 1 ? 'credit' : 'credits'}</Text>
             </View>
           </View>
-          <Text variant="caption" muted>{cancelCopy(session.startsAt)}</Text>
+          <Text variant="caption" muted>{cancelCopy(session.startsAt, hours)}</Text>
           <Button variant="signal" block onPress={() => router.push(`/book/${session.id}`)}>{`Book for ${creditsLabel(cls.credits)}`}</Button>
           <Text variant="caption" muted>{allowance ? `${balance} of ${allowance} credits left this month` : `${creditsLabel(balance)} left`}</Text>
         </>
       ) : (
         <>
-          <Text variant="caption" muted center={!wide}>{cancelCopy(session.startsAt)}</Text>
+          <Text variant="caption" muted center={!wide}>{cancelCopy(session.startsAt, hours)}</Text>
           <Button variant="signal" block onPress={() => router.push(`/book/${session.id}`)}>{`Book for ${creditsLabel(cls.credits)}`}</Button>
         </>
       )}
@@ -364,6 +372,7 @@ export default function ClassDetail() {
               <View style={{ width: 8, height: 8, borderRadius: 9999, backgroundColor: c.turf }} />
               <Text variant="label">{`Adds to ${juno.name}'s month: ${cls.balance.toLowerCase()}`}</Text>
             </View>
+            {minRow}
 
             <Text variant="title" style={{ marginTop: 36, marginBottom: 10 }}>What happens</Text>
             <Text style={{ maxWidth: 680 }}>{cls.description}</Text>
@@ -429,6 +438,7 @@ export default function ClassDetail() {
             {cls.dropOff ? <Tag>Drop-off</Tag> : <View style={{ width: 8, height: 8, borderRadius: 9999, backgroundColor: c.inkMuted }} />}
             <Text variant="label" style={{ flex: 1 }}>{cls.dropOff ? 'Leave your dog with the trainer. Pick up at the end.' : 'You stay with your dog.'}</Text>
           </View>
+          {minRow}
 
           <Section title="What happens" gap={10}>
             <Text>{cls.description}</Text>

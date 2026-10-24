@@ -2,16 +2,18 @@ import { Archive, CalendarPlus, Copy, ImageIcon, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { archiveClass, duplicateClass, errorCopy, loadSeries, loadSessions, loadWaiver, removePartnerPhoto, saveClass, setBreedOnly, setClassRules, type ClassType, type Series } from '@/lib/api';
+import { archiveClass, duplicateClass, errorCopy, loadSeries, loadSessions, loadWaiver, removePartnerPhoto, saveClass, setBreedOnly, setClassEnrollment, setClassRules, type ClassType, type Series } from '@/lib/api';
 import { breedOnlyChanged, formOf, payloadOf, pricingChanged, type ClassForm } from '@/lib/classForm';
 import { useData, usePartner } from '@/lib/partner';
 import { credits } from '@/lib/sessions';
 import { addDays, austin, monthDay, mondayOf, time } from '@/lib/time';
-import { Badge, Button, ClassCard, Chip, EmptyState, ErrorLine, Field, IconButton, Modal, Page, PageHead, Row, Stepper, Tag, Toast, Toggle, photoUrl } from '@/ui/kit';
+import { Badge, Button, ClassCard, Chip, EmptyState, ErrorLine, Field, IconButton, Modal, Page, PageHead, Row, Segmented, Stepper, Tag, Toast, Toggle, photoUrl } from '@/ui/kit';
 import { Ages, BreedOnly, BuiltFor, Clearance, Description, Discipline, DropOff, Duration, Energy, Fixed, Group, Intensity, Name, PhotoGrid, Reach, Requirements, Sizes, Social, TypeChips, typeLabel, type Patch } from './classParts';
 import { SeriesSheet } from './SeriesSheet';
 
 const STATUS: Record<ClassType['status'], string> = { live: 'Live', in_review: 'In review', paused: 'Paused' };
+// Hours before the start for the minimum cutoff and the free cancel window.
+const HOURS = [6, 12, 24, 48];
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const and = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 /** "Tue and Thu · 5:30 pm" (Monday first). */
@@ -62,7 +64,7 @@ export function Classes() {
         <>
           <div className="tbl">
             <div className="tbl-head" style={{ gridTemplateColumns: CLASS_COLS, minWidth: TABLE_MIN }}>
-              <span /><span>Template</span><span>Discipline</span><span className="r">Length</span><span className="r">Credits</span><span className="r">PackPass spots</span><span>Requirements</span><span>Status</span><span />
+              <span /><span>Template</span><span>Discipline</span><span className="r">Length</span><span className="r">Credits</span><span className="r">PackPass spots</span><span className="r">Min</span><span>Requirements</span><span>Status</span><span />
             </div>
             {active.map((c) => {
               const on = c.id === selected.id;
@@ -86,6 +88,7 @@ export function Classes() {
                   <span className="pp-label pp-num r">{`${c.duration_min} min`}</span>
                   <span className="pp-label pp-num r">{c.credits ?? 'Pending'}</span>
                   <span className="pp-label pp-num r">{spotsLabel(c)}</span>
+                  <span className="pp-label pp-num r">{c.min_dogs ?? '–'}</span>
                   <span className="pp-caption pp-muted ellipsis" title={reqs.join(', ')}>{reqs.length ? `${reqs[0]}${reqs.length > 1 ? ` +${reqs.length - 1}` : ''}` : 'None'}</span>
                   <div>{c.credit_review ? <Badge tone="needs">Credit review</Badge> : c.status === 'live' ? <Badge dot>Live</Badge> : <Badge tone="needs">{STATUS[c.status]}</Badge>}</div>
                   {/* Row actions don't select the row. */}
@@ -142,8 +145,8 @@ export function Classes() {
   );
 }
 
-const CLASS_COLS = '36px minmax(0,1.8fr) minmax(0,1fr) 64px 56px 104px minmax(0,1fr) 104px 116px';
-const TABLE_MIN = 1000;
+const CLASS_COLS = '36px minmax(0,1.8fr) minmax(0,1fr) 64px 56px 104px 40px minmax(0,1fr) 104px 116px';
+const TABLE_MIN = 1060;
 
 function Editor({ cls, partnerName, gym, trainers, series, onSchedule }: {
   cls: ClassType; partnerName: string; gym: boolean; trainers: { id: string; name: string }[]; series: Series[]; onSchedule: () => void;
@@ -157,6 +160,9 @@ function Editor({ cls, partnerName, gym, trainers, series, onSchedule }: {
   const [rules, setRules] = useState(savedRules);
   const setRule = (p: Partial<typeof rules>) => { setRules((r) => ({ ...r, ...p })); setDone(false); };
   const { data: waiver } = useData(async () => ({ live: await loadWaiver(partner.id) }), [partner.id]);
+  const savedEnroll = { min: cls.min_dogs, cutoff: cls.min_cutoff_hours, cancel: cls.cancel_hours };
+  const [enroll, setEnroll] = useState(savedEnroll);
+  const setEnr = (p: Partial<typeof enroll>) => { setEnroll((x) => ({ ...x, ...p })); setDone(false); };
   const group = f.type === 'class' ? f.group : 1;
   const pp = Math.min(rules.pp ?? group, group);
   const [busy, setBusy] = useState(false);
@@ -164,10 +170,12 @@ function Editor({ cls, partnerName, gym, trainers, series, onSchedule }: {
   const [error, setError] = useState<string | null>(null);
   const [photos, setPhotos] = useState(false);
   const [preview, setPreview] = useState(false);
-  useEffect(() => setError(null), [f, rules]);
+  useEffect(() => setError(null), [f, rules, enroll]);
 
   const rulesDirty = JSON.stringify(rules) !== JSON.stringify(savedRules);
-  const dirty = JSON.stringify(f) !== JSON.stringify(saved) || rulesDirty;
+  const enrollDirty = JSON.stringify(enroll) !== JSON.stringify(savedEnroll);
+  const minDogs = enroll.min == null ? null : Math.min(enroll.min, group);
+  const dirty = JSON.stringify(f) !== JSON.stringify(saved) || rulesDirty || enrollDirty;
   const review = cls.status === 'live' && pricingChanged(saved, f);
   const creditNote = cls.credits == null
     ? 'PackPass is reviewing this class. Credit cost is set within 2 business days, then the class goes live.'
@@ -184,6 +192,7 @@ function Editor({ cls, partnerName, gym, trainers, series, onSchedule }: {
       if (f.breedOnly && breedOnlyChanged(saved, f)) await setBreedOnly(cls.id, true, f.breedOnlyReason);
       // After the class fields, so PackPass spots are checked against the new group size.
       if (rulesDirty || (rules.pp != null && rules.pp > group)) await setClassRules(cls.id, rules.pp == null ? null : pp, rules.waiver, rules.waitlist);
+      if (enrollDirty || minDogs !== enroll.min) await setClassEnrollment(cls.id, minDogs, enroll.cutoff, enroll.cancel);
       if (cls.image !== f.image) await removePartnerPhoto(cls.image).catch(() => undefined); // a replaced upload
       await reloadCatalog(); setDone(true);
     } catch (e) { setError(errorCopy(e)); } finally { setBusy(false); }
@@ -235,11 +244,30 @@ function Editor({ cls, partnerName, gym, trainers, series, onSchedule }: {
           <Field label="Your waiver" note={waiver && !waiver.live ? 'You haven\'t added a waiver yet. Add one under Locations.' : 'Members sign it once, on their first booking with you.'}>
             <Toggle on={rules.waiver} onChange={(v) => setRule({ waiver: v })} label="Members sign your waiver"><span className="pp-label">{rules.waiver ? 'Members sign it' : 'Not needed for this class'}</span></Toggle>
           </Field>
-          <Field label="Waitlist" note={rules.waitlist ? 'If a spot opens, PackPass books the first dog and holds their credits.' : 'If a spot opens, the first dog is offered it and books it themselves.'}>
+          <Field label="Waitlist" note={rules.waitlist ? `When a spot opens, the first dog on the waitlist is booked automatically and their credits are held. Inside the ${enroll.cancel}-hour window, the owner gets 2 hours to accept, then it moves to the next dog.` : 'When a spot opens, everyone waiting is told and the first to book gets it.'}>
             <Toggle on={rules.waitlist} onChange={(v) => setRule({ waitlist: v })} label="Waitlist books automatically"><span className="pp-label">{rules.waitlist ? 'Auto-book' : 'Offer the spot'}</span></Toggle>
           </Field>
         </div>
         <span className="pp-caption pp-muted">New sessions use these rules. Sessions already on the schedule keep theirs.</span>
+        <h3 className="pp-heading" style={{ marginTop: 8 }}>Enrollment and cancellation</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: '20px 24px' }}>
+          {f.type === 'class' ? (
+            <Field label="Minimum dogs" note={minDogs == null ? 'Off. The session runs however many book.' : 'to run'}>
+              <Row gap={12} wrap={false}>
+                <Stepper label="minimum dogs" value={minDogs ?? 'Off'} onDec={() => setEnr({ min: minDogs == null || minDogs <= 1 ? null : minDogs - 1 })}
+                  onInc={() => setEnr({ min: Math.min(group, (minDogs ?? 0) + 1) })} decDisabled={minDogs == null} incDisabled={(minDogs ?? 0) >= group} />
+              </Row>
+            </Field>
+          ) : null}
+          {f.type === 'class' && minDogs != null ? (
+            <Field label="Minimum cutoff" note={`Below ${minDogs} dogs at ${enroll.cutoff} hours before start, the session cancels on its own. Members get their credits back and a notification, and the schedule marks it Cancelled (low enrollment). You can run it anyway from the session.`}>
+              <Segmented label="Minimum cutoff" options={HOURS.map((h) => ({ value: String(h), label: `${h} h` }))} value={String(enroll.cutoff)} onChange={(v) => setEnr({ cutoff: Number(v) })} />
+            </Field>
+          ) : null}
+          <Field label="Free cancel window" note={`Members cancel free until ${enroll.cancel} hours before. Later cancellations and no-shows still pay you.`}>
+            <Segmented label="Free cancel window" options={HOURS.map((h) => ({ value: String(h), label: `${h} h` }))} value={String(enroll.cancel)} onChange={(v) => setEnr({ cancel: Number(v) })} />
+          </Field>
+        </div>
       </div>
       <aside style={{ flex: '1 1 240px', maxWidth: 320, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ position: 'relative', height: 200, borderRadius: 24, overflow: 'hidden', color: '#fff' }}>

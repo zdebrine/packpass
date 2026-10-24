@@ -93,6 +93,11 @@ export interface ClassType {
   dropOff: boolean;
   /** False when the partner doesn't ask for their own waiver for this class (the PackPass waiver still applies). */
   waiverRequired?: boolean;
+  /** Members cancel free until this many hours before (class_types.cancel_hours). 12 when unset. */
+  cancelHours?: number;
+  /** Fewest dogs it runs with, checked minCutoffHours before the start; below it the class is called off and refunded. */
+  minDogs?: number;
+  minCutoffHours?: number;
   requirements: { icon: 'syringe' | 'cake' | 'link' | 'stethoscope' | 'shield'; text: string }[];
   // Who it's for (gates). A dog outside them can't book: src/lib/fit.ts and public.class_gate().
   minAgeMonths?: number;

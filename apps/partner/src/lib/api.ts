@@ -23,6 +23,9 @@ export interface ClassType {
   packpass_spots: number | null; waiver_required: boolean; waitlist_auto: boolean;
   /** Archived templates stop repeating and can't be scheduled until restored. */
   archived_at: string | null;
+  /** Minimum enrollment (…_min_enrollment.sql): below min_dogs at min_cutoff_hours before the start, the session cancels
+   *  on its own with refunds. Members cancel free until cancel_hours before. */
+  min_dogs: number | null; min_cutoff_hours: number; cancel_hours: number;
 }
 /** A template scheduled on some weekdays (0 = Sunday) at one Austin time between two dates. */
 export interface Series { id: string; class_id: string; weekdays: number[]; starts: string; first_day: string; last_day: string; upcoming: number; booked: number }
@@ -145,6 +148,9 @@ export const setClassRules = async (id: string, packpass: number | null, waiver:
 };
 export const duplicateClass = async (id: string) => check(await db.rpc('partner_duplicate_class', { p_class: id })) as string;
 export const archiveClass = async (id: string, archive: boolean) => { check(await db.rpc('partner_archive_class', { p_class: id, p_archive: archive })); };
+export const setClassEnrollment = async (id: string, min: number | null, cutoff: number, cancel: number) => {
+  check(await db.rpc('partner_set_class_enrollment', { p_class: id, p_min: min, p_cutoff: cutoff, p_cancel: cancel }));
+};
 export const loadSeries = async () => check(await db.rpc('partner_series')) as Series[];
 /** Writes out every session of a series at once; dates that passed or already have the class at that time are skipped. */
 export const scheduleSeries = async (classId: string, weekdays: number[], starts: string, first: string, last: string, capacity: number, packpass: number) =>
@@ -231,6 +237,12 @@ export const updateSession = async (id: string, capacity: number, packpass: numb
 };
 export const addSession = async (classId: string, startsAt: Date, capacity: number, packpass: number, repeat: boolean) =>
   check(await db.rpc('partner_add_session', { p_class: classId, p_starts_at: startsAt.toISOString(), p_capacity: capacity, p_packpass: packpass, p_repeat: repeat })) as string;
+/** Where each session stands on its template's minimum. */
+export interface Enrollment { session_id: string; min_checked_at: string | null; run_anyway_at: string | null; low_enrollment_at: string | null }
+export const loadEnrollment = async (from: Date, to: Date) =>
+  check(await db.rpc('partner_enrollment', { p_from: from.toISOString(), p_to: to.toISOString() })) as Enrollment[];
+/** Keeps a session whatever the count; after a low-enrollment cancel, brings it back and re-books its dogs. */
+export const runAnyway = async (id: string) => check(await db.rpc('partner_run_anyway', { p_session: id })) as number;
 export const cancelSession = async (id: string, reason: string, message: string) =>
   check(await db.rpc('partner_cancel_session', { p_session: id, p_reason: reason, p_message: message })) as number;
 export const blockDates = async (from: string, to: string, reason: string, message: string) =>
@@ -472,6 +484,9 @@ const COPY: Record<string, string> = {
   no_days: 'Pick at least one day.',
   series_range: 'Pick a start from today and an end within 26 weeks.',
   no_dates: 'Every date in that range has passed or already has this class at that time.',
+  bad_min: 'The minimum can be from 1 up to the group size.',
+  bad_hours: 'Pick between 1 and 72 hours.',
+  not_low_enrollment: 'Only a session cancelled for low enrollment can be brought back.',
 };
 export const errorCopy = (e: unknown) => {
   const m = e instanceof Error ? e.message : String(e);

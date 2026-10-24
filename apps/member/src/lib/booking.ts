@@ -1,7 +1,7 @@
 import { catalog, clearanceName, sessionById } from '@/data/catalog';
 import type { Booking, ClassType, Partner, Session, Trainer, Waiver } from '@/data/types';
 import { now } from './clock';
-import { dayOffset, time } from './dates';
+import { dayOffset, FREE_CANCEL_HOURS, time } from './dates';
 import { gateFor, gateLabel, type DogFacts, type GateCode } from './fit';
 
 export interface SessionView {
@@ -196,6 +196,11 @@ export const CHECK_IN_CLOSES_MIN = 15;
 /** When check-in closes for a session starting at `startsAt`. */
 export const checkInClosesAt = (startsAt: Date) => new Date(startsAt.getTime() + CHECK_IN_CLOSES_MIN * 60_000);
 
-/** Credits a cancellation gives back: all of them until 12 hours before the start, none after (cancel_booking). */
-export const cancelRefund = (startsAt: Date, credits: number, at = now()) =>
-  startsAt.getTime() - at.getTime() >= 12 * 3_600_000 ? credits : 0;
+/** The class's free cancel window in hours, and when it ends for a session. */
+export const cancelHoursOf = (cls: { cancelHours?: number }) => cls.cancelHours ?? FREE_CANCEL_HOURS;
+export const freeCancelUntil = (v: SessionView) => new Date(v.session.startsAt.getTime() - cancelHoursOf(v.cls) * 3_600_000);
+
+/** Credits a cancellation gives back: all of them until the class's window (12 hours by default) before the start,
+ *  none after (cancel_booking). */
+export const cancelRefund = (startsAt: Date, credits: number, hours = FREE_CANCEL_HOURS, at = now()) =>
+  startsAt.getTime() - at.getTime() >= hours * 3_600_000 ? credits : 0;

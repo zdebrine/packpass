@@ -12,17 +12,15 @@ import { Row } from '@/ds/layout';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { useFit } from '@/features/book/useFit';
-import { bookError, bookingFor, nextSession, view, type SessionView } from '@/lib/booking';
+import { bookError, bookingFor, freeCancelUntil, nextSession, view, type SessionView } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { dayTimeInline, time, weekday } from '@/lib/dates';
 import { openDirections } from '@/lib/directions';
 import { useApp, useDog, useRules } from '@/store/app';
 
-const FREE_CANCEL_MS = 12 * 3_600_000;
-
 /** "Tue 6:30 pm · Eastside Dog Club · You stay · Free cancel until Mon 6:30 pm" */
 export function sessionLine(v: SessionView) {
-  const deadline = new Date(v.session.startsAt.getTime() - FREE_CANCEL_MS);
+  const deadline = freeCancelUntil(v);
   return [
     `${weekday(v.session.startsAt).slice(0, 3)} ${time(v.session.startsAt)}`,
     v.partner.name,
@@ -42,7 +40,7 @@ export function NotifActions({ n, onDone }: { n: Notif; onDone: () => void }) {
   const btns = (children: ReactNode) => <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>{children}</View>;
 
   if (n.kind === 'reminder_24h' && v && booking) {
-    const free = v.session.startsAt.getTime() - FREE_CANCEL_MS > now().getTime();
+    const free = freeCancelUntil(v) > now();
     return btns(<>
       <Button size="sm" onPress={onDone}>Confirm</Button>
       {free ? <Button size="sm" variant="quiet" onPress={() => router.push(`/class/${v.session.id}` as Href)}>Cancel</Button> : null}

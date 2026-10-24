@@ -2,7 +2,7 @@ import { AlertCircle, CalendarX, ChevronLeft, ChevronRight, Plus } from 'lucide-
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { addSession, blockDates, cancelSession, errorCopy, loadSessions, updateSession } from '@/lib/api';
+import { addSession, blockDates, cancelSession, errorCopy, loadEnrollment, loadSessions, runAnyway, updateSession, type Enrollment } from '@/lib/api';
 import { useData, usePartner } from '@/lib/partner';
 import { credits, startHour, withClasses, type SessionView } from '@/lib/sessions';
 import { db, check } from '@/lib/supabase';
@@ -21,11 +21,13 @@ export function Schedule() {
   const [week, setWeek] = useState(() => mondayOf(new Date()));
   const [modal, setModal] = useState<null | 'block' | 'add'>(() => (params.get('add') ? 'add' : null));
   const { data, reload } = useData(async () => {
-    const [sessions, slots] = await Promise.all([
+    const [sessions, slots, enrollment] = await Promise.all([
       loadSessions(austin(week, 0), austin(addDays(week, 7), 0)),
       db.from('timetable').select('class_id, weekday, starts').in('class_id', classes.map((c) => c.id)).then(check),
+      loadEnrollment(austin(week, 0), austin(addDays(week, 7), 0)),
     ]);
-    return { sessions: withClasses(sessions, classById), slots: slots as { class_id: string; weekday: number | null; starts: string }[] };
+    return { sessions: withClasses(sessions, classById), slots: slots as { class_id: string; weekday: number | null; starts: string }[],
+             enrollment: Object.fromEntries(enrollment.map((e) => [e.session_id, e])) as Record<string, Enrollment> };
   }, [week]);
 
   const sessions = useMemo(() => data?.sessions ?? [], [data]);
@@ -85,6 +87,7 @@ export function Schedule() {
               <div key={d} style={{ position: 'relative', height: hours.length * HOUR_PX, boxShadow: 'inset 1px 0 0 var(--line)', background: `repeating-linear-gradient(180deg,transparent 0 ${HOUR_PX - 1}px,var(--line) ${HOUR_PX - 1}px ${HOUR_PX}px)` }}>
                 {lanes(sessions.filter((s) => ymd(s.start) === addDays(week, i))).map(({ s, lane }) => {
                   const on = s.id === sel?.id, cx = !!s.cancelled_at;
+                  const low = !cx && below(s, data.enrollment[s.id]);
                   return (
                     <button key={s.id} onClick={() => setParams({ s: s.id })} aria-pressed={on}
                       style={{ position: 'absolute', left: 3 + lane * 16, right: 3, top: (startHour(s) - lo) * HOUR_PX + 2, height: Math.max(30, (s.cls.duration_min / 60) * HOUR_PX - 4), boxSizing: 'border-box', padding: '3px 7px', border: 0, borderRadius: 8,
@@ -97,7 +100,7 @@ export function Schedule() {
                       ) : (
                         <>
                           <span style={{ maxWidth: '100%', fontSize: 12, fontWeight: 500, lineHeight: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.cls.title}</span>
-                          <span className="pp-num" style={{ maxWidth: '100%', fontSize: 11, lineHeight: '14px', opacity: 0.72, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{`${shortTime(s.start)} · ${s.spots_left <= 0 ? 'Full' : `${s.booked}/${s.packpass_spots}`}`}</span>
+                          <span className="pp-num" style={{ maxWidth: '100%', fontSize: 11, lineHeight: '14px', opacity: 0.72, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{`${shortTime(s.start)} · ${s.spots_left <= 0 ? 'Full' : `${s.booked}/${s.packpass_spots}`}${low ? ' · Below min' : ''}`}</span>
                         </>
                       )}
                     </button>
@@ -107,7 +110,7 @@ export function Schedule() {
             ))}
           </div>
         </div>
-        {sel ? <SessionPanel key={sel.id + sel.packpass_spots + sel.capacity} s={sel} repeats={repeats(sel)} gym={gym} trainer={trainerName(sel.cls.trainer_id)} location={partner.name} onSaved={reload} /> : <span />}
+        {sel ? <SessionPanel key={sel.id + sel.packpass_spots + sel.capacity + (sel.cancelled_at ?? '')} s={sel} enrollment={data.enrollment[sel.id]} repeats={repeats(sel)} gym={gym} trainer={trainerName(sel.cls.trainer_id)} location={partner.name} onSaved={reload} /> : <span />}
       </div>
       {modal === 'block' ? <BlockDates onClose={() => setModal(null)} onDone={() => { setModal(null); reload(); }} /> : null}
       {modal === 'add' ? <AddSession week={week} classes={classes.filter((c) => c.status === 'live' && !c.archived_at)} sessions={sessions} onClose={() => { setModal(null); if (params.get('add')) setParams({}); }}
@@ -137,8 +140,39 @@ function lanes(day: SessionView[]) {
 
 const toLabel = (hhmmss: string) => { const [h, m] = hhmmss.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'pm' : 'am'}`; };
 
+/** Still short of its template's minimum, with the cutoff to come and nobody told to run it. */
+const below = (s: SessionView, e?: Enrollment) => s.cls.min_dogs != null && !e?.min_checked_at && !e?.run_anyway_at && s.booked < s.cls.min_dogs && s.start > new Date();
+
+/** Minimum enrollment for the picked session (10b): where it stands, and Run it anyway. */
+function EnrollmentCard({ s, e, onSaved }: { s: SessionView; e?: Enrollment; onSaved: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const min = s.cls.min_dogs;
+  if (min == null || s.start <= new Date() || (s.cancelled_at && !e?.low_enrollment_at)) return null;
+  const go = async () => {
+    setBusy(true); setMsg(null);
+    try { await runAnyway(s.id); onSaved(); } catch (x) { setMsg(errorCopy(x)); setBusy(false); }
+  };
+  const low = !!e?.low_enrollment_at;
+  const line = low ? `Below the minimum of ${min} at the ${s.cls.min_cutoff_hours}-hour cutoff.`
+    : e?.run_anyway_at ? `${s.booked} of ${min} minimum. You chose to run it.`
+    : s.booked >= min || e?.min_checked_at ? `Above the minimum of ${min}.`
+    : `Needs ${min - s.booked} more by the cutoff, ${s.cls.min_cutoff_hours} hours before start.`;
+  const body = low ? 'Members got their credits back and a notification. Run it anyway to re-book them. Owners hear it\'s back on.'
+    : below(s, e) ? `If it's still short at the cutoff, it cancels on its own and members get their credits back. Run it anyway to keep it whatever the count.` : null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 14, borderRadius: 12, background: low || below(s, e) ? 'var(--surface-sunken)' : 'var(--surface-raised)' }}>
+      <span className="pp-stat-label">Enrollment</span>
+      <span className="pp-label">{line}</span>
+      {body ? <span className="pp-caption pp-muted" style={{ textWrap: 'pretty' }}>{body}</span> : null}
+      <ErrorLine>{msg}</ErrorLine>
+      {low || below(s, e) ? <Button size="sm" variant={low ? 'primary' : 'outline'} disabled={busy} onClick={go} style={{ alignSelf: 'flex-start' }}>{busy ? 'Saving…' : 'Run it anyway'}</Button> : null}
+    </div>
+  );
+}
+
 /** The side panel: capacity, PackPass spots, waitlist switches, weekly repeat, cancel. */
-function SessionPanel({ s, repeats, gym, trainer, location, onSaved }: { s: SessionView; repeats: boolean; gym: boolean; trainer: string; location: string; onSaved: () => void }) {
+function SessionPanel({ s, enrollment, repeats, gym, trainer, location, onSaved }: { s: SessionView; enrollment?: Enrollment; repeats: boolean; gym: boolean; trainer: string; location: string; onSaved: () => void }) {
   const taken = s.packpass_spots - s.spots_left;
   const [cap, setCap] = useState(s.capacity);
   const [pp, setPp] = useState(s.packpass_spots);
@@ -169,9 +203,10 @@ function SessionPanel({ s, repeats, gym, trainer, location, onSaved }: { s: Sess
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span className="pp-caption pp-muted">{`${DAYS[dayIndex(s.start)]} ${Number(ymd(s.start).slice(8))} · ${time(s.start)} · ${s.cls.duration_min} min`}</span>
         <h2 className="pp-title">{s.cls.title}</h2>
-        <span className="pp-caption pp-muted">{s.cancelled_at ? `Cancelled · ${s.cancel_reason}` : `${s.booked} booked${s.waiting ? ` · ${s.waiting} on waitlist` : ''}${s.cls.premium ? ' · Premium class' : ''}`}</span>
+        <span className="pp-caption pp-muted">{s.cancelled_at ? (enrollment?.low_enrollment_at ? 'Cancelled (low enrollment)' : `Cancelled · ${s.cancel_reason}`) : `${s.booked} booked${s.waiting ? ` · ${s.waiting} on waitlist` : ''}${s.cls.premium ? ' · Premium class' : ''}`}</span>
       </div>
-      {s.cancelled_at ? <span className="pp-label pp-muted">Members were refunded and told. This session no longer shows on Book.</span> : (
+      <EnrollmentCard s={s} e={enrollment} onSaved={onSaved} />
+      {s.cancelled_at ? (enrollment?.low_enrollment_at ? null : <span className="pp-label pp-muted">Members were refunded and told. This session no longer shows on Book.</span>) : (
         <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span className="pp-label">Capacity</span>
@@ -189,7 +224,7 @@ function SessionPanel({ s, repeats, gym, trainer, location, onSaved }: { s: Sess
         {s.cancelled_at ? null : (
           <>
             <ToggleRow label="Waitlist" sub="Open when the session is full" on={wl} set={setWl} />
-            <ToggleRow label="Auto-promote" sub="Book the next dog in line when a spot opens. Inside 12 hours, they get 2 hours to accept." on={promote} set={setPromote} />
+            <ToggleRow label="Auto-promote" sub={`Book the next dog in line when a spot opens. Inside ${s.cls.cancel_hours} hours, they get 2 hours to accept.`} on={promote} set={setPromote} />
             <ToggleRow label="Repeats weekly" sub={`Every ${FULL_DAYS[dayIndex(s.start)]} at ${time(s.start)}`} on={rep} set={setRep} />
           </>
         )}

@@ -204,3 +204,43 @@ test('an owner duplicates a template, sets its booking rules, schedules a series
   await page.getByRole('button', { name: 'Restore' }).click();
   await expect(page.getByRole('button', { name: `Duplicate ${copy}`, exact: true })).toBeVisible();
 });
+
+test('a session below its minimum is cancelled at the cutoff, and Run it anyway re-books the dog', async ({ page }) => {
+  await signIn(page);
+  const member = await account(`min-member-${Date.now()}@example.com`, 'goodpass123');
+  const dog = sql(`insert into dogs (owner_id, name, breed, energy, sociability, birth_year, fixed) values ('${member}', 'Pepper', 'Beagle', 'medium', 'loves_dogs', 2021, true) returning id`);
+  sql(`insert into vaccinations (dog_id, type, expires_on) select '${dog}', t, current_date + 365 from unnest(enum_range(null::vaccine_type)) t`);
+  sql(`insert into clearances (dog_id, type, scope, partner_id, assessed_on, expires_on) values ('${dog}', 'social', 'network', 'eastside', current_date, current_date + 365)`);
+  const [session, cls] = sql(`select s.id || '|' || s.class_id from sessions s join class_types c on c.id = s.class_id
+    where c.partner_id = 'eastside' and c.session_type = 'class' and c.group_size >= 3 and s.cancelled_at is null and s.starts_at > now() + interval '2 days'
+      and public.booking_block('${dog}', s.id) is null order by s.starts_at limit 1`).split('|');
+  sql(`select public.book_as('${member}', '${session}', '${dog}')`);
+  sql(`update class_types set min_dogs = 3 where id = '${cls}'`);
+  sql(`update sessions set starts_at = now() + interval '10 hours', created_at = now() - interval '3 days' where id = '${session}'`);
+  expect(sql(`select public.enforce_minimums()`)).toBe('1');
+
+  await page.goto(`/schedule?s=${session}`);
+  await expect(page.getByText('Cancelled (low enrollment)')).toBeVisible();
+  await expect(page.getByText('Below the minimum of 3 at the 12-hour cutoff.')).toBeVisible();
+  await page.getByRole('button', { name: 'Run it anyway' }).click();
+  await expect(page.getByText('1 of 3 minimum. You chose to run it.')).toBeVisible();
+  expect(sql(`select count(*) from bookings where session_id = '${session}' and dog_id = '${dog}' and status = 'booked'`)).toBe('1');
+  expect(sql(`select title from notifications where member_id = '${member}' and kind = 'session_back_on'`)).toMatch(/is back on$/);
+  sql(`update class_types set min_dogs = null where id = '${cls}'`);
+});
+
+test('an owner sets a template\'s minimum, cutoff and free cancel window', async ({ page }) => {
+  await signIn(page);
+  const [id, title] = sql(`select id || '|' || title from class_types where partner_id = 'eastside' and status = 'live' and session_type = 'class' and group_size >= 4 and archived_at is null order by title desc limit 1`).split('|');
+  await page.goto(`/classes?c=${id}`);
+  await expect(page.getByRole('heading', { name: `Edit ${title}` })).toBeVisible();
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'More minimum dogs' }).click();
+  await page.getByRole('group', { name: 'Minimum cutoff' }).getByRole('button', { name: '24 h' }).click();
+  await page.getByRole('group', { name: 'Free cancel window' }).getByRole('button', { name: '48 h' }).click();
+  await expect(page.getByText('Below 4 dogs at 24 hours before start, the session cancels on its own.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Members cancel free until 48 hours before. Later cancellations and no-shows still pay you.')).toBeVisible();
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('Saved. Members see the changes on Book now.')).toBeVisible();
+  expect(sql(`select min_dogs || '|' || min_cutoff_hours || '|' || cancel_hours || '|' || credit_review from class_types where id = '${id}'`)).toBe('4|24|48|false');
+  sql(`update class_types set min_dogs = null, min_cutoff_hours = 12, cancel_hours = 12 where id = '${id}'`);
+});
