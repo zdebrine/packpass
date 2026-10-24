@@ -10,6 +10,7 @@ run() { psql -q -v ON_ERROR_STOP=1 -d $DB -f "$1"; }
 run tests/shim.sql
 for f in migrations/*.sql; do run "$f"; done
 run catalog.sql
+run practice.sql
 run seed.sql
 if [ -n "${SKIP_TESTS:-}" ]; then echo "Built $DB."; exit 0; fi
 for t in tests/*.test.sql; do echo "== $t"; run "$t"; done

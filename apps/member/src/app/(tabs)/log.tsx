@@ -1,52 +1,79 @@
-import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { router, type Href } from 'expo-router';
+import { useState } from 'react';
 import { ScrollView, View, type ViewStyle } from 'react-native';
 
-import { isLive } from '@/api/client';
-import { Badge, IconButton, Meter, Screen } from '@/ds/layout';
+import { Button, Chip, Tag } from '@/ds/controls';
+import { Icon } from '@/ds/Icon';
+import { Badge, IconButton, Screen } from '@/ds/layout';
 import { Press } from '@/ds/Press';
 import { col, Columns, Page, useWide } from '@/ds/responsive';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
-import { liveLog, monthHeader, sampleLog, type LogSession } from '@/lib/log';
-import { useApp, useDog } from '@/store/app';
+import { useLogView } from '@/features/log/view';
+import { countLabel, monthHeader, type BalanceRow, type FeedRow } from '@/lib/log';
+import { useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+type Filter = 'all' | 'classes' | 'home';
+const FILTERS: [Filter, string][] = [['all', 'All'], ['classes', 'Classes'], ['home', 'At home']];
 
-/** 07 Log */
+/** 07 Log: practice between classes and the classes themselves, one month and one feed. */
 export default function Log() {
   const juno = useDog();
   const { c } = useTheme();
   const wide = useWide();
-  const social = useApp((s) => s.social);
-  const entries = useApp((s) => s.log);
-  const missed = useApp((s) => s.missed);
-  // Sample mode's log is the designs' Juno; another sample dog's is empty until it books.
-  const view = useMemo(
-    () => (isLive && entries ? liveLog(entries, missed, juno.id, juno.name, social) : juno.id === 'juno' ? sampleLog(juno.name, social) : liveLog([], [], juno.id, juno.name, social)),
-    [entries, missed, juno.id, juno.name, social],
-  );
+  const view = useLogView(juno);
   const [m, setM] = useState(1);
+  const [filter, setFilter] = useState<Filter>('all');
   const month = view.months[m];
   const shade = [c.bg, `${c.turf}4d`, `${c.turf}a6`, c.turf];
   const balanceColor = { agility: c.agility, turf: c.turf, pitch: c.pitch };
   // Milestones on desktop sit in a `repeat(auto-fill, minmax(130px, 1fr))` grid; the column width sets how many fit.
   const [msWidth, setMsWidth] = useState(0);
+  const openLog = () => router.push('/log-activity' as Href);
 
+  const header = (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+      <Text variant="pageTitle" accessibilityRole="header">Log</Text>
+      <Button size="sm" icon="plus" onPress={openLog}>Log activity</Button>
+    </View>
+  );
   const balanceHead = (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: wide ? 16 : 14 }}>
       <Text variant="title">This month’s balance</Text>
       <Text variant="caption" muted>{`Resets ${monthHeader().resets}`}</Text>
     </View>
   );
+  // A two-part bar: classes solid, home time lighter in the same colour.
+  const splitMeter = (b: BalanceRow) => {
+    const color = balanceColor[b.color];
+    const cls = Math.min(b.classes, b.of) / b.of;
+    const home = Math.min(b.home * 0.5, Math.max(0, b.of - b.classes)) / b.of;
+    return (
+      <View style={{ flex: 1, height: 8, borderRadius: 9999, backgroundColor: c.surfaceSunken, overflow: 'hidden', flexDirection: 'row' }}>
+        <View style={{ width: `${cls * 100}%`, backgroundColor: color }} />
+        <View style={{ width: `${home * 100}%`, backgroundColor: color, opacity: 0.45 }} />
+      </View>
+    );
+  };
   const balanceRows = (
     <View style={{ gap: 12 }}>
       {view.balance.map((b) => (
-        <View key={b.label} style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+        <View key={b.label} style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }} accessibilityLabel={`${b.label}: ${countLabel(b.done)} of ${b.of}, ${b.classes} from classes, ${b.home} at home`}>
           <Text variant="label" style={{ width: 72 }}>{b.label}</Text>
-          <Meter pct={b.done / b.of} color={balanceColor[b.color]} />
-          <Text variant="caption" muted num style={{ width: 44, textAlign: 'right' }}>{`${b.done} of ${b.of}`}</Text>
+          {splitMeter(b)}
+          <Text variant="caption" muted num style={{ width: 56, textAlign: 'right' }}>{`${countLabel(Math.min(b.done, b.of))} of ${b.of}`}</Text>
+        </View>
+      ))}
+    </View>
+  );
+  const balanceLegend = (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, alignItems: 'center', marginTop: 14 }}>
+      {[['Classes', 1], ['At home, two count as one', 0.45]].map(([l, o]) => (
+        <View key={l} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ width: 14, height: 6, borderRadius: 9999, backgroundColor: c.inkMuted, opacity: o as number }} />
+          <Text variant="caption" muted>{l}</Text>
         </View>
       ))}
     </View>
@@ -99,54 +126,104 @@ export default function Log() {
       <Text variant="caption" muted style={{ marginTop: 2 }}>{ms.date}</Text>
     </View>
   );
-  const emptySessions = view.sessions.length ? null : (
-    <Text muted>{`Sessions show here once they've run, with what the trainer noticed about ${juno.name}.`}</Text>
+
+  const feed = view.feed
+    .map((g) => ({ ...g, rows: g.rows.filter((r) => filter === 'all' || (filter === 'home') === (r.type === 'home')) }))
+    .filter((g) => g.rows.length);
+  const chip = (t: string) => (
+    // On desktop the row sits on a raised card, so the chip drops to the page colour.
+    <View key={t} style={{ height: 24, paddingHorizontal: 10, borderRadius: 9999, backgroundColor: wide ? c.bg : c.surfaceRaised, justifyContent: 'center' }}>
+      <Text variant="caption" weight="600">{t}</Text>
+    </View>
   );
-  const sessionBody = (s: LogSession) => (
+  const rowBody = (r: FeedRow) => (
     <View style={{ flex: 1, minWidth: 0 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-        <Text variant="heading" style={{ flex: 1 }}>{s.title}</Text>
-        <Text variant="caption" muted>{s.date}</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
+        <Text variant="heading" style={{ flex: 1 }}>{r.title}</Text>
+        <Text variant="caption" muted>{r.type === 'home' ? r.time : r.date}</Text>
       </View>
-      <Text variant="caption" muted style={{ marginTop: 2, marginBottom: 6 }}>{s.trainer}</Text>
-      {s.missed ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+      <Text variant="caption" muted style={{ marginTop: 2 }}>{r.type === 'home' ? r.sub : r.trainer}</Text>
+      {r.type === 'home' && r.tags.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>{r.tags.map((t) => <Tag key={t}>{t}</Tag>)}</View> : null}
+      {r.type === 'class' && r.missed ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
           <View style={{ height: 24, paddingHorizontal: 10, borderRadius: 9999, backgroundColor: c.kennelRedSoft, justifyContent: 'center' }}>
             <Text variant="caption" weight="600" color={c.kennelRed}>Missed</Text>
           </View>
           <Text variant="caption" muted>Not cancelled in time</Text>
         </View>
       ) : null}
-      {s.assessment ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          {/* On desktop the session sits on a raised card, so the chip drops to the page colour. */}
-          <View style={{ height: 24, paddingHorizontal: 10, borderRadius: 9999, backgroundColor: wide ? c.bg : c.surfaceRaised, justifyContent: 'center' }}>
-            <Text variant="caption" weight="600">Assessment</Text>
-          </View>
-          <Text variant="caption" weight="600" color={s.cleared ? c.turf : c.inkMuted}>{s.assessment}</Text>
+      {r.type === 'class' && r.assessment ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
+          {chip('Assessment')}
+          <Text variant="caption" weight="600" color={r.cleared ? c.turf : c.inkMuted}>{r.assessment}</Text>
         </View>
       ) : null}
-      {s.missed ? null : s.note ? <Text variant="label">{`“${s.note}”`}</Text> : <Text variant="label" muted>No note yet.</Text>}
+      {r.type === 'class' && r.missed ? null
+        : r.note ? <Text variant="label" style={{ marginTop: 8 }}>{`“${r.note}”`}</Text>
+        : r.type === 'class' ? <Text variant="label" muted style={{ marginTop: 8 }}>No note yet.</Text> : null}
+    </View>
+  );
+  const row = (r: FeedRow) => {
+    const href = r.type === 'home' ? `/log-activity?edit=${r.id}` : r.href;
+    return (
+      <Press
+        key={r.type + (r.type === 'home' ? r.id : r.key)}
+        scale={!!href}
+        onPress={href ? () => router.push(href as Href) : undefined}
+        accessibilityLabel={r.type === 'home' ? `${r.title}. Edit` : undefined}
+        style={wide ? { flexDirection: 'row', gap: 16, padding: 16, borderRadius: 16, backgroundColor: c.surfaceRaised } : { flexDirection: 'row', gap: 14 }}
+      >
+        {r.type === 'home' ? (
+          <View style={{ width: wide ? 64 : 56, height: wide ? 64 : 56, borderRadius: 9999, backgroundColor: wide ? c.bg : c.surfaceRaised, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={r.icon} size={22} />
+          </View>
+        ) : <Photo name={r.img} style={{ width: wide ? 64 : 56, height: wide ? 64 : 56, borderRadius: wide ? 16 : 12 }} />}
+        {rowBody(r)}
+      </Press>
+    );
+  };
+  const activity = (
+    <View>
+      <Text variant="title" style={{ marginBottom: 14 }}>Activity</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {FILTERS.map(([id, label]) => <Chip key={id} selected={filter === id} onPress={() => setFilter(id)}>{label}</Chip>)}
+      </View>
+      {!feed.length ? (
+        <View style={{ marginTop: 16, padding: 20, borderRadius: 16, backgroundColor: c.surfaceRaised, alignItems: 'flex-start', gap: 14 }}>
+          <View style={{ width: 44, height: 44, borderRadius: 9999, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }}><Icon name="activity" /></View>
+          <Text>{view.feed.length
+            ? 'Nothing here yet for this filter.'
+            : `Nothing logged yet. Log a walk, a park trip or a patio visit and it shows up here next to ${juno.name}'s classes.`}</Text>
+          <Button size="sm" icon="plus" onPress={openLog}>Log activity</Button>
+        </View>
+      ) : null}
+      {feed.map((g) => (
+        <View key={g.key}>
+          <Text variant="caption" weight="600" muted style={{ marginTop: 24, marginBottom: 12 }}>{g.day}</Text>
+          <View style={{ gap: wide ? 8 : 20 }}>{g.rows.map(row)}</View>
+        </View>
+      ))}
     </View>
   );
 
   if (wide) {
-    // 07 Log, desktop: balance and stats side by side, then the calendar and milestones beside the sessions.
+    // 07 Log, desktop: balance and stats side by side, then the calendar and milestones beside the activity feed.
     const raised: ViewStyle = { padding: 24, borderRadius: 16, backgroundColor: c.surfaceRaised };
     const msCols = Math.max(1, Math.floor((msWidth + 10) / 140));
     const msTile = msWidth ? (msWidth - 10 * (msCols - 1)) / msCols : 130;
     return (
       <Page top={32}>
-        <Text variant="pageTitle" accessibilityRole="header">Log</Text>
+        {header}
         <Columns gap={16} align="stretch" style={{ marginTop: 24 }}>
           <View style={col(2, 420, raised)}>
             {balanceHead}
             {balanceRows}
-            <Text variant="label" muted style={{ marginTop: 14 }}>{view.hint}</Text>
+            {balanceLegend}
+            <Text variant="label" muted style={{ marginTop: 12 }}>{view.hint}</Text>
           </View>
           <View style={col(1, 300, { ...raised, flexDirection: 'row', gap: 16, alignItems: 'flex-end', justifyContent: 'space-between' })}>
             {view.stats.map(([n, l]) => (
-              <View key={l}>
+              <View key={l} style={{ flexShrink: 1 }}>
                 <Text variant="statNum" num>{n}</Text>
                 <Text variant="caption" muted style={{ marginTop: 4 }}>{l}</Text>
               </View>
@@ -162,23 +239,7 @@ export default function Log() {
               {view.milestones.map((ms) => milestoneCard(ms, { width: msTile }))}
             </View>
           </View>
-          <View style={col(999, 420)}>
-            <Text variant="title" style={{ marginBottom: 14 }}>Sessions</Text>
-            <View style={{ gap: 8 }}>
-              {emptySessions}
-              {view.sessions.map((s) => (
-                <Press
-                  key={s.key}
-                  scale={!!s.href}
-                  onPress={s.href ? () => router.push(s.href as never) : undefined}
-                  style={{ flexDirection: 'row', gap: 16, padding: 16, borderRadius: 16, backgroundColor: c.surfaceRaised }}
-                >
-                  <Photo name={s.img} style={{ width: 64, height: 64, borderRadius: 16 }} />
-                  {sessionBody(s)}
-                </Press>
-              ))}
-            </View>
-          </View>
+          <View style={col(999, 420)}>{activity}</View>
         </Columns>
       </Page>
     );
@@ -188,10 +249,11 @@ export default function Log() {
     <Screen>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 14, paddingBottom: 32 }}>
         <View style={{ paddingHorizontal: 20 }}>
-          <Text variant="pageTitle" accessibilityRole="header">Log</Text>
+          {header}
           <View style={{ marginTop: 20, padding: 20, borderRadius: 16, backgroundColor: c.surfaceRaised }}>
             {balanceHead}
             {balanceRows}
+            {balanceLegend}
             <Text variant="label" muted style={{ marginTop: 12 }}>{view.hint}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
@@ -216,23 +278,7 @@ export default function Log() {
           </ScrollView>
         </View>
 
-        <View style={{ marginTop: 32, paddingHorizontal: 20 }}>
-          <Text variant="title" style={{ marginBottom: 14 }}>Sessions</Text>
-          <View style={{ gap: 20 }}>
-            {emptySessions}
-            {view.sessions.map((s) => (
-              <Press
-                key={s.key}
-                scale={!!s.href}
-                onPress={s.href ? () => router.push(s.href as never) : undefined}
-                style={{ flexDirection: 'row', gap: 14 }}
-              >
-                <Photo name={s.img} style={{ width: 56, height: 56, borderRadius: 16 }} />
-                {sessionBody(s)}
-              </Press>
-            ))}
-          </View>
-        </View>
+        <View style={{ marginTop: 32, paddingHorizontal: 20 }}>{activity}</View>
       </ScrollView>
     </Screen>
   );

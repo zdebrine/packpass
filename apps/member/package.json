@@ -12,6 +12,7 @@
     "export:web": "expo export -p web",
     "gen:seed": "node scripts/gen-seed.mjs",
     "gen:breeds": "node scripts/gen-breeds.mjs",
+    "gen:practice": "node scripts/gen-practice.mjs",
     "postinstall": "node scripts/copy-zxing.mjs"
   },
   "dependencies": {

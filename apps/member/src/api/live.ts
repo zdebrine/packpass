@@ -6,7 +6,7 @@ import { setCatalog } from '@/data/catalog';
 import { photoKey, type Energy } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
-import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, Series, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, Series, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
 import type { DogRecord, OnboardingDraft } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { setWeights, type Weights } from '@/lib/fit';
@@ -359,6 +359,17 @@ export async function loadLog(): Promise<LogEntry[]> {
   }));
 }
 
+/** Activities logged between classes, newest first (Log at home). */
+export async function loadHomeLog(): Promise<HomeActivity[]> {
+  const rows = check(await db().from('home_activities')
+    .select('id, dog_id, kind, done_at, duration_min, balance, skills, rating, note, drill_id, reps')
+    .order('done_at', { ascending: false }).limit(1000)) as any[];
+  return rows.map((r) => ({
+    id: r.id, dogId: r.dog_id, kind: r.kind, doneAt: new Date(r.done_at), durationMin: r.duration_min, balance: r.balance,
+    skills: r.skills ?? [], rating: r.rating, note: r.note, drillId: r.drill_id, reps: r.reps,
+  }));
+}
+
 // ---- Writes --------------------------------------------------------------------------------
 
 const SOCIABILITY: Record<string, string> = { 'Loves dogs': 'loves_dogs', Selective: 'selective', 'Prefers solo': 'prefers_solo' };
@@ -503,6 +514,26 @@ export async function startSeries(sessionId: string, dogId: string, until: strin
 /** Stops the series and cancels its dates still free to cancel. */
 export async function endSeries(seriesId: string) {
   check(await db().rpc('end_series', { p_series: seriesId }));
+}
+
+/** Logs one activity for each picked dog. Resolves with the new rows' ids. */
+export async function logHome(a: HomeActivityInput): Promise<string[]> {
+  const ids = check(await db().rpc('log_home_activity', {
+    p_dogs: a.dogIds, p_kind: a.kind, p_done_at: a.doneAt.toISOString(), p_duration: a.durationMin, p_skills: a.skills,
+    p_rating: a.rating, p_note: a.note, p_balance: a.balance ?? null, p_drill: a.drillId ?? null, p_reps: a.reps ?? null,
+  })) as string[];
+  return ids;
+}
+
+export async function editHome(id: string, a: HomeActivityInput) {
+  check(await db().rpc('edit_home_activity', {
+    p_id: id, p_kind: a.kind, p_done_at: a.doneAt.toISOString(), p_duration: a.durationMin, p_skills: a.skills,
+    p_rating: a.rating, p_note: a.note, p_balance: a.balance ?? null,
+  }));
+}
+
+export async function deleteHome(id: string) {
+  check(await db().rpc('delete_home_activity', { p_id: id }));
 }
 
 export async function cancel(bookingId: string) {
