@@ -171,7 +171,7 @@ Expo with `--clear` (Metro caches env values).
   reaching another's data, and each dashboard function) and `multi_dog.test.sql` (one owner, two dogs: each books
   on its own records from the shared credits, holds and the waitlist per dog, links that name the dog) and `dog_links.test.sql` (each of the notifications above opens the dog it's about) and `log_at_home.test.sql` (the practice catalog, focus skills, logging, editing and deleting home activities, and another member kept out). `PGHOST=… PGPORT=… PGUSER=postgres supabase/tests/run-local.sh`
 - `apps/member/e2e/live/run.sh` — runs the app's real store and API code against the same database through
-  PostgREST, with a stand-in for Supabase Auth and Storage: 126 checks, from sign-up with a dog photo and vet record to adding a second dog, a password reset, account settings and deleting the account.
+  PostgREST, with a stand-in for Supabase Auth and Storage: 131 checks, from sign-up with a dog photo and vet record to adding a second dog, a password reset, account settings and deleting the account.
 - `e2e/run.sh` — screen tests (Playwright, Chromium): builds the member app for web, the partner dashboard and
   the website against that same local stack and clicks through them. A new member signs up, onboards a dog, adds
   vaccines, books and cancels; a returning member signs in; a member adds a second dog and switches between them; a partner checks a dog in and uploads a trainer photo;

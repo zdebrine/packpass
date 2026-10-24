@@ -9,6 +9,7 @@ const COPY: Record<string, string> = {
   bad_skill: 'One of those skills isn\'t in the list any more. Pick again.',
   bad_note: 'Keep the note under 280 characters.',
   no_dog: 'Pick at least one dog.',
+  bad_goal: 'Pick between 1 and 7 days a week.',
   started: 'This session has already started.',
   too_young: 'This class is for older dogs.',
   too_old: 'This class is for younger dogs.',

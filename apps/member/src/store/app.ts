@@ -12,7 +12,7 @@ import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, typ
 import { SAMPLE_HOME_LOG } from '@/data/homeLog';
 import { planOf } from '@/data/plans';
 import { activityById } from '@/data/practice';
-import type { Booking, ClearanceRecord, Dog, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, Series, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import type { Booking, ClearanceRecord, Dog, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, PracticeRemind, Series, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
 import { now } from '@/lib/clock';
 import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
@@ -202,6 +202,8 @@ interface AppState extends Demo {
   logHome: (input: HomeActivityInput) => Promise<string[]>;
   editHome: (id: string, input: HomeActivityInput) => Promise<void>;
   deleteHome: (id: string) => Promise<void>;
+  /** The weekly goal sheet (07l): days a week and the off-day reminder. */
+  setPracticeGoal: (dogId: string, days: number, remind: PracticeRemind | null) => Promise<void>;
   /** Missed classes (booking ids) the member has seen the Missed class screen for, so it opens once for each. */
   seenMissed: string[];
   seeMissed: (bookingId: string) => void;
@@ -813,6 +815,10 @@ export const useApp = create<AppState>()(
         deleteHome: async (id) => {
           if (isLive) await live.deleteHome(id);
           set((s) => ({ homeLog: s.homeLog.filter((h) => h.id !== id) }));
+        },
+        setPracticeGoal: async (dogId, days, remind) => {
+          if (isLive) await live.setPracticeGoal(dogId, days, remind);
+          set((s) => ({ dogs: s.dogs.map((d) => (d.id === dogId ? { ...d, practiceDays: days, practiceRemind: remind } : d)) }));
         },
         setCredits: (credits) => set({ credits }),
         signWaiver: async (waiverId, name) => {

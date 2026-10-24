@@ -308,7 +308,12 @@ export interface Dog {
   interests?: string[];
   /** What the owner picked in onboarding (01h), e.g. "Pulls on the leash". Live mode only. */
   traits?: string[];
+  /** The weekly practice goal (07l): days a week, and when to nudge on days without a class. */
+  practiceDays?: number;
+  practiceRemind?: PracticeRemind | null;
 }
+
+export type PracticeRemind = 'morning' | 'after_work' | 'evening';
 
 export type PlanKey = 'starter' | 'regular' | 'working';
 

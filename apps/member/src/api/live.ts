@@ -6,7 +6,7 @@ import { setCatalog } from '@/data/catalog';
 import { photoKey, type Energy } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
-import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, Series, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, PracticeRemind, Series, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
 import type { DogRecord, OnboardingDraft } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { setWeights, type Weights } from '@/lib/fit';
@@ -241,6 +241,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
       birthYear: d.birth_year ?? undefined, birthMonth: d.birth_month ?? undefined, weightLb: d.weight_lb ?? undefined, fixed: d.fixed ?? undefined,
       energy: d.energy ?? undefined, social: SOCIAL_LABEL[d.sociability] ?? undefined, interests: d.interests ?? [],
       fitPartners: assessed.filter((o) => o.dog_id === d.id).map((o) => o.partner_id),
+      practiceDays: d.practice_days ?? 3, practiceRemind: d.practice_remind ?? null,
     })),
     records: Object.fromEntries(dogIds.map((id) => [id, recordFor(id)])),
     bookings: bookings.map((b) => ({ id: b.id, sessionId: b.session_id, dogId: b.dog_id, credits: b.credits_charged, status: b.status === 'checked_in' ? 'checked_in' : 'booked', seriesId: b.series_id ?? undefined })),
@@ -378,6 +379,11 @@ const SOCIAL_LABEL: Record<string, string> = Object.fromEntries(Object.entries(S
 /** Edits the dog's traits from the Passport. */
 export async function saveTraits(dogId: string, traits: string[]) {
   check(await db().from('dogs').update({ traits }).eq('id', dogId));
+}
+
+/** The weekly goal sheet (07l). */
+export async function setPracticeGoal(dogId: string, days: number, remind: PracticeRemind | null) {
+  check(await db().rpc('set_practice_goal', { p_dog: dogId, p_days: days, p_remind: remind }));
 }
 
 /** Saves the onboarding dog and starts the paths its traits point to. */
