@@ -1,5 +1,13 @@
 -- PackPass › Vet records (migrations/…_vet_record_reviews.sql). Uses its own accounts.
 create schema v;
+-- Members sign the PackPass waiver before booking (…_booking_waivers.sql); this test isn't about waivers.
+create function v.sign_waivers() returns void language sql security definer set search_path = public as $$
+  insert into public.waiver_signatures (member_id, waiver_id, signed_name)
+  select p.id, w.id, 'Test member' from public.profiles p join public.waivers w on w.active and w.partner_id is null
+  on conflict do nothing
+$$;
+grant usage on schema v to authenticated;
+grant execute on function v.sign_waivers to authenticated;
 create function v.expect_error(q text, want text) returns void language plpgsql as $$
 declare got text;
 begin
@@ -55,6 +63,7 @@ select v.as_user('00000000-0000-0000-0000-0000000000c1');
 select v.ok((select status = 'denied' and reason like 'The rabies date%' from vet_record_reviews), 'the member sees the denial and why');
 select v.ok((select kind = 'records_denied' and href = '/onboarding/records-denied?dog=' || (select pip from v.ids) from notifications where kind like 'records_%'), 'and gets a notification');
 select v.ok(not (select bool_or(verified) from vaccinations), 'denied vaccines stay unchecked');
+select v.sign_waivers();
 select v.expect_error($$select public.book_session((select id from sessions where class_id = 'calm-private' and starts_at > now() + interval '1 day' order by starts_at limit 1), (select pip from v.ids))$$, 'records_denied');
 
 select v.as_user('00000000-0000-0000-0000-0000000000c2');

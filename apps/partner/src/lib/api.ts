@@ -184,6 +184,25 @@ export const saveLocation = async (parking: string, meetAt: string) => {
   check(await db.rpc('partner_save_location', { p_parking: parking, p_meet_at: meetAt }));
 };
 
+// ---- Waiver (supabase/migrations/…_booking_waivers.sql; owners edit) ----
+/** The partner's live waiver: members sign it once, on their first booking. Text, a PDF, or both. */
+export interface PartnerWaiver { id: string; version: number; title: string; summary: string[]; body: string | null; pdf_path: string | null; created_at: string }
+export const loadWaiver = async (partnerId: string) =>
+  check(await db.from('waivers').select('id, version, title, summary, body, pdf_path, created_at').eq('partner_id', partnerId).eq('active', true).maybeSingle()) as PartnerWaiver | null;
+export const loadWaiverSignatures = async () => check(await db.rpc('partner_waiver_signatures')) as number;
+/** Uploads a waiver PDF to waivers/<partner id>/… and returns its path (saved with the waiver). */
+export async function uploadWaiverPdf(partnerId: string, file: File) {
+  if (file.type !== 'application/pdf') throw new Error('waiver_pdf');
+  if (file.size > DOC_MAX_BYTES) throw new Error('too_big');
+  const path = `${partnerId}/waiver-${crypto.randomUUID()}.pdf`;
+  check(await db.storage.from('waivers').upload(path, file, { contentType: 'application/pdf' }));
+  return path;
+}
+/** Saves a new version; every member signs it again on their next booking. */
+export const saveWaiver = async (title: string, summary: string[], body: string, pdfPath: string | null) =>
+  check(await db.rpc('partner_save_waiver', { p_title: title, p_summary: summary, p_body: body, p_pdf_path: pdfPath })) as string;
+export const removeWaiver = async () => { check(await db.rpc('partner_remove_waiver')); };
+
 // ---- Sessions ----
 export const loadSessions = async (from: Date, to: Date) =>
   check(await db.rpc('partner_sessions', { p_from: from.toISOString(), p_to: to.toISOString() })) as Session[];
@@ -230,7 +249,7 @@ export const removeFromTeam = async (userId: string) => { check(await db.rpc('pa
 
 // ---- Files ----
 /** Signed URLs for dog photos or vet records (staff can read those of dogs booked with them). */
-export async function signedUrls(bucket: 'dog-photos' | 'vaccine-docs' | 'partner-docs', paths: string[]): Promise<Record<string, string>> {
+export async function signedUrls(bucket: 'dog-photos' | 'vaccine-docs' | 'partner-docs' | 'waivers', paths: string[]): Promise<Record<string, string>> {
   const unique = Array.from(new Set(paths.filter(Boolean)));
   if (!unique.length) return {};
   const rows = check(await db.storage.from(bucket).createSignedUrls(unique, 3600)) as { path: string | null; signedUrl: string }[];
@@ -428,6 +447,11 @@ const COPY: Record<string, string> = {
   step_class_required: 'Pick a class for every step.',
   path_in_use: 'Dogs have started this path, so its steps can be reworded but not changed.',
   bad_photo: 'That photo belongs to another partner.',
+  waiver_title: 'Give the waiver a title.',
+  waiver_empty: 'Paste the waiver text or upload a PDF.',
+  waiver_too_long: 'The waiver text is over 20,000 characters. Upload it as a PDF instead.',
+  bad_summary: 'Keep it to three points of up to 140 characters each.',
+  waiver_pdf: 'Upload the waiver as a PDF.',
 };
 export const errorCopy = (e: unknown) => {
   const m = e instanceof Error ? e.message : String(e);

@@ -77,14 +77,24 @@ test('a new member signs up, adds a dog and vaccines, books and cancels', async 
   // Book a Social assessment more than 12 hours out, then cancel it: the credits come back.
   const session = sql(`select id from sessions where class_id = 'social-assessment' and starts_at > now() + interval '2 days' and spots_left > 0
     order by starts_at limit 1`);
+  // Eastside has its own waiver, signed in the sheet on the first booking there (added before the app loads).
+  sql(`insert into waivers (partner_id, title, summary, body) select 'eastside', 'Eastside Dog Club waiver', '{"You tell the front desk about any change in health."}', 'Eastside rules.'
+       where not exists (select 1 from waivers where partner_id = 'eastside' and active)`);
   await page.goto(`/class/${session}`);
   await expect(ui.text('Social assessment')).toBeVisible();
   await ui.button('Book for 2 credits').click();
+  await expect(ui.text('First class at Eastside Dog Club. Sign their waiver.')).toBeVisible();
   await expect(ui.text('0 credits left after booking')).toBeVisible();
-  await ui.button('Confirm booking').click();
+  const signAndBook = ui.button('Sign and book');
+  await expect(signAndBook).toBeDisabled();
+  await page.getByRole('checkbox', { name: "I agree to Eastside Dog Club's waiver" }).click();
+  await signAndBook.click();
   await expect(ui.text('Booked.')).toBeVisible();
   expect(sql(`select b.status || '|' || b.credits_charged from bookings b join dogs d on d.id = b.dog_id join auth.users u on u.id = d.owner_id
     where u.email = '${email}'`)).toBe('booked|2');
+  expect(sql(`select s.signed_name from waiver_signatures s join waivers w on w.id = s.waiver_id join auth.users u on u.id = s.member_id
+    where u.email = '${email}' and w.partner_id = 'eastside'`)).toBe('Sam Rivera');
+  sql(`update waivers set active = false where partner_id = 'eastside'`);
 
   await ui.button('Done').click();
   await page.goto(`/class/${session}`);

@@ -188,7 +188,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     c.from('held_spots').select('session_id, dog_id, expires_at').eq('status', 'held').gt('expires_at', new Date().toISOString()).then(check),
     c.rpc('my_waitlist').then(check),
     c.from('dog_fit_overrides').select('dog_id, partner_id').in('dog_id', dogIds).then(check),
-    c.from('waivers').select('id, partner_id, title, body, pdf_path').eq('active', true).then(check),
+    c.from('waivers').select('id, partner_id, title, summary, body, pdf_path').eq('active', true).then(check),
     c.from('waiver_signatures').select('waiver_id, signed_at').then(check),
   ]) as any[][];
 
@@ -244,7 +244,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     readNotifications: notes.filter((n) => n.read_at).map((n) => n.id),
     area: dogs[0]?.area ?? null,
     waitlist: waiting.map((w) => ({ sessionId: w.session_id, dogId: w.dog_id, place: w.place })),
-    waivers: waivers.map((w): Waiver => ({ id: w.id, partnerId: w.partner_id, title: w.title, body: w.body, pdfPath: w.pdf_path })),
+    waivers: waivers.map((w): Waiver => ({ id: w.id, partnerId: w.partner_id, title: w.title, summary: w.summary ?? [], body: w.body, pdfPath: w.pdf_path })),
     waiversSigned: Object.fromEntries(signatures.map((x) => [x.waiver_id, String(x.signed_at).slice(0, 10)])),
   };
 }

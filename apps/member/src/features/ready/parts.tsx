@@ -78,18 +78,14 @@ export function ReadyChecklist({ r }: { r: Readiness }) {
   );
 }
 
-/** The state at the top of Ready to book: ready, something needed, or a record expiring soon. */
-export function ReadyNotice({ r, dogName }: { r: Readiness; dogName: string }) {
+export type NoticeTone = 'pitch' | 'warn' | 'plain';
+
+/** The v3 notice: a round icon, a title and a line under it. Pitch for ready, warn for something expired or short. */
+export function Notice({ icon, title, body, tone = 'plain' }: { icon: IconName; title: string; body: string; tone?: NoticeTone }) {
   const { c } = useTheme();
-  const n = r.next;
-  const [icon, bg, fg, title, body]: [IconName, string, string, string, string] =
-    r.state === 'done' ? ['shield-check', c.pitch, c.onPitch, `${dogName} is ready to book.`, 'Vaccines and waiver on file. PackPass checks them on every booking.']
-      : n?.kind === 'waiver' ? ['file-pen', c.surfaceSunken, c.ink, 'Waiver not signed yet.', 'Sign the PackPass waiver once and it covers every class, for every dog on your account.']
-        : n?.kind === 'vaccine' && n.row.status === 'soon' ? ['clock', c.kennelRedSoft, c.kennelRed, `${n.row.type} expires in ${n.row.days} ${n.row.days === 1 ? 'day' : 'days'}.`, 'Bookings after that date will ask for a new record.']
-          : n?.kind === 'vaccine' && n.row.status === 'expired' ? ['circle-alert', c.kennelRedSoft, c.kennelRed, `${n.row.type} has expired.`, `Classes stay locked until ${dogName} has a current record. Takes a minute.`]
-            : ['file-plus', c.surfaceSunken, c.ink, `${n?.kind === 'vaccine' ? n.row.type : 'Vaccine'} record needed.`, `Classes stay locked until it's uploaded. Takes a minute.`];
+  const [bg, fg] = tone === 'pitch' ? [c.pitch, c.onPitch] : tone === 'warn' ? [c.kennelRedSoft, c.kennelRed] : [c.surfaceSunken, c.ink];
   return (
-    <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', padding: 16, borderRadius: 16, backgroundColor: c.surfaceRaised }}>
+    <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', padding: 16, borderRadius: 16, backgroundColor: c.surfaceRaised }} accessibilityLiveRegion="polite">
       <Badge icon={icon} bg={bg} fg={fg} size={40} iconSize={18} />
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <Text variant="heading" weight="600">{title}</Text>
@@ -97,6 +93,18 @@ export function ReadyNotice({ r, dogName }: { r: Readiness; dogName: string }) {
       </View>
     </View>
   );
+}
+
+/** The state at the top of Ready to book: ready, something needed, or a record expiring soon. */
+export function ReadyNotice({ r, dogName }: { r: Readiness; dogName: string }) {
+  const n = r.next;
+  const [icon, tone, title, body]: [IconName, NoticeTone, string, string] =
+    r.state === 'done' ? ['shield-check', 'pitch', `${dogName} is ready to book.`, 'Vaccines and waiver on file. PackPass checks them on every booking.']
+      : n?.kind === 'waiver' ? ['file-pen', 'plain', 'Waiver not signed yet.', 'Sign the PackPass waiver once and it covers every class, for every dog on your account.']
+        : n?.kind === 'vaccine' && n.row.status === 'soon' ? ['clock', 'warn', `${n.row.type} expires in ${n.row.days} ${n.row.days === 1 ? 'day' : 'days'}.`, 'Bookings after that date will ask for a new record.']
+          : n?.kind === 'vaccine' && n.row.status === 'expired' ? ['circle-alert', 'warn', `${n.row.type} has expired.`, `Classes stay locked until ${dogName} has a current record. Takes a minute.`]
+            : ['file-plus', 'plain', `${n?.kind === 'vaccine' ? n.row.type : 'Vaccine'} record needed.`, `Classes stay locked until it's uploaded. Takes a minute.`];
+  return <Notice icon={icon} tone={tone} title={title} body={body} />;
 }
 
 /** Partner waivers: signed ones, and ones PackPass asks for once on the first booking there. */

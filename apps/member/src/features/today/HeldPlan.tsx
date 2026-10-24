@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 
@@ -9,6 +10,7 @@ import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { credits as creditsLabel, view } from '@/lib/booking';
 import { now } from '@/lib/clock';
+import { packpassWaiver } from '@/lib/ready';
 import { addMinutes, dayTimeInline, monthDay, time, weekday } from '@/lib/dates';
 import { recordOf, useApp, useRulesFor } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -27,6 +29,7 @@ export function HeldPlan({ dogId, style }: { dogId: string; style?: StyleProp<Vi
   const { hasSocial } = useRulesFor(dogId);
   const pending = useApp((s) => recordOf(s, dogId).pendingPlan);
   const bookHeld = useApp((s) => s.bookHeld);
+  const waiver = useApp((s) => { const w = packpassWaiver(s.waivers); return w && !s.waiversSigned[w.id] ? w : null; });
   const releaseHolds = useApp((s) => s.releaseHolds);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -40,6 +43,8 @@ export function HeldPlan({ dogId, style }: { dogId: string; style?: StyleProp<Vi
   const soon = first && releaseOf(first.session.startsAt).getTime() - now().getTime() <= 24 * 3_600_000 ? first : null;
 
   const book = async () => {
+    // Booking needs the PackPass waiver: sign it, then come back and book.
+    if (waiver) return router.push({ pathname: '/waiver', params: { id: waiver.id } });
     setBusy(true);
     const out = await bookHeld(dog.id);
     setBusy(false);
@@ -73,7 +78,7 @@ export function HeldPlan({ dogId, style }: { dogId: string; style?: StyleProp<Vi
               </View>
             ) : null}
             {hasSocial ? (
-              <Button block disabled={busy} onPress={book}>{busy ? 'Booking…' : `Book ${rows.length} ${rows.length === 1 ? 'session' : 'sessions'}`}</Button>
+              <Button block disabled={busy} onPress={book}>{busy ? 'Booking…' : waiver ? 'Sign the waiver to book' : `Book ${rows.length} ${rows.length === 1 ? 'session' : 'sessions'}`}</Button>
             ) : (
               <Text variant="caption" muted>{`Spots are held for ${dog.name} until the day before each session. Book them once ${dog.name} passes the Social assessment.`}</Text>
             )}
