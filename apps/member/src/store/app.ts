@@ -6,10 +6,10 @@ import { isLive } from '@/api/client';
 import * as live from '@/api/live';
 import { breedLabel, breedNamed } from '@/data/breeds';
 import { catalog } from '@/data/catalog';
-import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, OTIS_VACCINES, TRAIT_SPECIAL, type Energy } from '@/data/fixtures';
+import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, OTIS_VACCINES, SAMPLE_WAIVERS, SAMPLE_WAIVERS_SIGNED, TRAIT_SPECIAL, type Energy } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
 import { planOf } from '@/data/plans';
-import type { Booking, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, VaccineRecord, WaitEntry } from '@/data/types';
+import type { Booking, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
 import { now } from '@/lib/clock';
 import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
@@ -166,6 +166,12 @@ interface AppState extends Demo {
   /** The main dog's vet record (photo or PDF). Live mode: on the server; before the dog exists, pending. */
   vaccineRecord: VaccineRecord | null;
   pendingVaccineDoc: PickedDoc | null;
+  /** Live waivers: PackPass's and each partner's that has one. */
+  waivers: Waiver[];
+  /** The waivers this member has signed: waiver id to the ISO date signed. Covers every dog on the account. */
+  waiversSigned: Record<string, string>;
+  /** Signs a waiver with the member's typed name. */
+  signWaiver: (waiverId: string, name: string) => Promise<void>;
   /** Denials (their decidedAt) the member has seen Records Denied for, so it shows once per denial, per dog. */
   seenRecordDenials: string[];
   seeRecordDenial: () => void;
@@ -278,6 +284,8 @@ const fresh = {
   vaccineRecord: (isLive ? null : { name: 'Vet record.pdf', verified: true }) as VaccineRecord | null,
   pendingVaccineDoc: null as PickedDoc | null,
   seenRecordDenials: [] as string[],
+  waivers: SAMPLE_WAIVERS,
+  waiversSigned: SAMPLE_WAIVERS_SIGNED,
   remoteNotifications: null as Notif[] | null,
   socialClearanceId: null as string | null,
   log: null as LogEntry[] | null,
@@ -295,7 +303,7 @@ const fresh = {
 // Live mode starts empty and fills from Supabase on sign-in.
 if (isLive) {
   Object.assign(fresh, {
-    dogs: [], dogRecords: {}, credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], remoteNotifications: [], log: [], missed: [], clearanceRecords: [], paths: [], account: { name: '', email: '' },
+    dogs: [], dogRecords: {}, credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], waivers: [], waiversSigned: {}, remoteNotifications: [], log: [], missed: [], clearanceRecords: [], paths: [], account: { name: '', email: '' },
   });
 }
 
@@ -649,6 +657,8 @@ export const useApp = create<AppState>()(
             ...(adding ? {} : { paths: paths ?? get().paths }),
             waitlist: m.waitlist,
             area: m.area,
+            waivers: m.waivers,
+            waiversSigned: m.waiversSigned,
           });
           syncDistances();
         },
@@ -694,6 +704,12 @@ export const useApp = create<AppState>()(
         },
         clearBookings: () => set({ bookings: [] }),
         setCredits: (credits) => set({ credits }),
+        signWaiver: async (waiverId, name) => {
+          if (name.trim().length < 2) throw new Error('bad_name');
+          // No refresh: during onboarding there's no dog yet, and a refresh would drop the vaccine dates entered so far.
+          const on = isLive ? await live.signWaiver(waiverId, name) : localIso(now());
+          set((s) => ({ waiversSigned: s.waiversSigned[waiverId] ? s.waiversSigned : { ...s.waiversSigned, [waiverId]: on } }));
+        },
         saveVaccines: async (rows, doc) => {
           const s0 = get();
           const dog = s0.addingDog ? undefined : activeDogId(s0);
@@ -758,7 +774,7 @@ export const useApp = create<AppState>()(
           : {
               dogs: s.dogs, activeDogId: s.activeDogId, dogRecords: s.dogRecords, addingDog: s.addingDog, origin: s.origin, area: s.area, appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
               readNotifications: s.readNotifications, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, social: s.social, socialExpired: s.socialExpired,
-              behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines, vaccineRecord: s.vaccineRecord,
+              behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines, vaccineRecord: s.vaccineRecord, waiversSigned: s.waiversSigned,
               seenRecordDenials: s.seenRecordDenials, seenMissed: s.seenMissed,
             },
       onRehydrateStorage: () => () => syncDistances(),

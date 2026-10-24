@@ -32,6 +32,7 @@ const COPY: Record<string, string> = {
   not_booked: 'There\'s no booking to check in to.',
   too_soon: 'Spots can only be held until the day before a session.',
   weak_password: 'Use at least 8 characters.',
+  bad_name: 'Type your full name to sign.',
   cancelled: 'The partner cancelled this session. Pick another time.',
   waitlist_closed: 'The waitlist for this session is closed.',
   already_waiting: 'Already on the waitlist for this session.',

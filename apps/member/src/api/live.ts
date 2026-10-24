@@ -6,7 +6,7 @@ import { setCatalog } from '@/data/catalog';
 import { photoKey, type Energy } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
-import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, Session, Trainer, VaccineRecord, WaitEntry } from '@/data/types';
+import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
 import type { DogRecord, OnboardingDraft } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { setWeights, type Weights } from '@/lib/fit';
@@ -143,6 +143,9 @@ export interface MemberSnapshot {
   notifications: Notif[];
   readNotifications: string[];
   waitlist: WaitEntry[];
+  /** Live waivers and the ones this member signed (waiver id to the date). */
+  waivers: Waiver[];
+  waiversSigned: Record<string, string>;
   /** The area picked in onboarding ("Trains near"), stored on the first dog. */
   area: string | null;
 }
@@ -175,7 +178,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
   const photoPaths = dogs.map((d) => d.photo_path).filter(Boolean) as string[];
   const signed = photoPaths.length ? (check(await c.storage.from('dog-photos').createSignedUrls(photoPaths, PHOTO_URL_TTL)) as { path: string; signedUrl: string }[]) : [];
   const photoUrl = new Map(signed.map((x) => [x.path, x.signedUrl]));
-  const [bookings, clearances, paths, vaccines, reviews, notes, holds, waiting, assessed] = await Promise.all([
+  const [bookings, clearances, paths, vaccines, reviews, notes, holds, waiting, assessed, waivers, signatures] = await Promise.all([
     c.from('bookings').select('*').neq('status', 'cancelled').then(check),
     c.from('clearances').select('*').in('dog_id', dogIds).then(check),
     c.from('dog_paths').select('*').in('dog_id', dogIds).then(check),
@@ -185,6 +188,8 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     c.from('held_spots').select('session_id, dog_id, expires_at').eq('status', 'held').gt('expires_at', new Date().toISOString()).then(check),
     c.rpc('my_waitlist').then(check),
     c.from('dog_fit_overrides').select('dog_id, partner_id').in('dog_id', dogIds).then(check),
+    c.from('waivers').select('id, partner_id, title, body, pdf_path').eq('active', true).then(check),
+    c.from('waiver_signatures').select('waiver_id, signed_at').then(check),
   ]) as any[][];
 
   const today = new Date().toISOString().slice(0, 10);
@@ -239,6 +244,8 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     readNotifications: notes.filter((n) => n.read_at).map((n) => n.id),
     area: dogs[0]?.area ?? null,
     waitlist: waiting.map((w) => ({ sessionId: w.session_id, dogId: w.dog_id, place: w.place })),
+    waivers: waivers.map((w): Waiver => ({ id: w.id, partnerId: w.partner_id, title: w.title, body: w.body, pdfPath: w.pdf_path })),
+    waiversSigned: Object.fromEntries(signatures.map((x) => [x.waiver_id, String(x.signed_at).slice(0, 10)])),
   };
 }
 
@@ -428,6 +435,11 @@ export async function saveVaccines(dogId: string, rows: { type: 'rabies' | 'dhpp
 }
 
 /** Returns the new booking id, or throws with a reason code (see errors.ts). */
+/** Signs a waiver; resolves with the date it was signed (the first time, if it was already). */
+export async function signWaiver(waiverId: string, name: string): Promise<string> {
+  return String(check(await db().rpc('sign_waiver', { p_waiver: waiverId, p_name: name.trim() }))).slice(0, 10);
+}
+
 export async function book(sessionId: string, dogId: string) {
   return (check(await db().rpc('book_session', { p_session: sessionId, p_dog: dogId })) as { id: string }).id;
 }

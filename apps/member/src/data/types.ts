@@ -211,6 +211,16 @@ export interface VaccineRecord {
   review?: { status: 'approved' | 'denied'; reason: string | null; decidedAt: string };
 }
 
+/** A waiver members sign once (supabase/migrations/…_waivers.sql). No partner: PackPass's, covering every class. */
+export interface Waiver {
+  id: string;
+  partnerId: string | null;
+  title: string;
+  /** Pasted text, a PDF, or both. */
+  body: string | null;
+  pdfPath: string | null;
+}
+
 export type ClearanceStatus = 'cleared' | 'expired' | 'working' | 'needs';
 
 /** A bundled sample photo, or an uploaded one (a signed URL, cached by its storage path). */

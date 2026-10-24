@@ -25,7 +25,7 @@ function PlayStyle() {
   const next = <Button block disabled={!d.social} onPress={() => router.push('/onboarding/traits')}>Continue</Button>;
   const body = (
     <>
-      <Intro eyebrow="Step 3 of 5 · Play style" title={`How does ${name} play?`} />
+      <Intro eyebrow="Step 3 of 6 · Play style" title={`How does ${name} play?`} />
       <FieldGroup label="Energy" note={ENERGY.find((e) => e.key === d.energy)?.note}>
         <ChipRow>
           {ENERGY.map((e) => <Chip key={e.key} selected={d.energy === e.key} onPress={() => update({ energy: e.key })}>{e.label}</Chip>)}

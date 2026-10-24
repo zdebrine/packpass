@@ -44,7 +44,7 @@ function Traits() {
 
   const intro = (
     <Intro
-      eyebrow={edit ? `Passport · ${name}` : `Step 4 of 5 · About ${name}`}
+      eyebrow={edit ? `Passport · ${name}` : `Step 4 of 6 · About ${name}`}
       title={`Tell us about ${name}.`}
       lede="No judgment. Every dog has a thing or two. This helps us point you to the right trainers."
     />
@@ -62,7 +62,7 @@ function Traits() {
       ))}
     </View>
   );
-  const button = <Button block disabled={busy} onPress={() => (edit ? save() : router.push('/onboarding/reveal'))}>{edit ? (busy ? 'Saving…' : 'Save') : 'Continue'}</Button>;
+  const button = <Button block disabled={busy} onPress={() => (edit ? save() : router.push('/onboarding/ready'))}>{edit ? (busy ? 'Saving…' : 'Save') : 'Continue'}</Button>;
 
   if (wide) {
     return (

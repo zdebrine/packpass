@@ -24,7 +24,7 @@ function sectionOf(path: string): Section | null {
   if (path === '/') return 'today';
   if (path.startsWith('/book') || path.startsWith('/class')) return 'book';
   if (path.startsWith('/log') || path.startsWith('/assessment')) return 'log';
-  if (path.startsWith('/dog') || path.startsWith('/goal') || path.startsWith('/passport') || path.startsWith('/vaccines')) return 'dog';
+  if (path.startsWith('/dog') || path.startsWith('/goal') || path.startsWith('/passport') || path.startsWith('/vaccines') || path.startsWith('/ready') || path.startsWith('/waiver')) return 'dog';
   return null;
 }
 

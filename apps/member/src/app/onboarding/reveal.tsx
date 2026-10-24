@@ -5,6 +5,7 @@ import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withDe
 
 import { breedLabel } from '@/data/breeds';
 import { now } from '@/lib/clock';
+import { vaccineRows } from '@/lib/ready';
 import { AthleteCard } from '@/ds/cards';
 import { Button } from '@/ds/controls';
 import { Icon } from '@/ds/Icon';
@@ -18,12 +19,14 @@ import { useApp } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 import { motion } from '@/theme/tokens';
 
-/** 01i Step 5 · Athlete Card reveal */
+/** 01i Step 6 · Athlete Card reveal. Asks for vaccine records only if Ready to book was skipped. */
 function Reveal() {
   const { c } = useTheme();
   const bottom = useBottom(34);
   const d = useApp((s) => s.draft);
   const name = d.dogName.trim() || 'Your dog';
+  const vaccines = useApp((s) => s.vaccines);
+  const needsRecords = vaccineRows(vaccines).some((r) => r.status === 'needed' || r.status === 'expired');
   const yrs = now().getFullYear() - d.birthYear - (now().getMonth() < d.birthMonth ? 1 : 0);
 
   const wide = useWide();
@@ -63,22 +66,22 @@ function Reveal() {
       <Text variant="label" style={{ flex: 1 }}>{`Upload ${name}'s vaccination records before the first booking.`}</Text>
     </View>
   );
-  const upload = <Button block onPress={() => router.push('/vaccines')}>Upload records</Button>;
-  const month = <Button variant="quiet" block onPress={() => router.push('/onboarding/month')}>{`See ${name}'s month`}</Button>;
+  const upload = needsRecords ? <Button block onPress={() => router.push('/vaccines')}>Upload records</Button> : null;
+  const month = <Button variant={needsRecords ? 'quiet' : 'primary'} block onPress={() => router.push('/onboarding/month')}>{`See ${name}'s month`}</Button>;
 
   if (wide) {
     return (
-      <Split photo="dog_chilling" step={5} back={false} gap={20}>
+      <Split photo="dog_chilling" step={6} back={false} gap={20}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 }}>
-          <View style={{ flex: 1 }}><Intro eyebrow="Step 5 of 5 · Athlete Card" title={`${name} is on the roster.`} /></View>
+          <View style={{ flex: 1 }}><Intro eyebrow="Step 6 of 6 · Athlete Card" title={`${name} is on the roster.`} /></View>
           <Press onPress={() => setRun((n) => n + 1)} scale={false} accessibilityLabel="Replay the reveal">
             <Text variant="caption" muted style={{ fontSize: 13, textDecorationLine: 'underline' }}>Replay</Text>
           </Press>
         </View>
         <View style={{ alignItems: 'center', paddingVertical: 8 }}>{athlete}</View>
-        {records}
+        {needsRecords ? records : null}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          <View style={tile(180)}>{upload}</View>
+          {upload ? <View style={tile(180)}>{upload}</View> : null}
           <View style={tile(180)}>{month}</View>
         </View>
       </Split>
@@ -87,15 +90,15 @@ function Reveal() {
 
   return (
     <Screen theme="dark">
-      <StepHeader step={5} showBack={false} />
+      <StepHeader step={6} showBack={false} />
       <View style={{ paddingTop: 22, paddingHorizontal: 20 }}>
-        <Intro eyebrow="Step 5 of 5 · Athlete Card" title={`${name} is on the roster.`} />
+        <Intro eyebrow="Step 6 of 6 · Athlete Card" title={`${name} is on the roster.`} />
       </View>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         {athlete}
       </View>
       <View style={{ paddingHorizontal: 20, paddingBottom: bottom, gap: 10 }}>
-        {records}
+        {needsRecords ? records : null}
         {upload}
         {month}
       </View>

@@ -21,6 +21,8 @@ import { dayOffset, expiryLabel, fromIso } from '@/lib/dates';
 import { pickDogPhoto } from '@/lib/photos';
 import { useApp, useDog } from '@/store/app';
 import { useClearanceStyle } from '@/features/passport/style';
+import { ReadyCard } from '@/features/ready/parts';
+import { readiness } from '@/lib/ready';
 import { useTheme } from '@/theme/ThemeProvider';
 import { motion } from '@/theme/tokens';
 
@@ -129,6 +131,9 @@ export default function DogProfile() {
   const selectDog = useApp((s) => s.selectDog);
   const startAddDog = useApp((s) => s.startAddDog);
   const vaccines = useApp((s) => s.vaccines);
+  const waivers = useApp((s) => s.waivers);
+  const waiversSigned = useApp((s) => s.waiversSigned);
+  const ready = readiness(vaccines, waivers, waiversSigned);
   const passport = useClearances();
   const paths = useGoals();
   const clearances = [passport.social, passport.herding, ...passport.others];
@@ -264,6 +269,7 @@ export default function DogProfile() {
                   <Text variant="title">Health and care</Text>
                   <Button variant="quiet" size="sm" onPress={() => router.push('/vaccines')}>Update</Button>
                 </View>
+                <View style={{ marginBottom: 8 }}><ReadyCard r={ready} dogName={juno.name} /></View>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   <View style={tile(280, { backgroundColor: c.surfaceRaised, borderRadius: 16, padding: 20, gap: 16 })}>
                     {vaccineRows.map((v) => (
@@ -404,6 +410,7 @@ export default function DogProfile() {
         </View>
 
         <Section title="Health and care" right={<Button variant="quiet" size="sm" onPress={() => router.push('/vaccines')}>Update</Button>}>
+          <View style={{ marginBottom: 8 }}><ReadyCard r={ready} dogName={juno.name} /></View>
           <View style={{ backgroundColor: c.surfaceRaised, borderRadius: 16, padding: 20, gap: 16 }}>
             {vaccineRows.map((v) => (
               <View key={v.type} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
