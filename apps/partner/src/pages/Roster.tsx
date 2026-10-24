@@ -114,12 +114,14 @@ function SessionRoster({ s, meta, onQr }: { s: SessionView; meta: string; onQr: 
                 <Avatar name={w.dog_name} size={36} radius={8} />
                 <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                   <span className="pp-heading">{w.dog_name}</span>
-                  <span className="pp-caption pp-muted">{`${w.breed ?? 'Dog'} · ${ordinal(w.place)} in line · joined ${monthDay(new Date(w.joined_at))}`}</span>
+                  <span className="pp-caption pp-muted">{w.offer_until
+                    ? `${w.breed ?? 'Dog'} · Spot offered · accept by ${time(new Date(w.offer_until))}`
+                    : `${w.breed ?? 'Dog'} · ${ordinal(w.place)} in line · joined ${monthDay(new Date(w.joined_at))}`}</span>
                 </div>
               </div>
             ))}
           </div>
-          <span className="pp-caption pp-muted">{s.auto_promote ? 'When a spot opens more than 12 hours ahead, the first dog in line is booked automatically. Raise PackPass spots on Schedule to open one.' : 'Auto-promote is off: when a spot opens, everyone waiting is told and the first to book gets it.'}</span>
+          <span className="pp-caption pp-muted">{s.auto_promote ? 'When a spot opens more than 12 hours ahead, the first dog in line is booked automatically. Inside 12 hours, the owner gets 2 hours to accept, then it moves to the next dog. Raise PackPass spots on Schedule to open one.' : 'Auto-promote is off: when a spot opens, everyone waiting is told and the first to book gets it.'}</span>
         </section>
       ) : null}
     </>

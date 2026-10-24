@@ -253,3 +253,33 @@ test('a herding-breeds-only class turns a Lab away until the partner marks it As
     sql(`update class_types set breed_only = false where id = 'herding-livestock'`);
   }
 });
+
+test('a waitlist spot offered inside 12 hours is accepted from the class page', async ({ page }) => {
+  const ui = visible(page);
+  const email = `offer-${Date.now()}@example.com`;
+  const id = await account(email, 'goodpass123');
+  sql(`select public.seed_demo_member('${id}')`);
+  sql(`insert into waiver_signatures (member_id, waiver_id, signed_name) select '${id}', id, 'Sam Rivera' from waivers where partner_id is null and active`);
+  const session = sql(`select id from sessions where class_id = 'sniff-space' and starts_at > now() + interval '1 day' and cancelled_at is null order by starts_at offset 4 limit 1`);
+  const spots = sql(`select spots_left from sessions where id = '${session}'`);
+  // fill_from_waitlist's offer, as the database tests check it: the spot is out of spots_left and held for Juno.
+  sql(`update sessions set spots_left = 0 where id = '${session}'`);
+  sql(`insert into waitlist (session_id, dog_id, member_id, status, offer_expires_at)
+       select '${session}', id, owner_id, 'offered', now() + interval '2 hours' from dogs where owner_id = '${id}' and name = 'Juno'`);
+  try {
+    await page.goto('/');
+    await page.getByText('I already have an account').click();
+    await ui.boxes().nth(0).fill(email);
+    await ui.boxes().nth(1).fill('goodpass123');
+    await ui.button('Sign in').click();
+    await expect(ui.text(/Juno/)).toBeVisible();
+    await page.goto(`/class/${session}`);
+    await expect(ui.text(/^A spot opened\. Accept by /)).toBeVisible();
+    await ui.button(/^Accept for \d+ credits?$/).click();
+    await expect.poll(() => sql(`select b.status from bookings b where b.session_id = '${session}' and b.member_id = '${id}'`)).toBe('booked');
+    expect(sql(`select status from waitlist where session_id = '${session}' and member_id = '${id}'`)).toBe('booked');
+    expect(sql(`select spots_left from sessions where id = '${session}'`)).toBe('0');
+  } finally {
+    sql(`update sessions set spots_left = greatest(${Number(spots)} - 1, 0) where id = '${session}'`);
+  }
+});

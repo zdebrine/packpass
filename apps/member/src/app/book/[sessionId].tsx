@@ -201,7 +201,7 @@ export default function BookingSheet() {
               ? <Button block disabled={busy || !agree || signName.trim().length < 2} onPress={() => sign(false)}>{busy ? 'Signing…' : 'Sign waiver'}</Button>
               : <Button block variant="signal" disabled={busy || !agree || signName.trim().length < 2} onPress={() => sign(true)}>{busy ? 'Signing…' : 'Sign and book'}</Button>
           ) : session.spotsLeft === 0 ? (
-            <WaitlistActions v={v} dogId={dogId} dogName={dogName} />
+            <WaitlistActions v={v} dogId={dogId} dogName={dogName} onAccept={confirm} />
           ) : short && wide ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               <View style={tile(180)}><Button block disabled={busy} onPress={buyCredits}>{busy ? 'Opening checkout…' : `Buy ${TOP_UP.credits} credits · ${TOP_UP.price}`}</Button></View>

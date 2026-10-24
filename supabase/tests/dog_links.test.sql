@@ -80,16 +80,17 @@ select dl.ok(dl.href('waitlist_booked', '/class/' || dl.sid('full_far'), (select
 select dl.ok(not exists (select 1 from notifications where kind = 'booked' and href like '/class/' || dl.sid('full_far') || '%'),
              'and the plain booked notification stays quiet');
 
--- Inside 12 hours: each waiting dog hears a spot opened, linked to that dog.
+-- Auto-promote off: each waiting dog hears a spot opened, linked to that dog.
+update sessions set auto_promote = false where id = dl.sid('full_soon');
 update sessions set spots_left = 1 where id = dl.sid('full_soon');
-select dl.ok(not exists (select 1 from waitlist where session_id = dl.sid('full_soon') and status <> 'waiting'), 'inside 12 hours nobody is booked automatically');
+select dl.ok(not exists (select 1 from waitlist where session_id = dl.sid('full_soon') and status <> 'waiting'), 'with auto-promote off nobody is booked automatically');
 select dl.ok(dl.count('waitlist_open') = 2, 'one "spot opened" per waiting dog');
 select dl.ok(dl.href('waitlist_open', '/class/' || dl.sid('full_soon'), (select pip from dl.ids))
              and dl.href('waitlist_open', '/class/' || dl.sid('full_soon'), (select moss from dl.ids)), 'each names its dog');
 
 -- Waitlist booking fails (out of credits): the missed notice names the dog.
 update profiles set credits_balance = 0 where id = '00000000-0000-0000-0000-0000000002d1';
-update sessions set starts_at = now() + interval '2 days' where id = dl.sid('full_soon');
+update sessions set starts_at = now() + interval '2 days', auto_promote = true where id = dl.sid('full_soon');
 select public.fill_from_waitlist(dl.sid('full_soon'));
 select dl.ok(dl.href('waitlist_missed', '/class/' || dl.sid('full_soon'), (select moss from dl.ids)), 'a missed waitlist spot opens the class for Moss');
 update profiles set credits_balance = 30 where id = '00000000-0000-0000-0000-0000000002d1';

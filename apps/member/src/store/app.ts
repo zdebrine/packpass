@@ -224,7 +224,8 @@ interface AppState extends Demo {
   joinWaitlist: (sessionId: string, dogId: string) => Promise<number>;
   leaveWaitlist: (sessionId: string, dogId: string) => Promise<void>;
   /** Sample mode: someone cancels, so the first waitlisted session books itself (Preview states). */
-  openWaitlistSpot: () => BookResult | null;
+  /** Sample data: a spot opens in the first waitlisted class. Booked more than 12 hours out, else offered for 2 hours. */
+  openWaitlistSpot: () => { sessionId: string; outcome: 'booked' | 'offered' | 'missed' } | null;
 
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
@@ -375,9 +376,10 @@ export const useApp = create<AppState>()(
       // Sample-mode booking, same rules as book_session().
       const bookLocal = (sessionId: string, dogId: string): BookResult => {
         const s = get();
-        const held = recordOf(s, dogId).pendingPlan.includes(sessionId);
+        const held = recordOf(s, dogId).pendingPlan.includes(sessionId)
+          || s.waitlist.some((w) => w.sessionId === sessionId && w.dogId === dogId && w.offerUntil && new Date(w.offerUntil) > now());
         const error = bookError(sessionId, dogId, ruleContextFor(s, dogId));
-        // A held session already has its spot.
+        // A held session (or a waitlist offer) already has its spot.
         if (error && !(held && error === 'full')) return { ok: false, error };
         const v = view(sessionId)!;
         const booking: Booking = { id: `b-${Date.now()}-${Math.round(Math.random() * 1e6)}`, sessionId, dogId, credits: v.cls.credits, status: 'booked' };
@@ -516,15 +518,25 @@ export const useApp = create<AppState>()(
             await thenRefresh(() => live.leaveWaitlist(dogId, sessionId));
             return;
           }
-          set((st) => ({ waitlist: st.waitlist.filter((w) => !(w.sessionId === sessionId && w.dogId === dogId)) }));
+          const w = get().waitlist.find((x) => x.sessionId === sessionId && x.dogId === dogId);
+          // Passing on an offer gives the spot back (sample data has nobody else in line).
+          if (w?.offerUntil && new Date(w.offerUntil) > now()) view(sessionId)!.session.spotsLeft += 1;
+          set((st) => ({ waitlist: st.waitlist.filter((x) => x !== w) }));
         },
         openWaitlistSpot: () => {
-          const w = get().waitlist.find((x) => (view(x.sessionId)?.session.startsAt.getTime() ?? 0) - now().getTime() >= 12 * 3_600_000);
+          const w = get().waitlist.find((x) => !x.offerUntil && (view(x.sessionId)?.session.startsAt.getTime() ?? 0) > now().getTime());
           if (!w) return null;
-          view(w.sessionId)!.session.spotsLeft += 1;
+          const v = view(w.sessionId)!;
+          if (v.session.startsAt.getTime() - now().getTime() < 12 * 3_600_000) {
+            // Same as fill_from_waitlist inside 12 hours: the spot is held for this dog for 2 hours.
+            const offerUntil = new Date(Math.min(now().getTime() + 2 * 3_600_000, v.session.startsAt.getTime())).toISOString();
+            set((st) => ({ waitlist: st.waitlist.map((x) => (x === w ? { ...x, place: 1, offerUntil } : x)) }));
+            return { sessionId: w.sessionId, outcome: 'offered' };
+          }
+          v.session.spotsLeft += 1;
           const r = bookLocal(w.sessionId, w.dogId);
           if (!r.ok) set((st) => ({ waitlist: st.waitlist.filter((x) => x !== w) }));
-          return r;
+          return { sessionId: w.sessionId, outcome: r.ok ? 'booked' : 'missed' };
         },
         toggleSwap: (classId) =>
           set((s) => ({ planSwaps: s.planSwaps.includes(classId) ? s.planSwaps.filter((x) => x !== classId) : [...s.planSwaps, classId] })),

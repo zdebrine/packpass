@@ -208,7 +208,7 @@ export const loadSessions = async (from: Date, to: Date) =>
   check(await db.rpc('partner_sessions', { p_from: from.toISOString(), p_to: to.toISOString() })) as Session[];
 export const loadRoster = async (sessionId: string) => check(await db.rpc('partner_roster', { p_session: sessionId })) as RosterDog[];
 export const loadWaitlist = async (sessionId: string) =>
-  check(await db.rpc('partner_waitlist', { p_session: sessionId })) as { dog_name: string; breed: string | null; joined_at: string; place: number }[];
+  check(await db.rpc('partner_waitlist', { p_session: sessionId })) as { dog_name: string; breed: string | null; joined_at: string; place: number; offer_until: string | null }[];
 export const checkIn = async (bookingId: string, undo = false) => { check(await db.rpc('partner_check_in', { p_booking: bookingId, p_undo: undo })); };
 export const updateSession = async (id: string, capacity: number, packpass: number, waitlistOpen: boolean, autoPromote: boolean) => {
   check(await db.rpc('partner_update_session', { p_session: id, p_capacity: capacity, p_packpass: packpass, p_waitlist_open: waitlistOpen, p_auto_promote: autoPromote }));

@@ -344,24 +344,79 @@ select t.ok((select status from waitlist where dog_id = (select d3 from t.w)) = 
 select t.ok(exists (select 1 from notifications where member_id = '00000000-0000-0000-0000-0000000000f3' and kind = 'waitlist_missed' and body like '%not enough credits%'), 'and told why');
 select t.ok((select spots_left from sessions where id = (select sniff from t.w)) = 1, 'with nobody left in line, the spot stays open');
 
--- Inside 12 hours nothing books itself; everyone waiting hears about the spot once.
+-- Inside 12 hours nothing books itself: the first dog in line gets 2 hours to accept, then the next.
 update profiles set credits_balance = 7 where id = '00000000-0000-0000-0000-0000000000f3';
 update sessions set spots_left = 0 where id = (select other from t.w);
 set role authenticated;
 select t.as_member(3);
 select public.join_waitlist((select d3 from t.w), (select other from t.w));
+select t.as_member(2);
+select public.join_waitlist((select d2 from t.w), (select other from t.w));
 reset role;
 update sessions set starts_at = now() + interval '6 hours' where id = (select other from t.w);
 update sessions set spots_left = 1 where id = (select other from t.w);
-update sessions set spots_left = 0 where id = (select other from t.w);
-update sessions set spots_left = 1 where id = (select other from t.w);
 select t.ok(not exists (select 1 from bookings where dog_id = (select d3 from t.w) and session_id = (select other from t.w)), 'inside 12 hours the waitlist doesn''t book for you');
-select t.ok((select count(*) from notifications where member_id = '00000000-0000-0000-0000-0000000000f3' and kind = 'waitlist_open') = 1, 'it tells you once that a spot opened');
+select t.ok((select status from waitlist where dog_id = (select d3 from t.w) and session_id = (select other from t.w)) = 'offered', 'it offers the spot to the first dog in line');
+select t.ok((select offer_expires_at from waitlist where dog_id = (select d3 from t.w) and session_id = (select other from t.w)) between now() + interval '119 minutes' and now() + interval '2 hours', 'for 2 hours');
+select t.ok((select spots_left from sessions where id = (select other from t.w)) = 0, 'and holds the spot while it''s offered');
+select t.ok((select count(*) from notifications where member_id = '00000000-0000-0000-0000-0000000000f3' and kind = 'waitlist_offer' and title like 'A spot opened. Accept by %') = 1, 'the member is told to accept by a time');
+select t.ok(public.push_kind('waitlist_offer'), 'and it''s pushed');
 set role authenticated;
 select t.as_member(3);
+select t.ok((select place = 1 and offer_until is not null from public.my_waitlist() where session_id = (select other from t.w)), 'members see the offer and its deadline');
+select t.as_member(1);
+select t.expect_error($$select public.book_session((select other from t.w), (select d1 from t.w))$$, 'full');
+
+-- Passing moves the offer to the next dog.
+select t.as_member(3);
 select public.leave_waitlist((select d3 from t.w), (select other from t.w));
+reset role;
+select t.ok((select status from waitlist where dog_id = (select d3 from t.w) and session_id = (select other from t.w)) = 'left', 'a member can pass on an offer');
+select t.ok((select status from waitlist where dog_id = (select d2 from t.w) and session_id = (select other from t.w)) = 'offered', 'and the next dog gets it');
+select t.ok((select spots_left from sessions where id = (select other from t.w)) = 0, 'the spot stays held');
+
+-- An offer that runs out goes back to the line; nobody left, so the spot opens.
+update waitlist set offer_expires_at = now() - interval '1 minute' where dog_id = (select d2 from t.w) and session_id = (select other from t.w);
+set role authenticated;
+select t.as_member(2);
+select t.ok(not exists (select 1 from public.my_waitlist() where session_id = (select other from t.w)), 'an expired offer drops off the member''s list');
+reset role;
+select public.release_expired_holds();
+select t.ok((select status = 'missed' and missed_reason = 'offer_expired' from waitlist where dog_id = (select d2 from t.w) and session_id = (select other from t.w)), 'an expired offer is closed');
+select t.ok((select spots_left from sessions where id = (select other from t.w)) = 1, 'and the spot opens when nobody else is waiting');
+
+-- Accepting books the held spot, charged then.
+update sessions set spots_left = 0 where id = (select other from t.w);
+set role authenticated;
+select t.as_member(3);
+select public.join_waitlist((select d3 from t.w), (select other from t.w));
+reset role;
+update sessions set spots_left = 1 where id = (select other from t.w);
+set role authenticated;
+select t.as_member(3);
+select public.book_session((select other from t.w), (select d3 from t.w));
+reset role;
+select t.ok(exists (select 1 from bookings where dog_id = (select d3 from t.w) and session_id = (select other from t.w) and status = 'booked'), 'accepting books the offered spot');
+select t.ok((select spots_left from sessions where id = (select other from t.w)) = 0, 'without taking another');
+select t.ok((select credits_balance from profiles where id = '00000000-0000-0000-0000-0000000000f3') = 6, 'and charges the credits then');
+select t.ok((select count(*) from waitlist where dog_id = (select d3 from t.w) and session_id = (select other from t.w) and status in ('waiting', 'offered')) = 0, 'the offer closes as booked');
+
+-- With auto-promote off, everyone waiting hears about the spot once and the first to book gets it.
+update sessions set auto_promote = false where id = (select other from t.w);
+set role authenticated;
+select t.as_member(2);
+select public.join_waitlist((select d2 from t.w), (select other from t.w));
+reset role;
+update sessions set spots_left = 1 where id = (select other from t.w);
+update sessions set spots_left = 0 where id = (select other from t.w);
+update sessions set spots_left = 1 where id = (select other from t.w);
+select t.ok((select status from waitlist where dog_id = (select d2 from t.w) and session_id = (select other from t.w) and status in ('waiting', 'offered')) = 'waiting', 'with auto-promote off nothing is offered');
+select t.ok((select count(*) from notifications where member_id = '00000000-0000-0000-0000-0000000000f2' and kind = 'waitlist_open') = 1, 'it tells you once that a spot opened');
+set role authenticated;
+select t.as_member(2);
+select public.leave_waitlist((select d2 from t.w), (select other from t.w));
 select t.ok(not exists (select 1 from public.my_waitlist()), 'a member can leave the waitlist');
-select t.ok(not exists (select 1 from waitlist where member_id <> '00000000-0000-0000-0000-0000000000f3'), 'members only see their own waitlist rows');
+select t.ok(not exists (select 1 from waitlist where member_id <> '00000000-0000-0000-0000-0000000000f2'), 'members only see their own waitlist rows');
 reset role;
 select t.expect_error($$set local role authenticated; select public.fill_from_waitlist((select sniff from t.w))$$, 'permission denied');
 

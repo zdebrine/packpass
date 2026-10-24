@@ -113,6 +113,8 @@ export interface Session {
   classId: string;
   startsAt: Date;
   spotsLeft: number;
+  /** Off: a spot opening tells everyone waiting instead of booking or offering it. Default on. */
+  autoPromote?: boolean;
 }
 
 export type BookingStatus = 'booked' | 'checked_in' | 'cancelled';
@@ -125,11 +127,12 @@ export interface Booking {
   status: BookingStatus;
 }
 
-/** A dog waiting for a spot in a full session. place 1 = next in line. */
+/** A dog waiting for a spot in a full session. place 1 = next in line. offerUntil (ISO): a spot held for it to accept. */
 export interface WaitEntry {
   sessionId: string;
   dogId: string;
   place: number;
+  offerUntil?: string;
 }
 
 /** A training path and the main dog's progress on it (my_paths). Not started: startedAt is null. */
