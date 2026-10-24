@@ -44,6 +44,13 @@ function Section({ title, children, gap = 14 }: { title: string; children: React
 }
 
 /** 05 Class detail */
+/** What a clearance opens, for an assessment's class page (Scheduling flow 23b). */
+const opensCopy = (type: string, partnerName: string) =>
+  catalog.clearanceTypes[type]?.description
+  || (type === 'social' ? 'It opens group play, sport and group skills at every partner.'
+    : type === 'herding' ? `It opens livestock classes at ${partnerName}.`
+      : `It opens classes that ask for a ${clearanceName(type)} clearance.`);
+
 export default function ClassDetail() {
   useOriginLabel(); // re-render when distances are measured from somewhere new
   const { c } = useTheme();
@@ -115,6 +122,15 @@ export default function ClassDetail() {
           <View style={{ flex: 1 }}>
             <Text variant="label" weight="600">{`${juno.name} is cleared for this.`}</Text>
             <Text variant="caption" muted>Social, via Eastside Dog Club, Sep 2026.</Text>
+          </View>
+        </View>
+      ) : null}
+      {el.ok && cls.grants ? (
+        <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start', padding: 16, borderRadius: 12, backgroundColor: c.surfaceRaised, marginBottom: 8 }}>
+          <Badge icon="shield-check" bg={c.surfaceSunken} fg={c.ink} />
+          <View style={{ flex: 1 }}>
+            <Text variant="label" weight="600">{`Pass and ${juno.name} is ${clearanceName(cls.grants)} cleared for ${catalog.clearanceTypes[cls.grants]?.expiryMonths ?? 12} months.`}</Text>
+            <Text variant="caption" muted style={{ marginTop: 2 }}>{opensCopy(cls.grants, partner.name)}</Text>
           </View>
         </View>
       ) : null}

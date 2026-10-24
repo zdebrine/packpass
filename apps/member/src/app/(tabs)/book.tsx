@@ -22,6 +22,8 @@ import { useTheme } from '@/theme/ThemeProvider';
 
 const CATS: Category[] = ['Sport', 'Scent', 'Play', 'Skills'];
 const TYPES: SessionType[] = ['Class', 'Private', 'Assessment'];
+/** Skills, by kind: what clears a dog, 1:1 work, then group classes. */
+const SKILL_GROUPS: [SessionType, string][] = [['Assessment', 'Assessments'], ['Private', '1:1 with a trainer'], ['Class', 'Group skills']];
 
 function Segmented({ value, onChange, float }: { value: 'List' | 'Map'; onChange: (v: 'List' | 'Map') => void; float?: boolean }) {
   const { c } = useTheme();
@@ -84,7 +86,7 @@ function LabelPin({ label, on, onPress, a11y }: { label: string; on: boolean; on
   );
 }
 
-const SUBS: Record<Category, string> = { Sport: 'Agility, sprints, herding', Scent: 'Nosework and sniff spaces', Play: 'Open field and small groups', Skills: 'Focus, recall, privates' };
+const SUBS: Record<Category, string> = { Sport: 'Agility, sprints, herding', Scent: 'Nosework and sniff spaces', Play: 'Open field and small groups', Skills: 'Assessments, 1:1s, focus and recall' };
 const minuteOfDay = (v: SessionView) => v.session.startsAt.getHours() * 60 + v.session.startsAt.getMinutes();
 
 /** Open first, then nearest, then soonest (03 Book · browse sections). */
@@ -144,18 +146,24 @@ export default function Book() {
     .sort((a, b) => b.fit.score - a.fit.score)
     .filter((r, i, all) => all.findIndex((x) => x.fix?.href === r.fix?.href) === i);
   const sections = CATS.map((k) => {
-    const rs = found.filter((r) => r.v.cls.category === k && r.access !== 'no').sort(nearestOpen);
+    const rs = found.filter((r) => (r.v.cls.category === k || (k === 'Skills' && r.v.cls.sessionType === 'Assessment')) && r.access !== 'no').sort(nearestOpen);
     return { k, count: rs.length, rows: rs.slice(0, 3) };
   });
 
   // Category: one category, the session types picked, grouped by place, nearest first. Classes the dog is outside of
   // (age, size, breed, spayed or neutered) hide behind a line saying so.
-  const inCat = cat ? found.filter((r) => r.v.cls.category === cat && (!types.length || types.includes(r.v.cls.sessionType))) : [];
+  // Skills also lists every assessment (Herding's sits under Sport), grouped by kind rather than place (23a).
+  const inCategory = (r: BookRow) => r.v.cls.category === cat || (cat === 'Skills' && r.v.cls.sessionType === 'Assessment');
+  const inCat = cat ? found.filter((r) => inCategory(r) && (!types.length || types.includes(r.v.cls.sessionType))) : [];
   const hidden = inCat.filter((r) => r.access === 'no');
   const shown = showHidden ? inCat : inCat.filter((r) => r.access !== 'no');
-  const groups = [...new Set(shown.map((r) => r.v.partner.id))]
-    .map((id) => shown.filter((r) => r.v.partner.id === id).sort((a, b) => Number(a.access === 'no') - Number(b.access === 'no') || minuteOfDay(a.v) - minuteOfDay(b.v)))
-    .sort((a, b) => a[0].v.partner.distanceMi - b[0].v.partner.distanceMi);
+  const byTime = (a: BookRow, b: BookRow) => Number(a.access === 'no') - Number(b.access === 'no') || minuteOfDay(a.v) - minuteOfDay(b.v);
+  const groups: { key: string; title: string; rows: BookRow[] }[] = cat === 'Skills'
+    ? SKILL_GROUPS.map(([t, title]) => ({ key: t, title, rows: shown.filter((r) => r.v.cls.sessionType === t).sort((a, b) => a.v.partner.distanceMi - b.v.partner.distanceMi || byTime(a, b)) })).filter((g) => g.rows.length)
+    : [...new Set(shown.map((r) => r.v.partner.id))]
+      .map((id) => shown.filter((r) => r.v.partner.id === id).sort(byTime))
+      .sort((a, b) => a[0].v.partner.distanceMi - b[0].v.partner.distanceMi)
+      .map((rs) => ({ key: rs[0].v.partner.id, title: `${rs[0].v.partner.distanceMi.toFixed(1)} mi · ${rs[0].v.partner.name}`, rows: rs }));
   const openShown = shown.filter((r) => r.access === 'open').length;
   const countLine = `${shown.length === 1 ? '1 class' : `${shown.length} classes`} · ${openShown} open to ${dog.name}`;
 
@@ -245,8 +253,8 @@ export default function Book() {
       )}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 48, rowGap: wide ? 28 : 0 }}>
         {groups.map((g) => (
-          <View key={g[0].v.partner.id} style={wide ? [cell(460, 48), { marginTop: 12 }] : { width: '100%', marginTop: 20 }}>
-            <PlaceGroup title={`${g[0].v.partner.distanceMi.toFixed(1)} mi · ${g[0].v.partner.name}`} n={g.length}>{lines(g)}</PlaceGroup>
+          <View key={g.key} style={wide ? [cell(460, 48), { marginTop: 12 }] : { width: '100%', marginTop: 20 }}>
+            <PlaceGroup title={g.title} n={g.rows.length}>{lines(g.rows)}</PlaceGroup>
           </View>
         ))}
       </View>

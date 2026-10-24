@@ -129,7 +129,7 @@ export default function BookingSheet() {
             <Text color="#fff" style={{ marginTop: 8 }}>{`${cls.title}, ${dayTimeInline(session.startsAt)}.`}</Text>
           </View>
         </View>
-        <Text variant="caption" muted style={{ marginTop: 14, marginHorizontal: 4 }}>{`${partner.name} · ${partner.address}. ${cancelCopy(session.startsAt)}.`}</Text>
+        <Text variant="caption" muted style={{ marginTop: 14, marginHorizontal: 4 }}>{`${partner.name} · ${partner.address}. ${cancelCopy(session.startsAt)}.${cls.grants ? ` If ${dogName} is cleared, PackPass shows the classes it opens.` : ''}`}</Text>
         <View style={{ flexDirection: 'row', gap: 8, marginTop: wide ? 18 : 16 }}>
           <Button variant="quiet" style={{ flex: 1 }} disabled={added} onPress={() => addToCalendar(v).then(setAdded).catch(() => {})}>{added ? 'Added' : 'Add to calendar'}</Button>
           <Button style={{ flex: 1 }} onPress={() => router.dismissTo('/')}>Done</Button>
