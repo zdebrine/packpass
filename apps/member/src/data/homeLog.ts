@@ -11,3 +11,12 @@ export const SAMPLE_HOME_LOG: HomeActivity[] = [
   { id: 'home-4', dogId: 'juno', kind: 'sniff', doneAt: at(3, 17, 45), durationMin: 30, balance: 'mental', skills: ['decompression'], rating: 'good', note: null, drillId: null, reps: null },
   { id: 'home-5', dogId: 'juno', kind: 'patio', doneAt: at(4, 11), durationMin: 20, balance: 'social', skills: ['calm_dogs'], rating: 'tough', note: 'Couldn\'t settle with dogs at the next table. Left after 15 minutes.', drillId: null, reps: null },
 ];
+
+/** Which skills the sample classes' trainer notes are about (live notes carry the partner's skill tags). */
+export const SAMPLE_NOTE_SKILLS: Record<string, string[]> = {
+  'Distance work': ['calm_dogs'],
+  'Social assessment': ['calm_dogs', 'settle_public'],
+  'Herding Fundamentals': ['recall'],
+  'Lure Sprint Heats': ['fitness'],
+  'Scent Work I': ['enrichment'],
+};

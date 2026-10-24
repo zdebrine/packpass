@@ -11,8 +11,8 @@ import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, O
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
 import { SAMPLE_HOME_LOG } from '@/data/homeLog';
 import { planOf } from '@/data/plans';
-import { activityById } from '@/data/practice';
-import type { Booking, ClearanceRecord, Dog, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, PracticeRemind, Series, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import { activityById, defaultFocus } from '@/data/practice';
+import type { Booking, ClearanceRecord, Dog, FocusSkill, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, PracticeRemind, Series, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
 import { now } from '@/lib/clock';
 import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
@@ -198,6 +198,9 @@ interface AppState extends Demo {
   missed: LogEntry[];
   /** Walks, park trips and practice logged between classes, every dog, newest first (Log at home). */
   homeLog: HomeActivity[];
+  /** What each dog is working on, by dog id. Live: dog_focus_skills. Sample: only dogs the owner edited (others follow traits and paths). */
+  focus: Record<string, FocusSkill[]>;
+  setFocusSkills: (dogId: string, skills: string[]) => Promise<void>;
   /** Logs one activity for each of input.dogIds; resolves with the new ids. */
   logHome: (input: HomeActivityInput) => Promise<string[]>;
   editHome: (id: string, input: HomeActivityInput) => Promise<void>;
@@ -317,6 +320,7 @@ const fresh = {
   log: null as LogEntry[] | null,
   missed: [] as LogEntry[],
   homeLog: (isLive ? [] : SAMPLE_HOME_LOG) as HomeActivity[],
+  focus: {} as Record<string, FocusSkill[]>,
   seenMissed: [] as string[],
   clearanceRecords: null as ClearanceRecord[] | null,
   paths: null as PathProgress[] | null,
@@ -331,7 +335,7 @@ const fresh = {
 // Live mode starts empty and fills from Supabase on sign-in.
 if (isLive) {
   Object.assign(fresh, {
-    dogs: [], dogRecords: {}, credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], waivers: [], waiversSigned: {}, remoteNotifications: [], remoteSeries: [], seriesRules: [], log: [], missed: [], homeLog: [], clearanceRecords: [], paths: [], account: { name: '', email: '' },
+    dogs: [], dogRecords: {}, credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], waivers: [], waiversSigned: {}, remoteNotifications: [], remoteSeries: [], seriesRules: [], log: [], missed: [], homeLog: [], focus: {}, clearanceRecords: [], paths: [], account: { name: '', email: '' },
   });
 }
 
@@ -635,7 +639,7 @@ export const useApp = create<AppState>()(
         },
         signOut: async () => {
           if (isLive) await live.signOut(get().pushToken);
-          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [], missed: [], homeLog: [], clearanceRecords: [], paths: [] } : {}) });
+          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [], missed: [], homeLog: [], focus: {}, clearanceRecords: [], paths: [] } : {}) });
         },
         setDogPhoto: async (dogId, dataUri) => {
           if (isLive) {
@@ -673,7 +677,9 @@ export const useApp = create<AppState>()(
             return;
           }
           await live.loadCatalog();
-          const [m, log, homeLog] = await Promise.all([live.loadMember(), live.loadLog().catch(() => null), live.loadHomeLog().catch(() => null)]);
+          const [m, log, homeLog, focus] = await Promise.all([
+            live.loadMember(), live.loadLog().catch(() => null), live.loadHomeLog().catch(() => null), live.loadFocus().catch(() => null),
+          ]);
           if (!m) {
             set({ ready: true, signedIn: false, onboarded: false });
             return;
@@ -698,6 +704,7 @@ export const useApp = create<AppState>()(
             log: log ? log.filter((e) => !e.missed) : get().log,
             missed: log ? log.filter((e) => e.missed) : get().missed,
             homeLog: homeLog ?? get().homeLog,
+            focus: focus ?? get().focus,
             account: { name: m.name, email: m.email },
             emailReminders: m.emailReminders,
             membership: m.membership,
@@ -816,6 +823,15 @@ export const useApp = create<AppState>()(
           if (isLive) await live.deleteHome(id);
           set((s) => ({ homeLog: s.homeLog.filter((h) => h.id !== id) }));
         },
+        setFocusSkills: async (dogId, skills) => {
+          if (isLive) {
+            await live.setFocusSkills(dogId, skills);
+            set({ focus: await live.loadFocus() });
+            return;
+          }
+          const before = get().focus[dogId] ?? defaultFocus(get().dogs.find((d) => d.id === dogId)?.traits ?? [], get().activePaths);
+          set((s) => ({ focus: { ...s.focus, [dogId]: skills.map((id) => before.find((f) => f.skillId === id) ?? { skillId: id, source: 'owner' as const }) } }));
+        },
         setPracticeGoal: async (dogId, days, remind) => {
           if (isLive) await live.setPracticeGoal(dogId, days, remind);
           set((s) => ({ dogs: s.dogs.map((d) => (d.id === dogId ? { ...d, practiceDays: days, practiceRemind: remind } : d)) }));
@@ -891,7 +907,7 @@ export const useApp = create<AppState>()(
           : {
               dogs: s.dogs, activeDogId: s.activeDogId, dogRecords: s.dogRecords, addingDog: s.addingDog, origin: s.origin, area: s.area, appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
               readNotifications: s.readNotifications, emailReminders: s.emailReminders, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, seriesRules: s.seriesRules, social: s.social, socialExpired: s.socialExpired,
-              behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines, vaccineRecord: s.vaccineRecord, waiversSigned: s.waiversSigned, homeLog: s.homeLog,
+              behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines, vaccineRecord: s.vaccineRecord, waiversSigned: s.waiversSigned, homeLog: s.homeLog, focus: s.focus,
               seenRecordDenials: s.seenRecordDenials, seenMissed: s.seenMissed,
             },
       onRehydrateStorage: () => () => syncDistances(),

@@ -208,6 +208,12 @@ export interface HomeActivity {
   reps: number | null;
 }
 
+/** One of the skills a dog is working on (07k), and where it came from. */
+export interface FocusSkill {
+  skillId: string;
+  source: 'trait' | 'path' | 'note' | 'assessment' | 'owner';
+}
+
 /** What the Log activity sheet sends: one activity, for one or more dogs. */
 export interface HomeActivityInput {
   dogIds: string[];
