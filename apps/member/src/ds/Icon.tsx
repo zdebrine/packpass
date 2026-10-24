@@ -1,5 +1,5 @@
 import {
-  Activity, ArrowRight, Award, Ban, BatteryFull, Bell, Bookmark, Building, Cake, Calendar, CalendarCheck, CalendarPlus, CalendarSearch, CalendarX, Camera, Check, CircleDot, Coffee, DoorClosed, Eye, Footprints, Leaf, Mountain, Puzzle, Store, Target, CircleDashed, CircleCheck, OctagonAlert, Play, TrendingDown, Pencil,
+  Activity, ArrowRight, Award, Ban, BatteryFull, Bell, Bookmark, Building, Cake, Calendar, CalendarCheck, CalendarPlus, CalendarSearch, CalendarX, Camera, Check, CircleDot, Coffee, DoorClosed, Eye, Footprints, Leaf, Mountain, Puzzle, Store, Target, CircleDashed, CircleCheck, OctagonAlert, Play, TrendingDown, Pencil, Shuffle, ListChecks, ArrowDown,
   ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock, Fence, FilePen, FilePlus, FileText, Flashlight, House, Link, List, Lock, LockOpen, Map, MapPin, MessageSquare,
   Minus, Navigation, Plus, Repeat, RotateCcw, ScanLine, Search, Settings, Share, Shield, ShieldAlert, ShieldCheck, Sparkles, Star, Stethoscope, Syringe, Ticket,
   Timer, Trees, TrendingUp, Trophy, UserRound, Users, Wallet, X, Zap, type LucideIcon,
@@ -12,6 +12,7 @@ const ICONS = {
   cake: Cake, calendar: Calendar, 'calendar-check': CalendarCheck, 'calendar-plus': CalendarPlus, 'calendar-search': CalendarSearch, 'calendar-x': CalendarX, camera: Camera,
   check: Check, 'circle-dot': CircleDot, coffee: Coffee, 'door-closed': DoorClosed, eye: Eye, footprints: Footprints, leaf: Leaf, mountain: Mountain, puzzle: Puzzle, store: Store, target: Target,
   'circle-dashed': CircleDashed, 'circle-check': CircleCheck, 'octagon-alert': OctagonAlert, play: Play, 'trending-down': TrendingDown, pencil: Pencil,
+  shuffle: Shuffle, 'list-checks': ListChecks, 'arrow-down': ArrowDown,
   'chevron-down': ChevronDown, 'chevron-left': ChevronLeft, 'chevron-right': ChevronRight, 'circle-alert': CircleAlert, clock: Clock,
   fence: Fence, 'file-pen': FilePen, 'file-plus': FilePlus, 'file-text': FileText, flashlight: Flashlight, house: House, link: Link, list: List, lock: Lock, 'lock-open': LockOpen, map: Map, 'map-pin': MapPin,
   'message-square': MessageSquare, minus: Minus, navigation: Navigation, plus: Plus, repeat: Repeat, 'rotate-ccw': RotateCcw, 'scan-line': ScanLine, search: Search, settings: Settings,

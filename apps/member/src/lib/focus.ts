@@ -1,7 +1,8 @@
 // Working on (07k): the dog's focus skills, how practice on each is going this week, and each skill's detail
 // (the last four weeks, its drills, trainers' notes that mention it and classes that train it).
-import { drillsFor, skillById, type Drill, type Rating } from '@/data/practice';
+import { activityById, drillsFor, skillById, skillLabel, type Drill, type Rating } from '@/data/practice';
 import type { FocusSkill, HomeActivity, LogEntry } from '@/data/types';
+import type { SessionView } from './booking';
 import { now as clock } from './clock';
 import { dayOffset, monthDay } from './dates';
 
@@ -93,4 +94,38 @@ export function skillNotes(entries: LogEntry[], skillId: string): SkillNote[] {
     .sort((a, b) => +b.startsAt - +a.startsAt)
     .slice(0, 3)
     .map((e) => ({ key: e.bookingId, note: e.note!, by: [e.noteBy ?? e.trainer, monthDay(e.startsAt)].filter(Boolean).join(' · ') }));
+}
+
+/**
+ * Today's practice (07): what the hero at the top of Log offers today, in this order. Done: something was logged at
+ * home today. Class: a class later today, with a warm-up drill. Prompt: nothing picked to work on yet. Rest: the weekly
+ * goal is met and there was practice on each of the last four days. Suggest: a drill for each focus skill, the one furthest behind this week first.
+ */
+export type TodayPractice =
+  | { kind: 'done'; line: string }
+  | { kind: 'class'; view: SessionView; drill: Drill | null }
+  | { kind: 'prompt' }
+  | { kind: 'rest' }
+  | { kind: 'suggest'; drills: Drill[] };
+
+export const REST_AFTER = 4;
+
+export function todaysPractice(
+  { tiles, home, classToday, activeDays, goalMet, at = clock() }: { tiles: SkillTile[]; home: HomeActivity[]; classToday: SessionView | null; activeDays: Set<string>; goalMet: boolean; at?: Date },
+): TodayPractice {
+  const today = home.filter((h) => dayOffset(h.doneAt, at) === 0).sort((a, b) => +b.doneAt - +a.doneAt)[0];
+  if (today) {
+    const what = [`${today.durationMin} min ${activityById(today.kind).label.toLowerCase()}`, ...today.skills.slice(0, 1).map((s) => skillLabel(s).toLowerCase())];
+    return { kind: 'done', line: `Done for today. ${what.join(', ')}.` };
+  }
+  const drills = [...tiles]
+    .map((t, i) => ({ t, i }))
+    .sort((a, b) => a.t.done / a.t.target - b.t.done / b.t.target || a.i - b.i)
+    .map(({ t }) => { const { drills: all, next } = skillDrills(home, t.id); return all.find((d) => d.id === next) ?? all[0]; })
+    .filter((d): d is Drill => !!d);
+  if (classToday) return { kind: 'class', view: classToday, drill: drills[0] ?? null };
+  if (!tiles.length) return { kind: 'prompt' };
+  const straight = Array.from({ length: REST_AFTER }, (_, i) => new Date(at.getFullYear(), at.getMonth(), at.getDate() - 1 - i).toDateString());
+  if (goalMet && straight.every((d) => activeDays.has(d))) return { kind: 'rest' };
+  return { kind: 'suggest', drills };
 }
