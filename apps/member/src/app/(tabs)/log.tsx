@@ -9,6 +9,7 @@ import { Press } from '@/ds/Press';
 import { col, Columns, Page, useWide } from '@/ds/responsive';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
+import { TodayCard } from '@/features/log/TodayCard';
 import { useLogView, useSkillTiles } from '@/features/log/view';
 import { TREND, type SkillTile } from '@/lib/focus';
 import { countLabel, monthHeader, type BalanceRow, type DayMark, type FeedRow } from '@/lib/log';
@@ -305,29 +306,33 @@ export default function Log() {
     const raised: ViewStyle = { padding: 24, borderRadius: 16, backgroundColor: c.surfaceRaised };
     const msCols = Math.max(1, Math.floor((msWidth + 10) / 140));
     const msTile = msWidth ? (msWidth - 10 * (msCols - 1)) / msCols : 130;
+    const tileCols = Math.max(2, Math.min(4, Math.floor((tileWidth + 10) / 220)));
     return (
       <Page top={32}>
         {header}
-        <Columns gap={16} align="stretch" style={{ marginTop: 24 }}>
+        <Columns gap={16} style={{ marginTop: 24 }}>
           <View style={col(1, 360, { gap: 16 })}>
-            {weekCard}
+            <TodayCard dog={juno} height={380} />
             {firstWalk}
-            <View style={{ marginTop: 16 }}>
-              {workingHead}
-              {tiles.length ? (
-                <View onLayout={(e) => setTileWidth(e.nativeEvent.layout.width)} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                  {tiles.map((t) => skillTile(t, tileWidth ? (tileWidth - 10) / 2 : 160))}
-                </View>
-              ) : noFocus}
+          </View>
+          <View style={col(1, 400, { gap: 16 })}>
+            {weekCard}
+            <View style={raised}>
+              {balanceHead}
+              {balanceRows}
+              {balanceLegend}
+              <Text variant="label" muted style={{ marginTop: 12 }}>{view.hint}</Text>
             </View>
           </View>
-          <View style={col(1, 400, raised)}>
-            {balanceHead}
-            {balanceRows}
-            {balanceLegend}
-            <Text variant="label" muted style={{ marginTop: 12 }}>{view.hint}</Text>
-          </View>
         </Columns>
+        <View style={{ marginTop: 40 }}>
+          {workingHead}
+          {tiles.length ? (
+            <View onLayout={(e) => setTileWidth(e.nativeEvent.layout.width)} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              {tiles.map((t) => skillTile(t, tileWidth ? (tileWidth - 10 * (tileCols - 1)) / tileCols : 200))}
+            </View>
+          ) : <View style={{ maxWidth: 440 }}>{noFocus}</View>}
+        </View>
         <Columns gap={40} style={{ marginTop: 40 }}>
           <View style={col(1, 340, { maxWidth: 440 })}>
             <View style={{ flexDirection: 'row', gap: 16, marginBottom: 40 }}>
@@ -357,6 +362,7 @@ export default function Log() {
         <View style={{ paddingHorizontal: 20 }}>
           {header}
           <View style={{ marginTop: 20, gap: 16 }}>
+            <TodayCard dog={juno} height={400} />
             {weekCard}
             {firstWalk}
           </View>

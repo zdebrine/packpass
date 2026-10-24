@@ -86,7 +86,7 @@ export default function SkillDetail() {
     <View>
       <Text variant="title" style={{ marginBottom: 6 }}>Drills</Text>
       {drills.map((d, i) => (
-        <Press key={d.id} onPress={() => router.push(`/log-activity?drill=${d.id}` as Href)} accessibilityLabel={`${d.title}, ${d.minutes} minutes. Log it`}
+        <Press key={d.id} onPress={() => router.push(`/practice/${d.id}` as Href)} accessibilityLabel={`${d.title}, ${d.minutes} minutes`}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderColor: c.surfaceSunken }}>
           <Photo name={d.image} style={{ width: 56, height: 56, borderRadius: 12 }} />
           <View style={{ flex: 1, minWidth: 0 }}>

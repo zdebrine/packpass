@@ -6,7 +6,10 @@ import { pastSessions } from '@/data/fixtures';
 import { SAMPLE_NOTE_SKILLS } from '@/data/homeLog';
 import { defaultFocus } from '@/data/practice';
 import type { Dog, FocusSkill } from '@/data/types';
-import { skillNotes, skillTiles, type SkillNote } from '@/lib/focus';
+import { view as sessionView, type SessionView } from '@/lib/booking';
+import { now } from '@/lib/clock';
+import { dayOffset } from '@/lib/dates';
+import { skillNotes, skillTiles, todaysPractice, type SkillNote } from '@/lib/focus';
 import { liveLog, sampleLog } from '@/lib/log';
 import { useApp } from '@/store/app';
 
@@ -58,4 +61,29 @@ export function useSkillNotes(dog: Dog, skillId: string): SkillNote[] {
     return pastSessions.filter((p) => SAMPLE_NOTE_SKILLS[p.title]?.includes(skillId))
       .map((p) => ({ key: p.title, note: p.note, by: `${p.trainer.split(' · ')[0]} · ${p.date}` }));
   }, [entries, dog.id, skillId]);
+}
+
+/** Today's practice (07): the hero at the top of Log. */
+export function useTodayPractice(dog: Dog) {
+  const tiles = useSkillTiles(dog);
+  const homeLog = useApp((s) => s.homeLog);
+  const bookings = useApp((s) => s.bookings);
+  const entries = useApp((s) => s.log);
+  const { week } = useLogView(dog);
+  const goalMet = week.practiced >= week.goal;
+  return useMemo(() => {
+    const at = now();
+    const home = homeLog.filter((h) => h.dogId === dog.id);
+    // A class still to come (or under way) today.
+    const classToday = bookings
+      .filter((b) => b.dogId === dog.id && b.status !== 'cancelled')
+      .map((b) => sessionView(b.sessionId))
+      .filter((v): v is SessionView => !!v && dayOffset(v.session.startsAt, at) === 0 && +v.session.startsAt + v.cls.durationMin * 60_000 > +at)
+      .sort((a, b) => +a.session.startsAt - +b.session.startsAt)[0] ?? null;
+    const activeDays = new Set([
+      ...home.map((h) => h.doneAt.toDateString()),
+      ...(entries ?? []).filter((e) => e.dogId === dog.id && !e.missed).map((e) => e.startsAt.toDateString()),
+    ]);
+    return todaysPractice({ tiles, home, classToday, activeDays, goalMet, at });
+  }, [tiles, homeLog, bookings, entries, dog.id, goalMet]);
 }
