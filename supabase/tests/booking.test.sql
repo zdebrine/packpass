@@ -3,6 +3,14 @@
 \set ON_ERROR_STOP 1
 
 create schema t;
+-- Members sign the PackPass waiver before booking (…_booking_waivers.sql); this test isn't about waivers.
+create function t.sign_waivers() returns void language sql security definer set search_path = public as $$
+  insert into public.waiver_signatures (member_id, waiver_id, signed_name)
+  select p.id, w.id, 'Test member' from public.profiles p join public.waivers w on w.active and w.partner_id is null
+  on conflict do nothing
+$$;
+grant usage on schema t to authenticated;
+grant execute on function t.sign_waivers to authenticated;
 grant usage on schema t to authenticated;
 
 -- Runs `q` and fails unless it raises an error whose message contains `want`.
@@ -54,7 +62,9 @@ select t.ok((select credits_balance from profiles where email = 'alex@kim.co') =
 select t.ok((select count(*) from credit_ledger where reason = 'adjustment') = 2, 'sign-up writes the grant to the ledger');
 
 select public.seed_demo_member('00000000-0000-0000-0000-00000000000a');
+select t.sign_waivers();
 select public.seed_demo_member('00000000-0000-0000-0000-00000000000b');
+select t.sign_waivers();
 
 create table t.ids as
 select (select id from dogs where owner_id = '00000000-0000-0000-0000-00000000000a' and name = 'Juno') as juno,
@@ -75,6 +85,7 @@ select t.expect_error($$insert into bookings (session_id, dog_id, member_id, cre
   values (t.next_session('agility-drop-in'), (select juno from t.ids), auth.uid(), 0)$$, 'row-level security');
 update profiles set name = 'Alex K.';
 select t.ok((select name from profiles) = 'Alex K.', 'a member can rename themselves');
+select t.sign_waivers();
 select t.expect_error($$select public.book_session(t.next_session('small-group-play'), (select other_juno from t.ids))$$, 'not_your_dog');
 
 -- ---- Eligibility -----------------------------------------------------------------------------
@@ -176,6 +187,7 @@ select t.expect_error($$insert into storage.objects (bucket_id, name) values ('v
 reset role;
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000c', 'new@dog.co');
 select public.seed_demo_member('00000000-0000-0000-0000-00000000000c');
+select t.sign_waivers();
 create table t.c as
 select (select id from dogs where owner_id = '00000000-0000-0000-0000-00000000000c' and name = 'Juno') as dog,
        t.next_session('free-roam') as roam, t.next_session('herding-livestock') as livestock, t.next_session('open-field') as field,
@@ -219,6 +231,7 @@ select t.ok((select spots_left from sessions where id = (select field from t.c))
 -- A "not yet" releases the dog's holds and tells the owner.
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000d', 'notyet@dog.co');
 select public.seed_demo_member('00000000-0000-0000-0000-00000000000d');
+select t.sign_waivers();
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
 select public.hold_sessions((select id from dogs limit 1), array[t.next_session('free-roam'), t.next_session('agility-drop-in')]);
@@ -231,6 +244,7 @@ select t.ok(exists (select 1 from notifications where member_id = '00000000-0000
 -- ---- Hold reminders ---------------------------------------------------------------------------
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000e', 'remind@dog.co');
 select public.seed_demo_member('00000000-0000-0000-0000-00000000000e');
+select t.sign_waivers();
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000e', false);
 select public.hold_sessions((select id from dogs limit 1), array[t.next_session('free-roam'), t.next_session('agility-drop-in')]);
@@ -276,8 +290,11 @@ insert into auth.users (id, email) values
 -- Each demo member books Herding Fundamentals; make room for three more.
 update sessions set capacity = capacity + 3, packpass_spots = packpass_spots + 3, spots_left = spots_left + 3 where class_id = 'herding-fundamentals';
 select public.seed_demo_member('00000000-0000-0000-0000-0000000000f1');
+select t.sign_waivers();
 select public.seed_demo_member('00000000-0000-0000-0000-0000000000f2');
+select t.sign_waivers();
 select public.seed_demo_member('00000000-0000-0000-0000-0000000000f3');
+select t.sign_waivers();
 create table t.w as select
   t.next_session('sniff-space') sniff,
   (select id from sessions where class_id = 'sniff-space' and starts_at > now() + interval '1 day' order by starts_at offset 1 limit 1) other,
@@ -371,6 +388,7 @@ select t.ok((select email from profiles where id = '00000000-0000-0000-0000-0000
 reset role;
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000e1', 'leaving@dog.co');
 select public.seed_demo_member('00000000-0000-0000-0000-0000000000e1');
+select t.sign_waivers();
 create table t.leaving as select b.session_id sid, s.spots_left before from bookings b join sessions s on s.id = b.session_id
   where b.member_id = '00000000-0000-0000-0000-0000000000e1' and b.status = 'booked';
 select t.expect_error($$set local role anon; select public.delete_my_account()$$, 'permission denied');

@@ -1,6 +1,14 @@
 -- Partner dashboard functions (migrations/…_partner_dashboard.sql). Runs after booking.test.sql on
 -- the same database; uses its own accounts.
 create schema p;
+-- Members sign the PackPass waiver before booking (…_booking_waivers.sql); this test isn't about waivers.
+create function p.sign_waivers() returns void language sql security definer set search_path = public as $$
+  insert into public.waiver_signatures (member_id, waiver_id, signed_name)
+  select p.id, w.id, 'Test member' from public.profiles p join public.waivers w on w.active and w.partner_id is null
+  on conflict do nothing
+$$;
+grant usage on schema p to authenticated;
+grant execute on function p.sign_waivers to authenticated;
 create function p.expect_error(q text, want text) returns void language plpgsql as $$
 declare got text;
 begin
@@ -32,9 +40,11 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-0000000000a4', 'lena@southfork.co', '{"name":"Lena Brooks"}');
 update sessions set capacity = capacity + 2, packpass_spots = packpass_spots + 2, spots_left = spots_left + 2 where class_id = 'herding-fundamentals';
 select public.seed_demo_member('00000000-0000-0000-0000-0000000000a3');
+select p.sign_waivers();
 -- A second member whose Juno has Social (so group classes are open to her).
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000a5', 'second@dog.co');
 select public.seed_demo_member('00000000-0000-0000-0000-0000000000a5');
+select p.sign_waivers();
 insert into clearances (dog_id, type, scope, partner_id, assessed_on, expires_on)
 values ((select id from dogs where owner_id = '00000000-0000-0000-0000-0000000000a5' and name = 'Juno'), 'social', 'network', 'eastside', current_date, current_date + 365);
 select public.link_partner_staff('owner@ridgeline.co', 'ridgeline', 'owner', 'maren');
@@ -79,6 +89,7 @@ select p.ok((select spots_left = 0 and capacity = 12 and not waitlist_open from 
 -- A member can't join a closed waitlist.
 set role authenticated;
 select p.as_user('00000000-0000-0000-0000-0000000000a5');
+select p.sign_waivers();
 select p.expect_error($$select public.join_waitlist((select id from dogs where name = 'Juno'), (select hf from p.ids))$$, 'waitlist_closed');
 
 -- ---- Adding sessions -----------------------------------------------------------------------------

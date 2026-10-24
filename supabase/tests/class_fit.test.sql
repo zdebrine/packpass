@@ -1,5 +1,13 @@
 -- Who a class is for (migrations/…_breeds.sql and …_class_fit_gates.sql). Uses its own account and dogs.
 create schema f;
+-- Members sign the PackPass waiver before booking (…_booking_waivers.sql); this test isn't about waivers.
+create function f.sign_waivers() returns void language sql security definer set search_path = public as $$
+  insert into public.waiver_signatures (member_id, waiver_id, signed_name)
+  select p.id, w.id, 'Test member' from public.profiles p join public.waivers w on w.active and w.partner_id is null
+  on conflict do nothing
+$$;
+grant usage on schema f to authenticated;
+grant execute on function f.sign_waivers to authenticated;
 create function f.ok(cond boolean, what text) returns void language plpgsql as $$
 begin
   if cond is not true then raise exception 'FAILED: %', what; end if;
@@ -88,6 +96,7 @@ grant execute on all functions in schema f to authenticated;
 update profiles set credits_balance = 20 where id = '00000000-0000-0000-0000-00000000fd01';
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000fd01', false);
+select f.sign_waivers();
 select f.expect_error($$select public.book_session(f.next('senior-strength'), (select id from f.d where k = 'prime'))$$, 'too_young');
 reset role;
 

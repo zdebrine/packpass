@@ -16,6 +16,7 @@ import { Split } from '@/features/desktop/Split';
 import { bookError, credits as creditsLabel, sessionOn } from '@/lib/booking';
 import { time, weekday } from '@/lib/dates';
 import { enablePush } from '@/lib/push';
+import { packpassWaiver } from '@/lib/ready';
 import { activeDogId, useApp, usePlan, useRules } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -43,6 +44,7 @@ function Month() {
   const holdSessions = useApp((s) => s.holdSessions);
   const adding = useApp((s) => s.addingDog);
   const balance0 = useApp((s) => s.credits);
+  const waiver = useApp((s) => { const w = packpassWaiver(s.waivers); return w && !s.waiversSigned[w.id] ? w : null; });
   const rules = useRules();
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<Result[] | null>(null);
@@ -54,7 +56,8 @@ function Month() {
   const rows = plan.map((r) => {
     const pick = r.swap && swaps.includes(r.classId) ? r.swap : r;
     const v = sessionOn(pick.classId, pick.day);
-    const open = { ...rules, credits: 99, bookings: [] };
+    // Waivers aren't a lock on the plan: the PackPass one is signed before booking, partners' on a first booking there.
+    const open = { ...rules, credits: 99, bookings: [], waiverFor: undefined };
     let block: string | null = v ? bookError(v.session.id, 'onboarding', open) : 'not_found';
     // Held for after the assessment, unless something else (vaccines, full) would still stop it.
     let after = false;
@@ -81,6 +84,8 @@ function Month() {
   });
 
   const go = async (book: boolean) => {
+    // Booking needs the PackPass waiver (skipped at Ready to book): sign it, then come back and book.
+    if (book && waiver) return router.push({ pathname: '/waiver', params: { id: waiver.id } });
     setBusy(true);
     setFailure(null);
     try {
@@ -134,6 +139,9 @@ function Month() {
         ) : null}
         {skipped.some((r) => r.error === 'needs_social') ? (
           <Text variant="caption" muted style={{ marginTop: 6 }}>{`Group classes open once ${name} has a Social clearance. Path sessions are open now.`}</Text>
+        ) : null}
+        {skipped.some((r) => r.error === 'partner_waiver') ? (
+          <Text variant="caption" muted>Some partners have their own waiver. Book those classes from Book to sign it once.</Text>
         ) : null}
         {skipped.some((r) => r.error === 'vaccines') ? (
           <Text variant="caption" muted>{`Update ${name}'s vaccines to book further out.`}</Text>
@@ -221,7 +229,7 @@ function Month() {
       {failure ? <Text variant="label" color={c.kennelRed} style={{ marginTop: 16 }}>{failure}</Text> : null}
     </>
   );
-  const book = <Button variant="signal" block disabled={busy} onPress={() => go(true)}>{busy ? 'Booking…' : 'Book these'}</Button>;
+  const book = <Button variant="signal" block disabled={busy} onPress={() => go(true)}>{busy ? 'Booking…' : waiver ? 'Sign the waiver to book' : 'Book these'}</Button>;
   const skip = <Button variant="quiet" block disabled={busy} onPress={() => go(false)}>Skip for now</Button>;
 
   if (wide) {

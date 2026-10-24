@@ -8,10 +8,11 @@ import { withClasses, type SessionView } from '@/lib/sessions';
 import { addDays, austin, mondayOf, time, ymd } from '@/lib/time';
 import { Badge, Button, ErrorLine, Field, Ico, Modal, Page, PageHead, Row, Tag, photoUrl } from '@/ui/kit';
 import { QrModal } from './Roster';
+import { WaiverCard } from './Waiver';
 
 const TYPE: Record<string, string> = { trainer: 'Trainer', facility: 'Facility', sport_club: 'Sport club', behavior_specialist: 'Behavior specialist', outdoor_space: 'Outdoor space' };
 
-/** 06 Locations: where the partner trains, the notes members get on arrival, and today's check-in codes. */
+/** 06 Locations: where the partner trains, the notes members get on arrival, the waiver, and today's check-in codes. */
 export function Locations() {
   const { partner, classes, reloadCatalog } = usePartner();
   const now = new Date();
@@ -62,6 +63,7 @@ export function Locations() {
             </Row>
           </div>
         </div>
+        <WaiverCard />
       </div>
       <span className="pp-caption pp-muted">Training somewhere else too? Ask PackPass to add the location. Each one gets its own address and check-in.</span>
 

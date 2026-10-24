@@ -1,6 +1,14 @@
 -- Every notification about one dog's class opens that dog (migrations/…_dog_links.sql). One owner, two dogs,
 -- both Social cleared with current vaccines. Uses its own accounts.
 create schema dl;
+-- Members sign the PackPass waiver before booking (…_booking_waivers.sql); this test isn't about waivers.
+create function dl.sign_waivers() returns void language sql security definer set search_path = public as $$
+  insert into public.waiver_signatures (member_id, waiver_id, signed_name)
+  select p.id, w.id, 'Test member' from public.profiles p join public.waivers w on w.active and w.partner_id is null
+  on conflict do nothing
+$$;
+grant usage on schema dl to authenticated;
+grant execute on function dl.sign_waivers to authenticated;
 create function dl.ok(cond boolean, what text) returns void language plpgsql as $$
 begin
   if cond is not true then raise exception 'FAILED: %', what; end if;
@@ -51,6 +59,7 @@ grant execute on all functions in schema dl to authenticated;
 -- Booked: one notification per dog, each opening that dog's class.
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002d1', false);
+select dl.sign_waivers();
 select public.book_session(dl.sid('both'), (select pip from dl.ids));
 select public.book_session(dl.sid('both'), (select moss from dl.ids));
 reset role;

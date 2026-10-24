@@ -216,6 +216,8 @@ export interface Waiver {
   id: string;
   partnerId: string | null;
   title: string;
+  /** Up to three short points for the booking sheet ("Ridgeline waiver, in short"). */
+  summary: string[];
   /** Pasted text, a PDF, or both. */
   body: string | null;
   pdfPath: string | null;
