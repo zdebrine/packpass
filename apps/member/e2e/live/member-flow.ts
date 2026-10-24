@@ -142,7 +142,7 @@ const S = () => useApp.getState();
   const play = nextSession('small-group-play', 1)!;
   r = await S().bookSession(play.session.id, dog);
   ok(r.ok && S().credits === 7 && S().bookings.length === 2, 'a path session books and charges 1 credit');
-  ok(S().remoteNotifications!.some((x) => x.title === 'Booked. Small-group play'), 'the booking notification shows up');
+  ok(S().remoteNotifications!.some((x) => x.title.startsWith('Booked. Small-group play, ') && x.kind === 'booked' && x.sessionId === play.session.id), 'the booking notification shows up');
 
   // 01j holds group sessions for a dog without Social: spot reserved on the server, no credits.
   const roam = nextSession('free-roam', 3)!;
