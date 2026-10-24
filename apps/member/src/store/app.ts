@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
@@ -9,11 +10,12 @@ import { catalog } from '@/data/catalog';
 import { dogs as sampleDogs, INITIAL_BOOKINGS, INITIAL_CREDITS, JUNO_VACCINES, OTIS_VACCINES, SAMPLE_WAIVERS, SAMPLE_WAIVERS_SIGNED, TRAIT_SPECIAL, type Energy } from '@/data/fixtures';
 import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, type Goal, type Notif } from '@/data/passport';
 import { planOf } from '@/data/plans';
-import type { Booking, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import type { Booking, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, Series, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
 import { now } from '@/lib/clock';
 import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
 import { unsignedWaiver } from '@/lib/ready';
+import { monthEnd, ruleFor, ruleSessions, seriesPlan, type SeriesRule } from '@/lib/series';
 
 export type Appearance = 'system' | 'light' | 'dark';
 /** working: on the Calm around dogs path. earned: re-check passed, not seen yet. cleared: seen on screen 13. */
@@ -158,6 +160,13 @@ interface AppState extends Demo {
   /** Full sessions the member is waiting on. A spot that opens is booked for the first dog in line
    * until 12 hours before the start (supabase/migrations/…_waitlist.sql). */
   waitlist: WaitEntry[];
+  /** Standing bookings: live mode's from my_series(), sample mode's rules (see useSeries). */
+  remoteSeries: Series[] | null;
+  seriesRules: SeriesRule[];
+  /** Books the session and repeats it every week, until a date (YYYY-MM-DD) or until credits run out (null). */
+  startSeries: (sessionId: string, dogId: string, until: string | null) => Promise<BookResult>;
+  /** Ends a series and cancels its dates still free to cancel. */
+  endSeries: (seriesId: string) => Promise<void>;
   /** Paths the main dog is still working through. Their sessions skip the Social gate. */
   activePaths: Goal['id'][];
   /** Partners where the main dog holds a Herding clearance. */
@@ -280,6 +289,8 @@ const fresh = {
   planSwaps: [] as string[],
   pendingPlan: [] as string[],
   waitlist: [] as WaitEntry[],
+  remoteSeries: null as Series[] | null,
+  seriesRules: [] as SeriesRule[],
   area: null as string | null,
   origin: null as Origin | null,
   activePaths: ['calm-around-dogs', 'loose-leash-walking'] as Goal['id'][],
@@ -309,7 +320,7 @@ const fresh = {
 // Live mode starts empty and fills from Supabase on sign-in.
 if (isLive) {
   Object.assign(fresh, {
-    dogs: [], dogRecords: {}, credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], waivers: [], waiversSigned: {}, remoteNotifications: [], log: [], missed: [], clearanceRecords: [], paths: [], account: { name: '', email: '' },
+    dogs: [], dogRecords: {}, credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], waivers: [], waiversSigned: {}, remoteNotifications: [], remoteSeries: [], seriesRules: [], log: [], missed: [], clearanceRecords: [], paths: [], account: { name: '', email: '' },
   });
 }
 
@@ -680,6 +691,7 @@ export const useApp = create<AppState>()(
             membership: m.membership,
             ...(adding ? {} : { paths: paths ?? get().paths }),
             waitlist: m.waitlist,
+            remoteSeries: m.series,
             area: m.area,
             waivers: m.waivers,
             waiversSigned: m.waiversSigned,
@@ -702,6 +714,40 @@ export const useApp = create<AppState>()(
             const r = bookLocal(sessionId, dogId);
             return { sessionId, error: r.ok ? null : r.error };
           });
+        },
+        startSeries: async (sessionId, dogId, until) => {
+          if (isLive) {
+            try {
+              await thenRefresh(() => live.startSeries(sessionId, dogId, until));
+              const b = get().bookings.find((x) => x.sessionId === sessionId && x.dogId === dogId && x.status === 'booked');
+              return { ok: true, bookingId: b?.id ?? '' };
+            } catch (e) {
+              return { ok: false, error: (e as Error).message };
+            }
+          }
+          // Same as start_series: book the picked date, then each later one this credit month until credits run out.
+          const first = bookLocal(sessionId, dogId);
+          if (!first.ok) return first;
+          const rule = ruleFor(`series-${Date.now()}`, view(sessionId)!.session, dogId, until);
+          const ids = [first.bookingId];
+          for (const s of ruleSessions(rule, monthEnd())) {
+            if (get().bookings.some((b) => b.sessionId === s.id && b.dogId === dogId)) continue;
+            const r = bookLocal(s.id, dogId);
+            if (r.ok) ids.push(r.bookingId);
+            else if (r.error === 'credits') break;
+          }
+          set((st) => ({
+            seriesRules: [...st.seriesRules, rule],
+            bookings: st.bookings.map((b) => (ids.includes(b.id) ? { ...b, seriesId: rule.id } : b)),
+          }));
+          return first;
+        },
+        endSeries: async (seriesId) => {
+          if (isLive) return thenRefresh(() => live.endSeries(seriesId));
+          const free = get().bookings.filter((b) => b.seriesId === seriesId && b.status === 'booked'
+            && (view(b.sessionId)?.session.startsAt.getTime() ?? 0) - 12 * 3_600_000 > now().getTime());
+          for (const b of free) await get().cancelBooking(b.id);
+          set((st) => ({ seriesRules: st.seriesRules.filter((r) => r.id !== seriesId) }));
         },
         cancelBooking: async (bookingId) => {
           if (isLive) {
@@ -726,7 +772,7 @@ export const useApp = create<AppState>()(
           }
           set((s) => ({ bookings: s.bookings.map((b) => (b.id === bookingId ? { ...b, status: 'checked_in' } : b)) }));
         },
-        clearBookings: () => set({ bookings: [] }),
+        clearBookings: () => set({ bookings: [], seriesRules: [] }),
         setCredits: (credits) => set({ credits }),
         signWaiver: async (waiverId, name) => {
           if (name.trim().length < 2) throw new Error('bad_name');
@@ -797,7 +843,7 @@ export const useApp = create<AppState>()(
           ? { appearance: s.appearance, draft: s.draft, origin: s.origin, seenRecordDenials: s.seenRecordDenials, seenMissed: s.seenMissed, activeDogId: s.activeDogId }
           : {
               dogs: s.dogs, activeDogId: s.activeDogId, dogRecords: s.dogRecords, addingDog: s.addingDog, origin: s.origin, area: s.area, appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
-              readNotifications: s.readNotifications, emailReminders: s.emailReminders, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, social: s.social, socialExpired: s.socialExpired,
+              readNotifications: s.readNotifications, emailReminders: s.emailReminders, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, seriesRules: s.seriesRules, social: s.social, socialExpired: s.socialExpired,
               behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines, vaccineRecord: s.vaccineRecord, waiversSigned: s.waiversSigned,
               seenRecordDenials: s.seenRecordDenials, seenMissed: s.seenMissed,
             },
@@ -895,6 +941,13 @@ export const useNotifications = () => {
   const remote = useApp((s) => s.remoteNotifications);
   const social = useApp((s) => s.social);
   return remote ?? sampleNotifications(social);
+};
+/** Standing bookings with their dates this credit month (live: my_series; sample: worked out from the rules). */
+export const useSeries = (): Series[] => {
+  const remote = useApp((s) => s.remoteSeries);
+  const rules = useApp((s) => s.seriesRules);
+  const bookings = useApp((s) => s.bookings);
+  return useMemo(() => remote ?? rules.map((r) => seriesPlan(r, bookings, monthEnd())), [remote, rules, bookings]);
 };
 /** Booking rule context for the dog that's showing. */
 export const useRules = () => {

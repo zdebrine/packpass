@@ -316,3 +316,41 @@ test('a reminder the day before is confirmed from Notifications, and reminder em
   await toggle.click();
   await expect.poll(() => sql(`select email_reminders from profiles where id = '${id}'`)).toBe('f');
 });
+
+test('a member repeats a class weekly, sees the series on the month and cancels one date', async ({ page }) => {
+  const ui = visible(page);
+  const email = `weekly-${Date.now()}@example.com`;
+  const id = await account(email, 'goodpass123');
+  sql(`select public.seed_demo_member('${id}')`);
+  sql(`insert into waiver_signatures (member_id, waiver_id, signed_name) select '${id}', id, 'Sam Rivera' from waivers where partner_id is null and active`);
+  const juno = sql(`select id from dogs where owner_id = '${id}' and name = 'Juno'`);
+  sql(`update vaccinations set expires_on = current_date + 365 where dog_id = '${juno}'`);
+  // A weekly slot Juno can join with three dates ahead, credits for all of them, inside this credit month.
+  const [cls, slot] = sql(`select class_id, to_char(starts_at at time zone 'America/Chicago', 'D HH24:MI') from sessions
+       where starts_at > now() + interval '1 day' and cancelled_at is null and spots_left > 1
+       group by 1, 2 having count(*) >= 3 and bool_and(public.booking_block('${juno}', id) is null) order by 1, 2 limit 1`).split('|');
+  const session = sql(`select id from sessions where class_id = '${cls}' and starts_at > now() + interval '1 day'
+       and to_char(starts_at at time zone 'America/Chicago', 'D HH24:MI') = '${slot}' order by starts_at limit 1`);
+  sql(`update profiles set credits_balance = 30, credits_reset_on = current_date + 40 where id = '${id}'`);
+
+  await page.goto('/');
+  await page.getByText('I already have an account').click();
+  await ui.boxes().nth(0).fill(email);
+  await ui.boxes().nth(1).fill('goodpass123');
+  await ui.button('Sign in').click();
+  await expect(ui.text(/Juno/)).toBeVisible();
+  await page.goto(`/book/${session}`);
+  await page.getByRole('switch', { name: 'Repeat weekly' }).filter({ visible: true }).click();
+  await ui.button(/^Book every \w+day$/).click();
+  await expect(ui.text(/^Booked every \w+day\.$/)).toBeVisible();
+  const booked = Number(sql(`select count(*) from bookings where member_id = '${id}' and series_id is not null and status = 'booked'`));
+  expect(booked).toBeGreaterThanOrEqual(3);
+
+  await ui.button("See Juno's month").click();
+  await expect(ui.text("Juno's month")).toBeVisible();
+  await page.getByRole('button', { name: /Standing booking\. Cancel this date$/ }).filter({ visible: true }).last().click();
+  await expect(ui.text('Part of a weekly series.')).toBeVisible();
+  await ui.button(/^Cancel \w+ \d+ only$/).click();
+  await expect.poll(() => sql(`select count(*) from bookings where member_id = '${id}' and series_id is not null and status = 'cancelled'`)).toBe('1');
+  expect(sql(`select count(*) from booking_series where member_id = '${id}' and ended_at is null`)).toBe('1');
+});
