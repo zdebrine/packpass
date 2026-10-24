@@ -99,7 +99,7 @@ select t.ok(public.booking_block((select juno from t.ids), t.next_session('socia
 select public.book_session(t.next_session('small-group-play'), (select juno from t.ids));
 select t.ok((select credits_balance from profiles) = 6, 'booking a 1-credit path session leaves 6 of 7');
 select t.ok((select delta from credit_ledger where reason = 'booking' order by id desc limit 1) = -1, 'the ledger records the booking');
-select t.ok(exists (select 1 from notifications where kind = 'booked' and title = 'Booked. Small-group play'), 'booking notifies the member');
+select t.ok(exists (select 1 from notifications where kind = 'booked' and title like 'Booked. Small-group play, % am.' or title like 'Booked. Small-group play, % pm.'), 'booking notifies the member');
 select t.expect_error($$select public.book_session(t.next_session('small-group-play'), (select juno from t.ids))$$, 'already_booked');
 
 -- Bordetella expires in 15 days; sessions after that are blocked.

@@ -1,12 +1,15 @@
 // Passport, training paths, milestones and notifications. These depend on where Juno is on
 // the Social path, so they're derived from app state instead of being fixed fixtures.
 
+import { dayTimeInline, relativeDay, time } from '@/lib/dates';
 import type { SocialStage } from '@/store/app';
+import { sessionById } from './fixtures';
 import type { ClearanceStatus, ClearanceType, PhotoKey, PhotoSource } from './types';
 
 export type IconName =
   | 'users' | 'trees' | 'zap' | 'fence' | 'trophy' | 'check' | 'arrow-right' | 'lock' | 'shield' | 'shield-check'
-  | 'shield-alert' | 'trending-up' | 'calendar-check' | 'calendar-x' | 'message-square' | 'award' | 'rotate-ccw' | 'clock';
+  | 'shield-alert' | 'trending-up' | 'calendar-check' | 'calendar-x' | 'message-square' | 'award' | 'rotate-ccw' | 'clock'
+  | 'bell' | 'navigation' | 'calendar-plus' | 'timer';
 
 export interface Clearance {
   type: ClearanceType;
@@ -211,16 +214,27 @@ export interface Notif {
   cat: NotifCategory;
   isNew: boolean;
   href?: string;
+  /** The database's kind (booked, reminder_24h, nudge_10d…): picks the buttons under it (features/notifications). */
+  kind?: string;
+  /** The session it's about, for reminders, booking notices and trainer notes. */
+  sessionId?: string;
 }
 
 export function notifications(stage: SocialStage): Notif[] {
   const recheck: Notif[] = stage === 'working' ? [] : [
     { id: 'n-recheck', icon: 'check', tone: 'path', title: 'Step 4 of 4 done', body: 'Social re-check with Sam Reyes. Calm around dogs is complete.', time: 'Just now', cat: 'Clearances', isNew: true, href: '/goal/calm-around-dogs' },
   ];
+  // The reminder for Juno's herding class reads off the session, so its day and free-cancel time stay true.
+  const hf = sessionById('herding-fundamentals.2.0730');
+  const reminder: Notif[] = !hf ? [] : [
+    { id: 'n-remind-hf', icon: 'bell', tone: 'n', title: `${relativeDay(hf.startsAt)}, ${time(hf.startsAt)}: Herding Fundamentals`, body: `Ridgeline Dog Sport. Park by the barn. Meet at the field gate. You stay with Juno. Free cancel until ${dayTimeInline(new Date(hf.startsAt.getTime() - 12 * 3_600_000))}.`, time: 'Just now', cat: 'Bookings', isNew: true, href: `/class/${hf.id}`, kind: 'reminder_24h', sessionId: hf.id },
+  ];
   return [
     ...recheck,
-    { id: 'n-booked-sgp', icon: 'calendar-check', tone: 'n', title: 'Booked. Small-group play', body: 'Thursday 6:30 pm · Eastside Dog Club · 1 credit', time: '1h', cat: 'Bookings', isNew: true, href: '/class/small-group-play.2.1830' },
-    { id: 'n-notes-dev', icon: 'message-square', tone: 'n', title: 'Session notes from Dev Patel', body: 'Fastest heat yet. Needs a longer warm-up.', time: '3h', cat: 'Notes', isNew: true, href: '/log' },
+    ...reminder,
+    { id: 'n-booked-sgp', icon: 'calendar-check', tone: 'n', title: 'Booked. Small-group play', body: 'Thursday 6:30 pm · Eastside Dog Club · 1 credit', time: '1h', cat: 'Bookings', isNew: true, href: '/class/small-group-play.2.1830', kind: 'booked', sessionId: 'small-group-play.2.1830' },
+    { id: 'n-notes-dev', icon: 'message-square', tone: 'n', title: 'Session notes from Dev Patel', body: 'Fastest heat yet. Needs a longer warm-up.', time: '3h', cat: 'Notes', isNew: true, href: '/log', kind: 'session_note', sessionId: 'lure-sprint.4.1900' },
+    { id: 'n-nudge', icon: 'calendar-plus', tone: 'n', title: 'No booking in 10 days.', body: 'Two that fit Juno this week.', time: 'Aug 12', cat: 'Bookings', isNew: false, href: '/book', kind: 'nudge_10d' },
     { id: 'n-25', icon: 'award', tone: 'ms', title: '25 sessions', body: 'Juno has trained 25 times with PackPass.', time: 'Jul 30', cat: 'Clearances', isNew: false, href: '/log' },
     { id: 'n-waitlist', icon: 'users', tone: 'n', title: 'Spot open. Lure Sprint Heats', body: 'A waitlist spot opened for Saturday 7:00 pm.', time: 'Jul 26', cat: 'Bookings', isNew: false, href: '/class/lure-sprint.4.1900' },
     { id: 'n-reset', icon: 'rotate-ccw', tone: 'n', title: 'Credits reset', body: '10 new credits for August.', time: 'Aug 1', cat: 'Bookings', isNew: false },

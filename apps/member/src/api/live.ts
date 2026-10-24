@@ -134,6 +134,7 @@ export async function loadCatalog() {
 export interface MemberSnapshot {
   name: string;
   email: string;
+  emailReminders: boolean;
   credits: number;
   membership: Membership;
   dogs: Dog[];
@@ -157,6 +158,11 @@ export const ageOf = (year?: number | null, month?: number | null) => {
   const months = (now.getFullYear() - year) * 12 + (now.getMonth() + 1 - (month ?? 1));
   const yrs = Math.floor(months / 12);
   return { age: months < 12 ? 'Puppy' : `${yrs} yrs`, stage: months < 12 ? '' : yrs < 8 ? 'Prime' : 'Senior' };
+};
+
+const NOTIF_ICON: Record<string, Notif['icon']> = {
+  records_denied: 'shield-alert', reassessment: 'shield-alert', class_missed: 'calendar-x', path_step: 'check', clearance_earned: 'shield-check',
+  booked: 'calendar-check', waitlist_booked: 'calendar-check', waitlist_offer: 'timer', reminder_24h: 'bell', reminder_2h: 'navigation', nudge_10d: 'calendar-plus',
 };
 
 function relTime(iso: string) {
@@ -219,6 +225,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
   return {
     name: profile.name,
     email: profile.email ?? auth.user.email ?? '',
+    emailReminders: profile.email_reminders ?? true,
     credits: profile.credits_balance,
     membership: {
       plan: profile.plan, status: profile.subscription_status ?? 'none', nextPlan: profile.subscription_plan ?? null,
@@ -235,11 +242,12 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     bookings: bookings.map((b) => ({ id: b.id, sessionId: b.session_id, dogId: b.dog_id, credits: b.credits_charged, status: b.status === 'checked_in' ? 'checked_in' : 'booked' })),
     notifications: notes.map((n): Notif => ({
       id: n.id,
-      icon: n.kind === 'records_denied' || n.kind === 'reassessment' ? 'shield-alert' : n.kind === 'class_missed' ? 'calendar-x' : n.kind === 'path_step' ? 'check' : n.kind === 'clearance_earned' ? 'shield-check' : n.kind === 'booked' ? 'calendar-check' : n.kind === 'waitlist_booked' ? 'calendar-check' : n.kind.startsWith('waitlist') || n.kind.startsWith('hold') ? 'clock' : 'message-square',
+      icon: NOTIF_ICON[n.kind] ?? (n.kind.startsWith('waitlist') || n.kind.startsWith('hold') ? 'clock' : 'message-square'),
       tone: n.kind === 'clearance_earned' ? 'clr' : n.kind === 'path_step' ? 'path' : 'n',
       title: n.title, body: n.body, time: relTime(n.created_at),
       cat: cap(n.category), isNew: Date.now() - new Date(n.created_at).getTime() < 3 * 86_400_000 || !n.read_at,
       href: n.href ?? undefined,
+      kind: n.kind, sessionId: n.session_id ?? undefined,
     })),
     readNotifications: notes.filter((n) => n.read_at).map((n) => n.id),
     area: dogs[0]?.area ?? null,
@@ -289,6 +297,11 @@ export async function checkout(req: CheckoutRequest): Promise<string | null> {
 export async function saveName(name: string) {
   const { data: auth } = await db().auth.getUser();
   check(await db().from('profiles').update({ name: name.trim() }).eq('id', auth.user!.id));
+}
+
+/** Reminder emails on or off (push and in-app notices keep coming either way). */
+export async function setEmailReminders(on: boolean) {
+  check(await db().rpc('set_email_reminders', { p_on: on }));
 }
 
 /**

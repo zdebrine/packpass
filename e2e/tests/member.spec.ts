@@ -283,3 +283,36 @@ test('a waitlist spot offered inside 12 hours is accepted from the class page', 
     sql(`update sessions set spots_left = greatest(${Number(spots)} - 1, 0) where id = '${session}'`);
   }
 });
+
+test('a reminder the day before is confirmed from Notifications, and reminder emails turn off in Settings', async ({ page }) => {
+  const ui = visible(page);
+  const email = `remind-${Date.now()}@example.com`;
+  const id = await account(email, 'goodpass123');
+  sql(`select public.seed_demo_member('${id}')`);
+  sql(`insert into waiver_signatures (member_id, waiver_id, signed_name) select '${id}', id, 'Sam Rivera' from waivers where partner_id is null and active`);
+  sql(`update profiles set credits_balance = 20 where id = '${id}'`);
+  const session = sql(`select id from sessions where class_id = 'sniff-space' and starts_at > now() + interval '2 days' and cancelled_at is null order by starts_at offset 6 limit 1`);
+  sql(`set role authenticated; select set_config('request.jwt.claim.sub', '${id}', false);
+       select public.book_session('${session}', (select id from dogs where owner_id = '${id}' and name = 'Juno'))`);
+  // send_reminders' 24-hour notice for that booking (the database tests check the job picks it).
+  const note = sql(`insert into notifications (member_id, kind, category, title, body, href, session_id)
+       values ('${id}', 'reminder_24h', 'bookings', 'Tomorrow, 9:00 am: Sniff space', 'Meet at the gate. You stay with Juno.', '/class/${session}', '${session}') returning id`);
+
+  await page.goto('/');
+  await page.getByText('I already have an account').click();
+  await ui.boxes().nth(0).fill(email);
+  await ui.boxes().nth(1).fill('goodpass123');
+  await ui.button('Sign in').click();
+  await expect(ui.text(/Juno/)).toBeVisible();
+  await page.goto('/notifications');
+  await expect(ui.text('Tomorrow, 9:00 am: Sniff space')).toBeVisible();
+  await expect(ui.button('Cancel')).toBeVisible();
+  await ui.button('Confirm').click();
+  await expect.poll(() => sql(`select read_at is not null from notifications where id = '${note}'`)).toBe('t');
+
+  await page.goto('/settings');
+  const toggle = page.getByRole('switch', { name: 'Email reminders' }).filter({ visible: true });
+  await expect(toggle).toBeChecked();
+  await toggle.click();
+  await expect.poll(() => sql(`select email_reminders from profiles where id = '${id}'`)).toBe('f');
+});

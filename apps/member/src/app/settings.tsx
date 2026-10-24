@@ -66,6 +66,15 @@ export default function Settings() {
           />
         </View>
 
+        <Text variant="title" style={{ marginBottom: 6 }}>Reminders</Text>
+        <View style={{ marginBottom: 24 }}>
+          <Row
+            title="Email reminders"
+            sub="The day before and 2 hours before each class, plus booking notices and trainer notes. Push and in-app notices keep coming."
+            right={<Toggle on={s.emailReminders} label="Email reminders" onPress={() => { s.setEmailReminders(!s.emailReminders).catch(() => {}); }} />}
+          />
+        </View>
+
         <Text variant="title" style={{ marginBottom: 6 }}>Appearance</Text>
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
           {(['system', 'light', 'dark'] as Appearance[]).map((a) => (

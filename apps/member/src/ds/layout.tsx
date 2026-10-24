@@ -126,6 +126,7 @@ export function Toggle({ on, onPress, label }: { on: boolean; onPress: () => voi
       accessibilityRole="switch"
       accessibilityLabel={label}
       accessibilityState={{ checked: on }}
+      aria-checked={on}
       style={{ width: 52, height: 32, padding: 3, borderRadius: 9999, backgroundColor: on ? c.inverse : c.surfaceSunken, alignItems: on ? 'flex-end' : 'flex-start' }}
     >
       <View style={{ width: 26, height: 26, borderRadius: 9999, backgroundColor: on ? c.onInverse : c.bg }} />
