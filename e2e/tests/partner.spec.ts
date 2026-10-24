@@ -137,3 +137,30 @@ test('PackPass sees how fit predicts booking and tunes the weights', async ({ pa
   expect(sql(`select breed || ',' || balance from fit_weights`)).toBe('30,15');
   sql(`update fit_weights set breed = 35, balance = 10`);
 });
+
+test('an owner adds a waiver with text and a PDF, and a change asks members to sign again', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/locations');
+  await expect(page.getByText('Your waiver')).toBeVisible();
+  await page.getByRole('button', { name: 'Add waiver' }).click();
+  await page.getByLabel('Point 1').fill('You stay with your dog in group play.');
+  await page.getByLabel('Waiver text').fill('Eastside rules for every class.');
+  await page.getByLabel('Upload waiver PDF').setInputFiles({ name: 'eastside-waiver.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n%%EOF\n') });
+  await expect(page.getByText('eastside-waiver.pdf')).toBeVisible();
+  await page.getByRole('button', { name: 'Save waiver' }).click();
+  await expect(page.getByText(/^Version 1 · Saved .+ · 0 members signed$/)).toBeVisible();
+  expect(sql(`select title || '|' || array_to_string(summary, ',') || '|' || body || '|' || (pdf_path like 'eastside/%.pdf') from waivers where partner_id = 'eastside' and active`))
+    .toBe('Eastside Dog Club waiver|You stay with your dog in group play.|Eastside rules for every class.|true');
+
+  await page.getByRole('button', { name: 'Edit waiver' }).click();
+  await expect(page.getByText('Saving a change starts version 2. Members sign it again on their next booking with you.')).toBeVisible();
+  await page.getByLabel('Waiver text').fill('');
+  await page.getByRole('button', { name: 'Save waiver' }).click();
+  await expect(page.getByText(/^Version 2 · /)).toBeVisible();
+  expect(sql(`select count(*) || '|' || bool_and(body is null) from waivers where partner_id = 'eastside' and active`)).toBe('1|true');
+
+  await page.getByRole('button', { name: 'Remove', exact: true }).click();
+  await page.getByRole('button', { name: 'Remove waiver' }).click();
+  await expect(page.getByRole('button', { name: 'Add waiver' })).toBeVisible();
+  expect(sql(`select count(*) from waivers where partner_id = 'eastside' and active`)).toBe('0');
+});

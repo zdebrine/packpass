@@ -13,6 +13,7 @@ import type { Booking, ClearanceRecord, Dog, LogEntry, Membership, PathProgress,
 import { now } from '@/lib/clock';
 import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
 import { bookError, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
+import { unsignedWaiver } from '@/lib/ready';
 
 export type Appearance = 'system' | 'light' | 'dark';
 /** working: on the Calm around dogs path. earned: re-check passed, not seen yet. cleared: seen on screen 13. */
@@ -346,6 +347,7 @@ const savedRecords = (s: AppState) => {
 export const ruleContextFor = (s: AppState, dogId: string): RuleContext => ({
   ...ruleContext({ ...recordOf(s, dogId), credits: s.credits, bookings: s.bookings }),
   dog: s.dogs.find((d) => d.id === dogId),
+  waiverFor: (partnerId) => unsignedWaiver(s.waivers, s.waiversSigned, partnerId),
 });
 
 export const useApp = create<AppState>()(
@@ -458,8 +460,8 @@ export const useApp = create<AppState>()(
           }),
         holdSessions: async (sessionIds, dogId) => {
           if (isLive) return thenRefresh(() => live.holdSessions(dogId, sessionIds));
-          // Same checks as hold_sessions(): every rule except Social, plus spots and a day's notice.
-          const ctx = { ...ruleContextFor(get(), dogId), hasSocial: true, credits: Infinity };
+          // Same checks as hold_sessions(): every rule except Social (waivers are signed when the holds book), plus spots and a day's notice.
+          const ctx = { ...ruleContextFor(get(), dogId), hasSocial: true, credits: Infinity, waiverFor: undefined };
           return sessionIds.map((sessionId) => {
             const v = view(sessionId);
             let error: string | null = bookError(sessionId, dogId, ctx);

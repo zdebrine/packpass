@@ -57,4 +57,69 @@ update waivers set active = false where partner_id is null;
 insert into waivers (partner_id, version, title, body) values (null, 2, 'PackPass waiver', 'Version two.');
 select v.ok(not public.waiver_signed('00000000-0000-0000-0000-0000000000d1', null), 'a new version asks again');
 
+-- ---- Booking checks the waivers (…_booking_waivers.sql) -------------------------------------------
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000d3', 'booker@waiver.co', '{"name":"Bo Booker"}'),
+  ('00000000-0000-0000-0000-0000000000d4', 'owner@southfork.co', '{"name":"Ona Owner"}'),
+  ('00000000-0000-0000-0000-0000000000d5', 'coach@southfork.co', '{"name":"Cal Coach"}');
+select public.seed_demo_member('00000000-0000-0000-0000-0000000000d3');
+select public.link_partner_staff('owner@southfork.co', 'southfork', 'owner');
+select public.link_partner_staff('coach@southfork.co', 'southfork', 'trainer');
+create table v.b as select
+  (select id from dogs where owner_id = '00000000-0000-0000-0000-0000000000d3' and name = 'Juno') juno,
+  (select id from sessions where class_id = 'sniff-space' and starts_at > now() + interval '1 day' order by starts_at limit 1) s1,
+  (select id from sessions where class_id = 'sniff-space' and starts_at > now() + interval '1 day' order by starts_at offset 1 limit 1) s2,
+  (select id from sessions where class_id = 'sniff-space' and starts_at > now() + interval '1 day' order by starts_at offset 2 limit 1) s3,
+  (select id from waivers where partner_id is null and active) pp;
+grant select on v.b to authenticated;
+
+set role authenticated;
+select v.as_user('00000000-0000-0000-0000-0000000000d3');
+select v.expect_error($$select public.book_session((select s1 from v.b), (select juno from v.b))$$, 'waiver');
+select v.ok(public.booking_block((select juno from v.b), (select s1 from v.b)) is null, 'the waiver doesn''t lock the class itself');
+select public.sign_waiver((select pp from v.b), 'Bo Booker');
+select public.book_session((select s1 from v.b), (select juno from v.b));
+select v.ok(exists (select 1 from bookings where session_id = (select s1 from v.b)), 'with the PackPass waiver signed, a partner with no waiver books');
+
+-- The owner writes a waiver; trainers can't.
+select v.as_user('00000000-0000-0000-0000-0000000000d5');
+select v.expect_error($$select public.partner_save_waiver('South Fork waiver', '{}', 'Rules.', null)$$, 'not_owner');
+select v.as_user('00000000-0000-0000-0000-0000000000d4');
+select v.expect_error($$select public.partner_save_waiver(' ', '{}', 'Rules.', null)$$, 'waiver_title');
+select v.expect_error($$select public.partner_save_waiver('South Fork waiver', '{}', '  ', null)$$, 'waiver_empty');
+select v.expect_error($$select public.partner_save_waiver('South Fork waiver', '{}', null, 'ridgeline/w.pdf')$$, 'bad_file');
+select v.expect_error($$select public.partner_save_waiver('South Fork waiver', '{a,b,c,d}', 'Rules.', null)$$, 'bad_summary');
+select public.partner_save_waiver('South Fork waiver', '{"You stay with your dog.", " ", "Leash on arrival."}', 'South Fork rules.', null);
+select v.ok((select summary from waivers where partner_id = 'southfork' and active) = '{"You stay with your dog.","Leash on arrival."}', 'blank points are dropped');
+select v.ok(public.partner_waiver_signatures() = 0, 'no one has signed it yet');
+insert into storage.objects (bucket_id, name) values ('waivers', 'southfork/waiver.pdf');
+select v.expect_error($$insert into storage.objects (bucket_id, name) values ('waivers', 'ridgeline/waiver.pdf')$$, 'row-level security');
+
+select v.as_user('00000000-0000-0000-0000-0000000000d5');
+select v.expect_error($$insert into storage.objects (bucket_id, name) values ('waivers', 'southfork/coach.pdf')$$, 'row-level security');
+
+select v.as_user('00000000-0000-0000-0000-0000000000d3');
+select v.expect_error($$select public.book_session((select s2 from v.b), (select juno from v.b))$$, 'partner_waiver');
+select public.sign_waiver((select id from waivers where partner_id = 'southfork' and active), 'Bo Booker');
+select public.book_session((select s2 from v.b), (select juno from v.b));
+select v.ok(exists (select 1 from bookings where session_id = (select s2 from v.b)), 'signing the partner''s waiver books');
+
+-- A change is a new version: members sign again. The PDF version keeps the text optional.
+select v.as_user('00000000-0000-0000-0000-0000000000d4');
+select v.ok(public.partner_waiver_signatures() = 1, 'the owner sees how many signed');
+select public.partner_save_waiver('South Fork waiver', '{}', null, 'southfork/waiver.pdf');
+select v.ok((select version from waivers where partner_id = 'southfork' and active) = 2, 'saving starts version 2');
+select v.ok((select count(*) from waivers where partner_id = 'southfork' and active) = 1, 'one live version');
+select v.as_user('00000000-0000-0000-0000-0000000000d3');
+select v.expect_error($$select public.book_session((select s3 from v.b), (select juno from v.b))$$, 'partner_waiver');
+
+-- Removing it stops asking.
+select v.as_user('00000000-0000-0000-0000-0000000000d4');
+select public.partner_remove_waiver();
+select v.as_user('00000000-0000-0000-0000-0000000000d3');
+select public.book_session((select s3 from v.b), (select juno from v.b));
+select v.ok(exists (select 1 from bookings where session_id = (select s3 from v.b)), 'with the waiver removed, booking needs no signature');
+
+reset role;
+
 drop schema v cascade;

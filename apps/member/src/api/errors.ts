@@ -33,6 +33,8 @@ const COPY: Record<string, string> = {
   too_soon: 'Spots can only be held until the day before a session.',
   weak_password: 'Use at least 8 characters.',
   bad_name: 'Type your full name to sign.',
+  waiver: 'Sign the PackPass waiver to book.',
+  partner_waiver: 'Sign this partner\'s waiver to book. It\'s asked once, on your first booking there.',
   cancelled: 'The partner cancelled this session. Pick another time.',
   waitlist_closed: 'The waitlist for this session is closed.',
   already_waiting: 'Already on the waitlist for this session.',
@@ -83,4 +85,6 @@ export const SHORT: Record<string, string> = {
   not_found: 'not on the schedule',
   too_soon: 'too soon to hold',
   cancelled: 'cancelled by the partner',
+  waiver: 'PackPass waiver not signed',
+  partner_waiver: 'sign the partner\'s waiver from Book',
 };

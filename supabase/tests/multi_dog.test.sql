@@ -1,6 +1,14 @@
 -- One owner, two dogs (docs/MULTI_DOG_SPEC.md, migrations/…_multi_dog.sql). Uses its own accounts.
 -- Rex has a Social clearance and current vaccines; Bea starts with neither.
 create schema md;
+-- Members sign the PackPass waiver before booking (…_booking_waivers.sql); this test isn't about waivers.
+create function md.sign_waivers() returns void language sql security definer set search_path = public as $$
+  insert into public.waiver_signatures (member_id, waiver_id, signed_name)
+  select p.id, w.id, 'Test member' from public.profiles p join public.waivers w on w.active and w.partner_id is null
+  on conflict do nothing
+$$;
+grant usage on schema md to authenticated;
+grant execute on function md.sign_waivers to authenticated;
 create function md.expect_error(q text, want text) returns void language plpgsql as $$
 declare got text;
 begin
@@ -69,6 +77,7 @@ select md.as_user('00000000-0000-0000-0000-0000000001d1');
 select md.ok((select count(*) from dogs) = 2, 'the owner sees both dogs');
 select md.ok(public.booking_block((select rex from md.ids), md.sid('group')) is null, 'Rex, cleared, can book a group class');
 select md.ok(public.booking_block((select bea from md.ids), md.sid('group')) = 'needs_social', 'Bea needs her own Social clearance for it');
+select md.sign_waivers();
 select md.expect_error($$select public.book_session(md.sid('group'), (select bea from md.ids))$$, 'needs_social');
 select md.ok(public.booking_block((select bea from md.ids), md.sid('private')) = 'vaccines', 'Rex''s vaccines don''t count for Bea');
 insert into vaccinations (dog_id, type, expires_on) select bea, t::vaccine_type, current_date + 200 from md.ids, unnest(array['rabies', 'dhpp', 'bordetella']) t;

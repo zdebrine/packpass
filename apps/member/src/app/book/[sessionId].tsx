@@ -11,6 +11,7 @@ import { IconButton, useBottom } from '@/ds/layout';
 import { Overlay } from '@/ds/overlay';
 import { ModalSheet } from '@/ds/sheet';
 import { tile, useWide } from '@/ds/responsive';
+import { ClearanceBlocker, clearanceBlock, CreditsBlocker, FullBlocker, VaccineBlocker, vaccineFix, WaiverBlocker } from '@/features/book/Blockers';
 import { WaitlistActions } from '@/features/book/Waitlist';
 import { Photo, PhotoFill, Scrim } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
@@ -19,7 +20,8 @@ import { addToCalendar } from '@/lib/calendar';
 import { cancelCopy, dayTimeInline, relativeDay, time } from '@/lib/dates';
 import { pay, settle } from '@/lib/checkout';
 import { comingWithAccounts } from '@/lib/notice';
-import { useAllowance, useApp, useDog, useRulesFor } from '@/store/app';
+import { unsignedWaiver } from '@/lib/ready';
+import { activeDogId, recordOf, useAllowance, useApp, useDog, useRulesFor } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -44,6 +46,14 @@ export default function BookingSheet() {
   const bookings = useApp((s) => s.bookings);
   const rules = useRulesFor(dogId);
   const book = useApp((s) => s.bookSession);
+  const vaccines = useApp((s) => recordOf(s, dogId).vaccines);
+  const waivers = useApp((s) => s.waivers);
+  const signed = useApp((s) => s.waiversSigned);
+  const signWaiver = useApp((s) => s.signWaiver);
+  const selectDog = useApp((s) => s.selectDog);
+  const accountName = useApp((s) => s.account.name);
+  const [signName, setSignName] = useState(accountName);
+  const [agree, setAgree] = useState(false);
 
   const v = view(selected) ?? first;
   if (!v) return null;
@@ -53,6 +63,11 @@ export default function BookingSheet() {
   const already = bookings.some((b) => b.sessionId === session.id && b.dogId === dogId && b.status !== 'cancelled');
   const dog = dogs.find((d) => d.id === dogId) ?? dogs[0];
   const el = eligibility(v, rules, dog?.name);
+  const dogName = dog?.name ?? 'Your dog';
+  // The waiver isn't a lock on the class: the sheet signs it, then books (block-waiver).
+  const waiver = el.ok && !already ? unsignedWaiver(waivers, signed, partner.id) : null;
+  const clearance = !el.ok ? clearanceBlock(v, el) : null;
+  const vaccineBlock = !el.ok && el.needs === 'vaccines';
 
   // A 2-credit top-up through Stripe Checkout, then back to this sheet with the credits added.
   const buyCredits = async () => {
@@ -76,6 +91,30 @@ export default function BookingSheet() {
     if (!r.ok) return setError(errorCopy(r.error));
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     setDone(true);
+  };
+
+  // Signs the waiver showing; books too when nothing else is left to sign and the class can be booked now.
+  const sign = async (thenBook: boolean) => {
+    if (!waiver) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await signWaiver(waiver.id, signName);
+    } catch (e) {
+      setBusy(false);
+      return setError(errorCopy(e));
+    }
+    setAgree(false);
+    const s = useApp.getState();
+    if (thenBook && !unsignedWaiver(s.waivers, s.waiversSigned, partner.id)) return confirm();
+    setBusy(false);
+  };
+
+  // Records live on the dog the app is showing, so switch to the booking's dog before uploading.
+  const uploadRecord = async () => {
+    if (activeDogId(useApp.getState()) !== dogId) await selectDog(dogId);
+    const fix = vaccineFix(vaccines, session.startsAt);
+    router.push(fix && !rules.recordsDenied ? { pathname: '/vaccines', params: { type: fix.type } } : '/vaccines');
   };
 
   const body = (
@@ -117,15 +156,28 @@ export default function BookingSheet() {
           ))}
         </View>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: wide ? 24 : 22, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text>{creditsLabel(cost)}</Text>
-            {cls.dropOff ? <Tag>Drop-off</Tag> : null}
+        {!el.ok && clearance ? (
+          <View style={{ marginTop: wide ? 24 : 22 }}><ClearanceBlocker v={v} el={el} dogName={dogName} /></View>
+        ) : vaccineBlock ? (
+          <View style={{ marginTop: wide ? 24 : 22 }}><VaccineBlocker v={v} vaccines={vaccines} dogName={dogName} denied={rules.recordsDenied} /></View>
+        ) : el.ok && !already ? (
+          <View style={{ gap: 16, marginTop: wide ? 24 : 22 }}>
+            {waiver ? <WaiverBlocker waiver={waiver} partnerName={partner.name} name={signName} setName={setSignName} agree={agree} setAgree={setAgree} />
+              : session.spotsLeft === 0 ? <FullBlocker v={v} />
+                : short ? <CreditsBlocker v={v} credits={credits} /> : null}
+            {session.spotsLeft === 0 ? null : (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text>{creditsLabel(cost)}</Text>
+                  {cls.dropOff ? <Tag>Drop-off</Tag> : null}
+                </View>
+                <Text variant="label" num color={short ? c.kennelRed : c.inkMuted}>
+                  {short ? `You have ${creditsLabel(credits)} left` : allowance ? `${credits - cost} of ${allowance} left after booking` : `${creditsLabel(credits - cost)} left after booking`}
+                </Text>
+              </View>
+            )}
           </View>
-          <Text variant="label" num color={short ? c.kennelRed : c.inkMuted}>
-            {short ? `You have ${creditsLabel(credits)} left` : allowance ? `${credits - cost} of ${allowance} left after booking` : `${creditsLabel(credits - cost)} left after booking`}
-          </Text>
-        </View>
+        ) : null}
 
         {error ? (
           <View style={{ marginTop: 16, paddingVertical: 14, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.kennelRedSoft }} accessibilityLiveRegion="polite">
@@ -133,12 +185,23 @@ export default function BookingSheet() {
           </View>
         ) : null}
         <View style={{ gap: 8, marginTop: 16 }}>
-          {!el.ok ? (
+          {!el.ok && clearance ? (
+            <>
+              {clearance.assessment ? <Button block onPress={() => router.replace(`/book/${clearance.assessment!.session.id}`)}>Book assessment</Button> : null}
+              <Button variant="quiet" block onPress={() => router.replace('/book')}>{`See classes ${dogName} can join`}</Button>
+            </>
+          ) : vaccineBlock ? (
+            <Button block icon="file-plus" onPress={uploadRecord}>Upload record</Button>
+          ) : !el.ok ? (
             <Text variant="label" muted>{el.reason}</Text>
           ) : already ? (
-            <Button block disabled>{`${dog?.name ?? 'Your dog'} is booked for this`}</Button>
+            <Button block disabled>{`${dogName} is booked for this`}</Button>
+          ) : waiver ? (
+            session.spotsLeft === 0 || short
+              ? <Button block disabled={busy || !agree || signName.trim().length < 2} onPress={() => sign(false)}>{busy ? 'Signing…' : 'Sign waiver'}</Button>
+              : <Button block variant="signal" disabled={busy || !agree || signName.trim().length < 2} onPress={() => sign(true)}>{busy ? 'Signing…' : 'Sign and book'}</Button>
           ) : session.spotsLeft === 0 ? (
-            <WaitlistActions v={v} dogId={dogId} dogName={dog?.name ?? 'your dog'} />
+            <WaitlistActions v={v} dogId={dogId} dogName={dogName} />
           ) : short && wide ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               <View style={tile(180)}><Button block disabled={busy} onPress={buyCredits}>{busy ? 'Opening checkout…' : `Buy ${TOP_UP.credits} credits · ${TOP_UP.price}`}</Button></View>
@@ -152,7 +215,7 @@ export default function BookingSheet() {
           ) : (
             <Button block disabled={busy} onPress={confirm}>{busy ? 'Booking…' : 'Confirm booking'}</Button>
           )}
-          {wide && el.ok && !already && session.spotsLeft > 0 && !short ? <Text variant="caption" muted center style={{ marginTop: 2 }}>{cancelCopy(session.startsAt)}</Text> : null}
+          {(wide || waiver) && el.ok && !already && session.spotsLeft > 0 && !short ? <Text variant="caption" muted center style={{ marginTop: 2 }}>{cancelCopy(session.startsAt)}</Text> : null}
         </View>
       </>
     )
