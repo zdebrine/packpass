@@ -69,7 +69,7 @@ export default function Today() {
     ...done.map((m) => ({ ...m, status: 'Done' as string | null, onPress: undefined as undefined | (() => void) })),
     ...upcoming.slice(0, 4).map(({ booking, v }) => ({
       key: booking.id,
-      meta: `Booked · ${weekday(v.session.startsAt).slice(0, 3)} ${monthDay(v.session.startsAt)} · ${v.cls.balance}`,
+      meta: `${booking.seriesId ? 'Weekly' : 'Booked'} · ${weekday(v.session.startsAt).slice(0, 3)} ${monthDay(v.session.startsAt)} · ${v.cls.balance}`,
       title: `${v.cls.title} · ${creditsLabel(booking.credits)}`,
       photo: v.cls.image,
       status: 'Booked',
@@ -137,7 +137,9 @@ export default function Today() {
     <>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
         <Text variant="title">This month</Text>
-        <Text variant="caption" muted>{`${monthHeader().month} · resets ${monthHeader().resets}`}</Text>
+        <Press onPress={() => router.push('/month')} scale={false} accessibilityRole="button" accessibilityLabel={`${juno.name}'s month. ${monthHeader().month}, resets ${monthHeader().resets}`}>
+          <Text variant="caption" muted>{`${monthHeader().month} · resets ${monthHeader().resets} · `}<Text variant="caption" weight="600">Calendar</Text></Text>
+        </Press>
       </View>
       <View style={wide ? { flexDirection: 'row', flexWrap: 'wrap', columnGap: 24 } : null}>
         {month.map((m, i) => (

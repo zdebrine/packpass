@@ -6,7 +6,7 @@ import { setCatalog } from '@/data/catalog';
 import { photoKey, type Energy } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
-import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, Series, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
 import type { DogRecord, OnboardingDraft } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { setWeights, type Weights } from '@/lib/fit';
@@ -144,6 +144,8 @@ export interface MemberSnapshot {
   notifications: Notif[];
   readNotifications: string[];
   waitlist: WaitEntry[];
+  /** Standing bookings and their dates this credit month (my_series). */
+  series: Series[];
   /** Live waivers and the ones this member signed (waiver id to the date). */
   waivers: Waiver[];
   waiversSigned: Record<string, string>;
@@ -163,6 +165,7 @@ export const ageOf = (year?: number | null, month?: number | null) => {
 const NOTIF_ICON: Record<string, Notif['icon']> = {
   records_denied: 'shield-alert', reassessment: 'shield-alert', class_missed: 'calendar-x', path_step: 'check', clearance_earned: 'shield-check',
   booked: 'calendar-check', waitlist_booked: 'calendar-check', waitlist_offer: 'timer', reminder_24h: 'bell', reminder_2h: 'navigation', nudge_10d: 'calendar-plus',
+  series_booked: 'repeat', series_short: 'calendar-x',
 };
 
 function relTime(iso: string) {
@@ -184,7 +187,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
   const photoPaths = dogs.map((d) => d.photo_path).filter(Boolean) as string[];
   const signed = photoPaths.length ? (check(await c.storage.from('dog-photos').createSignedUrls(photoPaths, PHOTO_URL_TTL)) as { path: string; signedUrl: string }[]) : [];
   const photoUrl = new Map(signed.map((x) => [x.path, x.signedUrl]));
-  const [bookings, clearances, paths, vaccines, reviews, notes, holds, waiting, assessed, waivers, signatures] = await Promise.all([
+  const [bookings, clearances, paths, vaccines, reviews, notes, holds, waiting, assessed, waivers, signatures, series] = await Promise.all([
     c.from('bookings').select('*').neq('status', 'cancelled').then(check),
     c.from('clearances').select('*').in('dog_id', dogIds).then(check),
     c.from('dog_paths').select('*').in('dog_id', dogIds).then(check),
@@ -196,6 +199,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     c.from('dog_fit_overrides').select('dog_id, partner_id').in('dog_id', dogIds).then(check),
     c.from('waivers').select('id, partner_id, title, summary, body, pdf_path').eq('active', true).then(check),
     c.from('waiver_signatures').select('waiver_id, signed_at').then(check),
+    c.rpc('my_series').then(check),
   ]) as any[][];
 
   const today = new Date().toISOString().slice(0, 10);
@@ -239,7 +243,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
       fitPartners: assessed.filter((o) => o.dog_id === d.id).map((o) => o.partner_id),
     })),
     records: Object.fromEntries(dogIds.map((id) => [id, recordFor(id)])),
-    bookings: bookings.map((b) => ({ id: b.id, sessionId: b.session_id, dogId: b.dog_id, credits: b.credits_charged, status: b.status === 'checked_in' ? 'checked_in' : 'booked' })),
+    bookings: bookings.map((b) => ({ id: b.id, sessionId: b.session_id, dogId: b.dog_id, credits: b.credits_charged, status: b.status === 'checked_in' ? 'checked_in' : 'booked', seriesId: b.series_id ?? undefined })),
     notifications: notes.map((n): Notif => ({
       id: n.id,
       icon: NOTIF_ICON[n.kind] ?? (n.kind.startsWith('waitlist') || n.kind.startsWith('hold') ? 'clock' : 'message-square'),
@@ -252,6 +256,10 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     readNotifications: notes.filter((n) => n.read_at).map((n) => n.id),
     area: dogs[0]?.area ?? null,
     waitlist: waiting.map((w) => ({ sessionId: w.session_id, dogId: w.dog_id, place: w.place, offerUntil: w.offer_until ?? undefined })),
+    series: (series as any[]).map((x): Series => ({
+      id: x.id, dogId: x.dog_id, classId: x.class_id, until: x.until_date,
+      dates: (x.dates ?? []).map((d: any) => ({ sessionId: d.session_id, startsAt: new Date(d.starts_at), bookingId: d.booking_id ?? undefined, status: d.status })),
+    })),
     waivers: waivers.map((w): Waiver => ({ id: w.id, partnerId: w.partner_id, title: w.title, summary: w.summary ?? [], body: w.body, pdfPath: w.pdf_path })),
     waiversSigned: Object.fromEntries(signatures.map((x) => [x.waiver_id, String(x.signed_at).slice(0, 10)])),
   };
@@ -485,6 +493,16 @@ export async function joinWaitlist(dogId: string, sessionId: string) {
 
 export async function leaveWaitlist(dogId: string, sessionId: string) {
   check(await db().rpc('leave_waitlist', { p_dog: dogId, p_session: sessionId }));
+}
+
+/** Books the session and repeats it weekly (start_series). until: YYYY-MM-DD, or null for until credits run out. */
+export async function startSeries(sessionId: string, dogId: string, until: string | null): Promise<string> {
+  return check(await db().rpc('start_series', { p_session: sessionId, p_dog: dogId, p_until: until })) as string;
+}
+
+/** Stops the series and cancels its dates still free to cancel. */
+export async function endSeries(seriesId: string) {
+  check(await db().rpc('end_series', { p_series: seriesId }));
 }
 
 export async function cancel(bookingId: string) {

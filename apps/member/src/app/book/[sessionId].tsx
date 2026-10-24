@@ -12,16 +12,17 @@ import { Overlay } from '@/ds/overlay';
 import { ModalSheet } from '@/ds/sheet';
 import { tile, useWide } from '@/ds/responsive';
 import { ClearanceBlocker, clearanceBlock, CreditsBlocker, FullBlocker, VaccineBlocker, vaccineFix, WaiverBlocker } from '@/features/book/Blockers';
+import { isoDay, RepeatToggle, repeatCaption, SeriesBooked, untilDate, type Until } from '@/features/book/Repeat';
 import { WaitlistActions } from '@/features/book/Waitlist';
 import { Photo, PhotoFill, Scrim } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { credits as creditsLabel, eligibility, sameDaySessions, view } from '@/lib/booking';
 import { addToCalendar } from '@/lib/calendar';
-import { cancelCopy, dayTimeInline, relativeDay, time } from '@/lib/dates';
+import { cancelCopy, dayTimeInline, monthDay, relativeDay, time, weekday } from '@/lib/dates';
 import { pay, settle } from '@/lib/checkout';
 import { comingWithAccounts } from '@/lib/notice';
 import { unsignedWaiver } from '@/lib/ready';
-import { activeDogId, recordOf, useAllowance, useApp, useDog, useRulesFor } from '@/store/app';
+import { activeDogId, recordOf, useAllowance, useApp, useDog, useRulesFor, useSeries } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -54,6 +55,10 @@ export default function BookingSheet() {
   const accountName = useApp((s) => s.account.name);
   const [signName, setSignName] = useState(accountName);
   const [agree, setAgree] = useState(false);
+  const [repeat, setRepeat] = useState(false);
+  const [until, setUntil] = useState<Until>('credits');
+  const startSeries = useApp((s) => s.startSeries);
+  const allSeries = useSeries();
 
   const v = view(selected) ?? first;
   if (!v) return null;
@@ -86,7 +91,7 @@ export default function BookingSheet() {
   const confirm = async () => {
     setBusy(true);
     setError(null);
-    const r = await book(session.id, dogId);
+    const r = repeat ? await startSeries(session.id, dogId, until === 'date' ? isoDay(untilDate(session.startsAt)) : null) : await book(session.id, dogId);
     setBusy(false);
     if (!r.ok) return setError(errorCopy(r.error));
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -125,13 +130,21 @@ export default function BookingSheet() {
           <Scrim />
           <View style={{ position: 'absolute', top: 14, left: 14 }}><Tag tone="glass">{allowance ? `${credits} of ${allowance} credits left` : `${creditsLabel(credits)} left`}</Tag></View>
           <View style={{ position: 'absolute', left: 20, right: 20, bottom: 18 }}>
-            <Text variant="hero" color="#fff" accessibilityRole="header" accessibilityLiveRegion="polite">Booked.</Text>
-            <Text color="#fff" style={{ marginTop: 8 }}>{`${cls.title}, ${dayTimeInline(session.startsAt)}.`}</Text>
+            <Text variant="hero" color="#fff" accessibilityRole="header" accessibilityLiveRegion="polite">{repeat ? `Booked every ${weekday(session.startsAt)}.` : 'Booked.'}</Text>
+            <Text color="#fff" style={{ marginTop: 8 }}>{repeat
+              ? `${cls.title}, ${time(session.startsAt)}, ${until === 'date' ? `until ${monthDay(untilDate(session.startsAt))}` : 'until credits run out'}.`
+              : `${cls.title}, ${dayTimeInline(session.startsAt)}.`}</Text>
           </View>
         </View>
-        <Text variant="caption" muted style={{ marginTop: 14, marginHorizontal: 4 }}>{`${partner.name} · ${partner.address}. ${cancelCopy(session.startsAt)}.${cls.grants ? ` If ${dogName} is cleared, PackPass shows the classes it opens.` : ''}`}</Text>
+        {repeat ? (
+          <SeriesBooked v={v} series={allSeries.find((x) => x.dogId === dogId && x.dates.some((d) => d.sessionId === session.id))} dogName={dogName} />
+        ) : (
+          <Text variant="caption" muted style={{ marginTop: 14, marginHorizontal: 4 }}>{`${partner.name} · ${partner.address}. ${cancelCopy(session.startsAt)}.${cls.grants ? ` If ${dogName} is cleared, PackPass shows the classes it opens.` : ''}`}</Text>
+        )}
         <View style={{ flexDirection: 'row', gap: 8, marginTop: wide ? 18 : 16 }}>
-          <Button variant="quiet" style={{ flex: 1 }} disabled={added} onPress={() => addToCalendar(v).then(setAdded).catch(() => {})}>{added ? 'Added' : 'Add to calendar'}</Button>
+          {repeat
+            ? <Button variant="quiet" style={{ flex: 1 }} onPress={() => router.replace('/month')}>{`See ${dogName}'s month`}</Button>
+            : <Button variant="quiet" style={{ flex: 1 }} disabled={added} onPress={() => addToCalendar(v).then(setAdded).catch(() => {})}>{added ? 'Added' : 'Add to calendar'}</Button>}
           <Button style={{ flex: 1 }} onPress={() => router.dismissTo('/')}>Done</Button>
         </View>
       </>
@@ -165,6 +178,7 @@ export default function BookingSheet() {
             {waiver ? <WaiverBlocker waiver={waiver} partnerName={partner.name} name={signName} setName={setSignName} agree={agree} setAgree={setAgree} />
               : session.spotsLeft === 0 ? <FullBlocker v={v} />
                 : short ? <CreditsBlocker v={v} credits={credits} /> : null}
+            {session.spotsLeft === 0 || short ? null : <RepeatToggle v={v} on={repeat} setOn={setRepeat} until={until} setUntil={setUntil} />}
             {session.spotsLeft === 0 ? null : (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -213,9 +227,9 @@ export default function BookingSheet() {
               <Button variant="quiet" block onPress={() => router.replace('/book')}>Pick a 1-credit class</Button>
             </>
           ) : (
-            <Button block disabled={busy} onPress={confirm}>{busy ? 'Booking…' : 'Confirm booking'}</Button>
+            <Button block disabled={busy} onPress={confirm}>{busy ? 'Booking…' : repeat ? `Book every ${weekday(session.startsAt)}` : 'Confirm booking'}</Button>
           )}
-          {(wide || waiver) && el.ok && !already && session.spotsLeft > 0 && !short ? <Text variant="caption" muted center style={{ marginTop: 2 }}>{cancelCopy(session.startsAt)}</Text> : null}
+          {(wide || waiver || repeat) && el.ok && !already && session.spotsLeft > 0 && !short ? <Text variant="caption" muted center style={{ marginTop: 2 }}>{repeat ? repeatCaption(v) : cancelCopy(session.startsAt)}</Text> : null}
         </View>
       </>
     )

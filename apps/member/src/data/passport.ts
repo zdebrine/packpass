@@ -9,7 +9,7 @@ import type { ClearanceStatus, ClearanceType, PhotoKey, PhotoSource } from './ty
 export type IconName =
   | 'users' | 'trees' | 'zap' | 'fence' | 'trophy' | 'check' | 'arrow-right' | 'lock' | 'shield' | 'shield-check'
   | 'shield-alert' | 'trending-up' | 'calendar-check' | 'calendar-x' | 'message-square' | 'award' | 'rotate-ccw' | 'clock'
-  | 'bell' | 'navigation' | 'calendar-plus' | 'timer';
+  | 'bell' | 'navigation' | 'calendar-plus' | 'timer' | 'repeat';
 
 export interface Clearance {
   type: ClearanceType;

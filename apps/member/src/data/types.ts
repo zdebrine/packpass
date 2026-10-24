@@ -125,6 +125,25 @@ export interface Booking {
   dogId: string;
   credits: number;
   status: BookingStatus;
+  /** The standing booking (Repeat weekly) this date belongs to. */
+  seriesId?: string;
+}
+
+/** One date of a standing booking this credit month: booked, cancelled on its own, or short (credits don't cover it). */
+export interface SeriesDate {
+  sessionId: string;
+  startsAt: Date;
+  bookingId?: string;
+  status: 'booked' | 'cancelled' | 'short';
+}
+
+/** A standing booking: the same class, day and time every week, until a date (YYYY-MM-DD) or until credits run out. */
+export interface Series {
+  id: string;
+  dogId: string;
+  classId: string;
+  until: string | null;
+  dates: SeriesDate[];
 }
 
 /** A dog waiting for a spot in a full session. place 1 = next in line. offerUntil (ISO): a spot held for it to accept. */

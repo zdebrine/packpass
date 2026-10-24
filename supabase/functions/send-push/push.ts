@@ -5,7 +5,7 @@
  * Same list as public.push_kind() in migrations/…_push_webhook.sql, which filters before calling. */
 export const PUSH_KINDS = new Set(['hold_expiring', 'holds_released', 'clearance_earned', 'waitlist_booked', 'waitlist_open', 'waitlist_missed',
   'waitlist_offer', 'session_cancelled', 'session_note', 'assessment_result', 'path_step', 'records_approved', 'records_denied', 'class_missed',
-  'reassessment', 'reminder_24h', 'reminder_2h', 'nudge_10d']);
+  'reassessment', 'reminder_24h', 'reminder_2h', 'nudge_10d', 'series_booked', 'series_short']);
 
 export type NotificationRow = { id: string; member_id: string; kind: string; title: string; body: string; href: string | null };
 export type ExpoMessage = { to: string; title: string; body: string; sound: 'default'; data: { href: string; notificationId: string } };
