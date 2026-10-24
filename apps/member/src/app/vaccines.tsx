@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
@@ -23,10 +23,13 @@ const iso = (y: number, m: number) => `${y}-${String(m + 1).padStart(2, '0')}-${
 /**
  * Vaccine records. Bookings need Rabies, DHPP and Bordetella current on the day of the session.
  * Members enter the expiry month from the vet record and attach the record itself (a photo or a PDF,
- * one for all three), which stays unverified until a partner or PackPass checks it.
+ * one for all three), which stays unverified until a partner or PackPass checks it. With ?type=DHPP it asks for
+ * just that one (18e, from Ready to book), keeping the others as they are.
  */
 export default function Vaccines() {
   const { c } = useTheme();
+  const { type: only } = useLocalSearchParams<{ type?: string }>();
+  const single = TYPES.find((t) => t === only) ?? null;
   const active = useDog();
   // Adding another dog: the dates and record are for the new dog, saved with it at the end of onboarding.
   const adding = useApp((s) => s.addingDog);
@@ -47,13 +50,14 @@ export default function Vaccines() {
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const complete = rows.every((r) => r.month !== null && r.year !== null);
+  const filled = (r: (typeof rows)[number]) => r.month !== null && r.year !== null;
+  const complete = single ? filled(rows.find((r) => r.type === single)!) : rows.every(filled);
 
   const submit = async () => {
     setBusy(true);
     setError(null);
     try {
-      await save(rows.map((r): Vaccine => ({ type: r.type, expires: iso(r.year!, r.month!) })), doc);
+      await save(rows.filter(filled).map((r): Vaccine => ({ type: r.type, expires: iso(r.year!, r.month!) })), doc);
       if (router.canGoBack()) router.back(); else router.replace('/dog');
     } catch (e) {
       setError(errorCopy(e));
@@ -78,10 +82,10 @@ export default function Vaccines() {
         <IconButton icon="chevron-left" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/dog'))} />
         <View>
           <Text variant="wide" muted>{`${dog.name} · Health and care`}</Text>
-          <Text variant="displayLg" style={{ marginTop: 10 }} accessibilityRole="header">Vaccines.</Text>
-          <Text muted style={{ marginTop: 10 }}>{`Add when each one expires, from ${dog.name}'s vet record. Every class needs all three current on the day.`}</Text>
+          <Text variant="displayLg" style={{ marginTop: 10 }} accessibilityRole="header">{single ? `Upload ${single} record.` : 'Vaccines.'}</Text>
+          <Text muted style={{ marginTop: 10 }}>{single ? `Add when it expires, from ${dog.name}'s vet record, and attach a photo or PDF of the record.` : `Add when each one expires, from ${dog.name}'s vet record. Every class needs all three current on the day.`}</Text>
         </View>
-        {rows.map((r, i) => (
+        {rows.map((r, i) => (single && r.type !== single ? null : (
           <View key={r.type} style={{ gap: 10 }}>
             <Text variant="label" weight="600">{r.type}</Text>
             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
@@ -99,7 +103,7 @@ export default function Vaccines() {
               />
             </View>
           </View>
-        ))}
+        )))}
         <View style={{ gap: 10 }}>
           <Text variant="label" weight="600">Vet record</Text>
           {doc || record ? (
@@ -124,7 +128,7 @@ export default function Vaccines() {
         {error ? <Text variant="label" weight="600" color={c.kennelRed}>{error}</Text> : null}
       </ScrollView>
       <Footer>
-        <Button block disabled={!complete || busy} onPress={submit}>{busy ? 'Saving…' : 'Save vaccines'}</Button>
+        <Button block disabled={!complete || busy} onPress={submit}>{busy ? 'Saving…' : single ? 'Save record' : 'Save vaccines'}</Button>
         <Text variant="caption" muted center>{record?.verified && !doc ? 'Partners see that the record was checked.' : 'Partners can ask to see the paperwork at the first visit.'}</Text>
       </Footer>
     </Screen>

@@ -44,9 +44,9 @@ function DogBasics() {
   );
   const note = d.photo ? 'Tap to change. This becomes the Athlete Card.' : 'A clear, outdoor photo works best.';
   const intro = (titleSize?: number) => adding ? (
-    <Intro eyebrow="Step 1 of 5 · Another dog" title="Tell us about your pup" titleSize={titleSize} lede="Your dogs share your plan's credits. Each one gets its own Passport." />
+    <Intro eyebrow="Step 1 of 6 · Another dog" title="Tell us about your pup" titleSize={titleSize} lede="Your dogs share your plan's credits. Each one gets its own Passport." />
   ) : (
-    <Intro eyebrow="Step 1 of 5 · The dog" title="Tell us about your pup" titleSize={titleSize} lede="You can add more dogs later." />
+    <Intro eyebrow="Step 1 of 6 · The dog" title="Tell us about your pup" titleSize={titleSize} lede="You can add more dogs later." />
   );
   const fields = (
     <>

@@ -25,7 +25,7 @@ test('a new member signs up, adds a dog and vaccines, books and cancels', async 
   await ui.boxes().first().fill(CODE);
   await ui.button('Verify').click();
 
-  // Onboarding: the dog, details, play style, traits, the Athlete Card, then the suggested month.
+  // Onboarding: the dog, details, play style, traits, ready to book, the Athlete Card, then the suggested month.
   await expect(ui.text('Tell us about your pup')).toBeVisible();
   await ui.boxes().first().fill('Juno');
   await ui.button('Female').click();
@@ -41,6 +41,14 @@ test('a new member signs up, adds a dog and vaccines, books and cancels', async 
   await expect(ui.text('Tell us about Juno.')).toBeVisible();
   await ui.button('Pulls like a sled dog').click();
   await ui.button('Continue').click();
+  // Ready to book: sign the PackPass waiver now, leave the vaccines for later.
+  await expect(ui.text('Get Juno ready to book.')).toBeVisible();
+  await ui.button(/^PackPass waiver/).click();
+  await ui.boxes().first().fill('Alex Kim');
+  await ui.button('Sign waiver').click();
+  await expect(ui.text(/^Signed [A-Z][a-z]{2} \d/)).toBeVisible();
+  expect(sql(`select s.signed_name from waiver_signatures s join auth.users u on u.id = s.member_id where u.email = '${email}'`)).toBe('Alex Kim');
+  await ui.button('Do this later').click();
   await expect(ui.text('Juno is on the roster.')).toBeVisible();
   await ui.button("See Juno's month").click();
   await expect(ui.text("Juno's month.")).toBeVisible();
@@ -134,12 +142,12 @@ test('a member adds a second dog from the Dog tab and switches between them', as
   // Backing out of step 1 saves nothing.
   await page.goto('/dog');
   await ui.button('Add a dog').click();
-  await expect(ui.text('Step 1 of 5 · Another dog')).toBeVisible();
+  await expect(ui.text('Step 1 of 6 · Another dog')).toBeVisible();
   await ui.button('Back').click();
   await expect(ui.button('Add a dog')).toBeVisible();
   expect(dogs()).toBe('Juno:Mueller');
 
-  // The same five steps as onboarding, for Otis.
+  // The same six steps as onboarding, for Otis.
   await ui.button('Add a dog').click();
   await ui.boxes().first().fill('Otis');
   await ui.button('Male').click();
@@ -151,6 +159,9 @@ test('a member adds a second dog from the Dog tab and switches between them', as
   await ui.button('Continue').click();
   await expect(ui.text('Tell us about Otis.')).toBeVisible();
   await ui.button('Continue').click();
+  await expect(ui.text('Get Otis ready to book.')).toBeVisible();
+  await expect(ui.button(/^PackPass waiver/)).toBeVisible();
+  await ui.button('Do this later').click();
   await expect(ui.text('Otis is on the roster.')).toBeVisible();
   await ui.button("See Otis's month").click();
   await expect(ui.text("Otis's month.")).toBeVisible();

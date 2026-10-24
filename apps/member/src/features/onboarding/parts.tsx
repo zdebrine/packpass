@@ -15,7 +15,7 @@ export function BackButton() {
   return <IconButton icon="chevron-left" label="Back" onPress={back} />;
 }
 
-/** Back button plus the 5-step progress bar (01e to 01i). */
+/** Back button plus the progress bar (01e to 01i, with Ready to book as step 5 of 6). */
 export function StepHeader({ step, showBack = true }: { step: number; showBack?: boolean }) {
   return (
     <View style={{ paddingTop: showBack ? 6 : 14, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -25,12 +25,15 @@ export function StepHeader({ step, showBack = true }: { step: number; showBack?:
   );
 }
 
-/** The 5-step progress bars: done steps in ink. */
+/** Onboarding steps: dog, details, play style, traits, ready to book, Athlete Card. */
+export const STEPS = 6;
+
+/** The step progress bars: done steps in ink. */
 export function Progress({ step }: { step: number }) {
   const { c } = useTheme();
   return (
     <View style={{ flex: 1, flexDirection: 'row', gap: 4 }}>
-      {Array.from({ length: 5 }, (_, i) => (
+      {Array.from({ length: STEPS }, (_, i) => (
         <View key={i} style={{ flex: 1, height: 4, borderRadius: 9999, backgroundColor: i < step ? c.ink : c.surfaceSunken }} />
       ))}
     </View>
