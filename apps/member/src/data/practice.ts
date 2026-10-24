@@ -3,7 +3,7 @@
 // supabase/practice.sql is generated from this file (npm run gen:practice), so the database's skills and drills
 // match what the app shows. Drill text says {dog} where the dog's name goes.
 import type { IconName } from '@/ds/Icon';
-import type { PhotoKey } from './types';
+import type { FocusSkill, PhotoKey } from './types';
 
 export type Balance = 'physical' | 'mental' | 'social';
 export type ActivityKind = 'walk' | 'sniff' | 'park' | 'patio' | 'out' | 'train' | 'play' | 'puzzle' | 'hike' | 'alone' | 'other';
@@ -324,5 +324,11 @@ export const drillsFor = (skillId: string) => DRILLS.filter((d) => d.skillId ===
 export const forDog = (text: string, dog: string) => text.replaceAll('{dog}', dog);
 /** The focus skills a dog's traits start (dog_focus_skills does the same in the database). */
 export const skillsForTraits = (traits: string[]) => SKILLS.filter((s) => s.traits.some((t) => traits.includes(t))).map((s) => s.id);
+/** What a dog works on before the owner edits it: its traits' skills, then its active paths' (seed_focus_skills does the same). */
+export function defaultFocus(traits: string[], pathIds: string[]): FocusSkill[] {
+  const out: FocusSkill[] = skillsForTraits(traits).map((skillId) => ({ skillId, source: 'trait' }));
+  for (const s of SKILLS) if (s.pathId && pathIds.includes(s.pathId) && !out.some((f) => f.skillId === s.id)) out.push({ skillId: s.id, source: 'path' });
+  return out;
+}
 export const RATING_LABEL: Record<Rating, string> = { tough: 'Tough', mixed: 'Mixed', good: 'Good' };
 export const LEVEL_LABEL: Record<DrillLevel, string> = { start: 'Start here', next: 'Next', harder: 'Harder' };

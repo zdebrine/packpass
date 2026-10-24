@@ -9,7 +9,8 @@ import { Press } from '@/ds/Press';
 import { col, Columns, Page, useWide } from '@/ds/responsive';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
-import { useLogView } from '@/features/log/view';
+import { useLogView, useSkillTiles } from '@/features/log/view';
+import { TREND, type SkillTile } from '@/lib/focus';
 import { countLabel, monthHeader, type BalanceRow, type DayMark, type FeedRow } from '@/lib/log';
 import { useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -91,6 +92,44 @@ export default function Log() {
       <Button size="sm" icon="plus" onPress={() => router.push('/log-activity?kind=walk' as Href)}>Log a walk</Button>
     </View>
   ) : null;
+  // Working on (07k): a tile per focus skill with this week's practice and how it's going.
+  const tiles = useSkillTiles(juno);
+  const [tileWidth, setTileWidth] = useState(0);
+  const skillTile = (t: SkillTile, width: number) => {
+    const up = t.trend === 'up';
+    return (
+      <Press key={t.id} onPress={() => router.push(`/skill/${t.id}` as Href)} accessibilityLabel={`${t.label}. ${t.done} of ${t.target} this week. ${TREND[t.trend].label}`}
+        style={{ width, padding: 16, borderRadius: 16, backgroundColor: c.surfaceRaised, gap: 2 }}>
+        <Text variant="heading">{t.label}</Text>
+        <Text variant="caption" muted>{t.source}</Text>
+        <View style={{ flexDirection: 'row', gap: 3, marginTop: 16 }}>
+          {Array.from({ length: t.target }, (_, i) => <View key={i} style={{ flex: 1, height: 6, borderRadius: 9999, backgroundColor: i < t.done ? c.turf : c.surfaceSunken }} />)}
+        </View>
+        <Text variant="caption" style={{ marginTop: 6 }}>{`${t.done} of ${t.target} this week`}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Icon name={TREND[t.trend].icon} size={14} color={up ? c.turf : c.inkMuted} />
+          <Text variant="caption" weight="600" color={up ? c.turf : c.inkMuted}>{TREND[t.trend].label}</Text>
+        </View>
+      </Press>
+    );
+  };
+  const workingHead = (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+      <Text variant="title">Working on</Text>
+      {tiles.length ? (
+        <Press onPress={() => router.push('/focus-edit' as Href)} accessibilityRole="button" accessibilityLabel="Edit what you're working on" style={{ paddingVertical: 6 }}>
+          <Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Edit</Text>
+        </Press>
+      ) : null}
+    </View>
+  );
+  const noFocus = (
+    <View style={{ padding: 20, borderRadius: 16, backgroundColor: c.surfaceRaised, gap: 8, alignItems: 'flex-start' }}>
+      <Text variant="heading">{`Pick what ${juno.name}'s working on`}</Text>
+      <Text variant="label" muted>Log suggests one drill a day for these. Change them any time.</Text>
+      <Button size="sm" onPress={() => router.push('/focus-edit' as Href)} style={{ marginTop: 6 }}>Pick skills</Button>
+    </View>
+  );
   const balanceHead = (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: wide ? 16 : 14 }}>
       <Text variant="title">This month’s balance</Text>
@@ -273,6 +312,14 @@ export default function Log() {
           <View style={col(1, 360, { gap: 16 })}>
             {weekCard}
             {firstWalk}
+            <View style={{ marginTop: 16 }}>
+              {workingHead}
+              {tiles.length ? (
+                <View onLayout={(e) => setTileWidth(e.nativeEvent.layout.width)} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                  {tiles.map((t) => skillTile(t, tileWidth ? (tileWidth - 10) / 2 : 160))}
+                </View>
+              ) : noFocus}
+            </View>
           </View>
           <View style={col(1, 400, raised)}>
             {balanceHead}
@@ -313,7 +360,17 @@ export default function Log() {
             {weekCard}
             {firstWalk}
           </View>
-          <View style={{ marginTop: 24, padding: 20, borderRadius: 16, backgroundColor: c.surfaceRaised }}>
+        </View>
+        <View style={{ marginTop: 32 }}>
+          <View style={{ paddingHorizontal: 20 }}>{workingHead}</View>
+          {tiles.length ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 20 }}>
+              {tiles.map((t) => skillTile(t, 168))}
+            </ScrollView>
+          ) : <View style={{ paddingHorizontal: 20 }}>{noFocus}</View>}
+        </View>
+        <View style={{ paddingHorizontal: 20 }}>
+          <View style={{ marginTop: 32, padding: 20, borderRadius: 16, backgroundColor: c.surfaceRaised }}>
             {balanceHead}
             {balanceRows}
             {balanceLegend}

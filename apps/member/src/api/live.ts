@@ -6,7 +6,7 @@ import { setCatalog } from '@/data/catalog';
 import { photoKey, type Energy } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
-import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, PracticeRemind, Series, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, FocusSkill, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, PracticeRemind, Series, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
 import type { DogRecord, OnboardingDraft } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { setWeights, type Weights } from '@/lib/fit';
@@ -369,6 +369,19 @@ export async function loadHomeLog(): Promise<HomeActivity[]> {
     id: r.id, dogId: r.dog_id, kind: r.kind, doneAt: new Date(r.done_at), durationMin: r.duration_min, balance: r.balance,
     skills: r.skills ?? [], rating: r.rating, note: r.note, drillId: r.drill_id, reps: r.reps,
   }));
+}
+
+/** What each dog is working on (dog_focus_skills), by dog id, oldest first. */
+export async function loadFocus(): Promise<Record<string, FocusSkill[]>> {
+  const rows = check(await db().from('dog_focus_skills').select('dog_id, skill_id, source').is('removed_at', null).order('added_at')) as any[];
+  const out: Record<string, FocusSkill[]> = {};
+  for (const r of rows) (out[r.dog_id] ??= []).push({ skillId: r.skill_id, source: r.source });
+  return out;
+}
+
+/** The Working on edit sheet: the skills picked, in order. */
+export async function setFocusSkills(dogId: string, skills: string[]) {
+  check(await db().rpc('set_focus_skills', { p_dog: dogId, p_skills: skills }));
 }
 
 // ---- Writes --------------------------------------------------------------------------------
