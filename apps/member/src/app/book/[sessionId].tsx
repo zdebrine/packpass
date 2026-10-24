@@ -70,7 +70,7 @@ export default function BookingSheet() {
   const el = eligibility(v, rules, dog?.name);
   const dogName = dog?.name ?? 'Your dog';
   // The waiver isn't a lock on the class: the sheet signs it, then books (block-waiver).
-  const waiver = el.ok && !already ? unsignedWaiver(waivers, signed, partner.id) : null;
+  const waiver = el.ok && !already ? unsignedWaiver(waivers, signed, partner.id, cls.waiverRequired !== false) : null;
   const clearance = !el.ok ? clearanceBlock(v, el) : null;
   const vaccineBlock = !el.ok && el.needs === 'vaccines';
 
@@ -111,7 +111,7 @@ export default function BookingSheet() {
     }
     setAgree(false);
     const s = useApp.getState();
-    if (thenBook && !unsignedWaiver(s.waivers, s.waiversSigned, partner.id)) return confirm();
+    if (thenBook && !unsignedWaiver(s.waivers, s.waiversSigned, partner.id, cls.waiverRequired !== false)) return confirm();
     setBusy(false);
   };
 

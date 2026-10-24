@@ -218,3 +218,15 @@ export function IntensityBars({ value, onPick }: { value: number; onPick: (n: nu
     </div>
   );
 }
+
+/** A confirmation that floats at the bottom of the page until dismissed. */
+export function Toast({ children, onDismiss }: { children: ReactNode; onDismiss: () => void }) {
+  return (
+    <div role="status" style={{ position: 'fixed', left: 16, right: 16, bottom: 24, zIndex: 60, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+      <div style={{ pointerEvents: 'auto', maxWidth: 560, display: 'flex', alignItems: 'center', gap: 16, padding: '12px 12px 12px 18px', borderRadius: 16, background: 'var(--inverse)', color: 'var(--on-inverse)', boxShadow: 'var(--shadow-float)' }}>
+        <span className="pp-label" style={{ textWrap: 'pretty' }}>{children}</span>
+        <button type="button" onClick={onDismiss} className="pp-label" style={{ background: 'none', border: 0, color: 'inherit', fontWeight: 600, textDecoration: 'underline', cursor: 'pointer', padding: '6px 8px', whiteSpace: 'nowrap' }}>Dismiss</button>
+      </div>
+    </div>
+  );
+}

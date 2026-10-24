@@ -378,7 +378,7 @@ const savedRecords = (s: AppState) => {
 export const ruleContextFor = (s: AppState, dogId: string): RuleContext => ({
   ...ruleContext({ ...recordOf(s, dogId), credits: s.credits, bookings: s.bookings }),
   dog: s.dogs.find((d) => d.id === dogId),
-  waiverFor: (partnerId) => unsignedWaiver(s.waivers, s.waiversSigned, partnerId),
+  waiverFor: (partnerId, partnerToo) => unsignedWaiver(s.waivers, s.waiversSigned, partnerId, partnerToo),
 });
 
 export const useApp = create<AppState>()(

@@ -18,7 +18,14 @@ export interface ClassType {
   /** Breed aptitudes the class is built for: ranks it for matching dogs, and gates it only once PackPass approves breed_only. */
   built_for: string[];
   breed_only: boolean; breed_only_reason: string | null; breed_only_status: 'pending' | 'approved' | 'rejected' | null;
+  /** Booking rules (…_class_templates.sql): PackPass spots in a new session (null = every spot), whether members sign the
+   *  partner's waiver for it, and whether the waitlist books the next dog on its own. */
+  packpass_spots: number | null; waiver_required: boolean; waitlist_auto: boolean;
+  /** Archived templates stop repeating and can't be scheduled until restored. */
+  archived_at: string | null;
 }
+/** A template scheduled on some weekdays (0 = Sunday) at one Austin time between two dates. */
+export interface Series { id: string; class_id: string; weekdays: number[]; starts: string; first_day: string; last_day: string; upcoming: number; booked: number }
 /** A training-path step a class can be a Path class for. */
 export interface PathStepOption { path_id: string; position: number; title: string; path_title: string }
 export interface Staff { user_id: string; partner_id: string; trainer_id: string | null; role: 'owner' | 'trainer'; name: string }
@@ -133,6 +140,15 @@ export const loadAdminClearances = async () => check(await db.rpc('admin_clearan
 export const saveClass = async (id: string | null, fields: Record<string, unknown>) =>
   check(await db.rpc('partner_save_class', { p_id: id, p: fields })) as string;
 /** How many PackPass dogs could book a class with these gates today, and how many are Built for matches. */
+export const setClassRules = async (id: string, packpass: number | null, waiver: boolean, waitlist: boolean) => {
+  check(await db.rpc('partner_set_class_rules', { p_class: id, p_packpass: packpass, p_waiver: waiver, p_waitlist: waitlist }));
+};
+export const duplicateClass = async (id: string) => check(await db.rpc('partner_duplicate_class', { p_class: id })) as string;
+export const archiveClass = async (id: string, archive: boolean) => { check(await db.rpc('partner_archive_class', { p_class: id, p_archive: archive })); };
+export const loadSeries = async () => check(await db.rpc('partner_series')) as Series[];
+/** Writes out every session of a series at once; dates that passed or already have the class at that time are skipped. */
+export const scheduleSeries = async (classId: string, weekdays: number[], starts: string, first: string, last: string, capacity: number, packpass: number) =>
+  (check(await db.rpc('partner_schedule_series', { p_class: classId, p_weekdays: weekdays, p_starts: starts, p_first: first, p_last: last, p_capacity: capacity, p_packpass: packpass })) as { series_id: string; sessions: number }[])[0];
 export const loadReach = async (fields: Record<string, unknown>) =>
   (check(await db.rpc('partner_class_reach', { p: fields })) as { can_book: number; built_for: number }[])[0];
 // ---- Photos (class covers, trainer photos) -------------------------------------------------------
@@ -452,6 +468,10 @@ const COPY: Record<string, string> = {
   waiver_too_long: 'The waiver text is over 20,000 characters. Upload it as a PDF instead.',
   bad_summary: 'Keep it to three points of up to 140 characters each.',
   waiver_pdf: 'Upload the waiver as a PDF.',
+  archived: 'This template is archived. Restore it to schedule it.',
+  no_days: 'Pick at least one day.',
+  series_range: 'Pick a start from today and an end within 26 weeks.',
+  no_dates: 'Every date in that range has passed or already has this class at that time.',
 };
 export const errorCopy = (e: unknown) => {
   const m = e instanceof Error ? e.message : String(e);
