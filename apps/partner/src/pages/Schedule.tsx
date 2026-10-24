@@ -110,7 +110,7 @@ export function Schedule() {
         {sel ? <SessionPanel key={sel.id + sel.packpass_spots + sel.capacity} s={sel} repeats={repeats(sel)} gym={gym} trainer={trainerName(sel.cls.trainer_id)} location={partner.name} onSaved={reload} /> : <span />}
       </div>
       {modal === 'block' ? <BlockDates onClose={() => setModal(null)} onDone={() => { setModal(null); reload(); }} /> : null}
-      {modal === 'add' ? <AddSession week={week} classes={classes.filter((c) => c.status === 'live')} sessions={sessions} onClose={() => { setModal(null); if (params.get('add')) setParams({}); }}
+      {modal === 'add' ? <AddSession week={week} classes={classes.filter((c) => c.status === 'live' && !c.archived_at)} sessions={sessions} onClose={() => { setModal(null); if (params.get('add')) setParams({}); }}
         onDone={(id, date) => { setModal(null); setWeek(mondayOf(date)); setParams({ s: id }); reload(); }} /> : null}
     </Page>
   );

@@ -164,3 +164,43 @@ test('an owner adds a waiver with text and a PDF, and a change asks members to s
   await expect(page.getByRole('button', { name: 'Add waiver' })).toBeVisible();
   expect(sql(`select count(*) from waivers where partner_id = 'eastside' and active`)).toBe('0');
 });
+
+test('an owner duplicates a template, sets its booking rules, schedules a series and archives it', async ({ page }) => {
+  await signIn(page);
+  const [id, title] = sql(`select id || '|' || title from class_types where partner_id = 'eastside' and status = 'live' and session_type = 'class' and archived_at is null and id not like '%-copy%' order by title limit 1`).split('|');
+  await page.goto(`/classes?c=${id}`);
+  await page.getByRole('button', { name: `Duplicate ${title}`, exact: true }).click();
+  await expect(page.getByRole('status')).toContainText(`Copy of ${title} made`);
+  const copy = `Copy of ${title}`;
+  await expect(page.getByRole('heading', { name: `Edit ${copy}` })).toBeVisible();
+
+  // Booking rules save without a credit review.
+  await page.getByRole('button', { name: 'Fewer PackPass spots' }).click();
+  await page.getByRole('switch', { name: 'Members sign your waiver' }).locator('..').click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('Saved. Members see the changes on Book now.')).toBeVisible();
+  const copyId = sql(`select id from class_types where title = '${copy.replace(/'/g, "''")}'`);
+  expect(sql(`select (packpass_spots = group_size - 1) || '|' || waiver_required || '|' || credit_review from class_types where id = '${copyId}'`)).toBe('true|false|false');
+
+  // Tue and Thu at 5:30 pm for six weeks from tomorrow is 12 sessions.
+  await page.getByRole('button', { name: `Schedule series of ${copy}`, exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: copy });
+  await sheet.getByRole('button', { name: 'Tue', exact: true }).click();
+  await sheet.getByRole('button', { name: 'Thu', exact: true }).click();
+  await expect(sheet.getByText('12 sessions · Tue and Thu · 5:30 pm')).toBeVisible();
+  await expect(sheet.getByText('+4 more')).toBeVisible();
+  await expect(sheet.getByText(/no waiver/)).toBeVisible();
+  await sheet.getByRole('button', { name: 'Schedule 12 sessions' }).click();
+  await expect(page.getByRole('status')).toContainText(`${copy} scheduled. 12 sessions, Tue and Thu at 5:30 pm`);
+  expect(sql(`select count(*) || '|' || bool_and(packpass_spots = capacity - 1) from sessions where class_id = '${copyId}' and series_id is not null`)).toBe('12|true');
+  await expect(page.getByText('Tue and Thu · 5:30 pm', { exact: true })).toBeVisible();
+
+  // Archived templates leave the table and the Add session picker until restored.
+  await page.getByRole('button', { name: `Archive ${copy}`, exact: true }).click();
+  await page.getByRole('dialog', { name: copy }).getByRole('button', { name: 'Archive' }).click();
+  await expect(page.getByRole('status')).toContainText(`${copy} archived.`);
+  await expect(page.getByRole('button', { name: `Duplicate ${copy}`, exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Archived · 1' }).click();
+  await page.getByRole('button', { name: 'Restore' }).click();
+  await expect(page.getByRole('button', { name: `Duplicate ${copy}`, exact: true })).toBeVisible();
+});

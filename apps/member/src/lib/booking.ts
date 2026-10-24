@@ -51,7 +51,7 @@ export interface RuleContext {
   credits: number;
   bookings: Booking[];
   /** The waiver the member still has to sign to book at a partner (src/lib/ready.ts). Not a block: the sheet signs it. */
-  waiverFor?: (partnerId: string) => Waiver | null;
+  waiverFor?: (partnerId: string, partnerToo?: boolean) => Waiver | null;
 }
 
 /** Classes that ask for a Social clearance: the partner set it, or a Herding group class (it needs both). */
@@ -93,7 +93,7 @@ export function bookError(sessionId: string, dogId: string, ctx: RuleContext): B
   if (!v) return 'not_found';
   const block = blockFor(v.cls, v.session, ctx);
   if (block) return block;
-  const waiver = ctx.waiverFor?.(v.cls.partnerId);
+  const waiver = ctx.waiverFor?.(v.cls.partnerId, v.cls.waiverRequired !== false);
   if (waiver) return waiver.partnerId ? 'partner_waiver' : 'waiver';
   if (ctx.bookings.some((b) => b.sessionId === sessionId && b.dogId === dogId && b.status !== 'cancelled')) return 'already_booked';
   if (v.session.spotsLeft <= 0) return 'full';

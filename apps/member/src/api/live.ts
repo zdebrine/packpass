@@ -113,7 +113,7 @@ export async function loadCatalog() {
       suits: k.suits ?? '', suitsNote: k.suits_note ?? '', balance: cap(k.balance), description: k.description ?? '',
       partnerId: k.partner_id, trainerId: k.trainer_id, image: photo(k.image, 'athletic_dog_catching_ball'), premium: k.premium,
       requires: k.requires ?? undefined, grants: k.grants ?? undefined, openWindow: k.open_window ?? undefined,
-      dropOff: k.drop_off ?? false, requirements: k.requirements ?? [],
+      dropOff: k.drop_off ?? false, waiverRequired: k.waiver_required ?? true, requirements: k.requirements ?? [],
       minAgeMonths: k.min_age_months ?? undefined, maxAgeMonths: k.max_age_months ?? undefined,
       minWeightLb: k.min_weight_lb ?? undefined, maxWeightLb: k.max_weight_lb ?? undefined, requiresFixed: k.requires_fixed ?? false,
       builtFor: k.built_for ?? [], breedOnly: !!k.breed_only && k.breed_only_status === 'approved', energy: (k.energy ?? []).map((e: string) => ENERGY_KEY[e]).filter(Boolean), sociability: k.sociability ?? [],

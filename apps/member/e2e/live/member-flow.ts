@@ -88,6 +88,15 @@ const S = () => useApp.getState();
   await S().signWaiver(ppWaiver!.id, 'Alex Kim');
   ok(!!S().waiversSigned[ppWaiver!.id], 'signing it from Ready to book saves the signature');
   ok(psql(`select signed_name from waiver_signatures where member_id = '${userId}'`) === 'Alex Kim', 'with the typed name');
+  // A partner's own waiver is asked only for classes that use it (class_types.waiver_required).
+  psql(`insert into waivers (partner_id, title, body) values ('ridgeline', 'Ridgeline waiver', 'Dogs can get hurt.')`);
+  psql(`update class_types set waiver_required = false where id = 'agility-drop-in'`);
+  await S().refresh();
+  const partnerWaiver = ruleContextFor(S(), S().dogs[0].id).waiverFor!;
+  ok(catalog.classes['agility-drop-in']?.waiverRequired === false && partnerWaiver('ridgeline', true)?.partnerId === 'ridgeline' && partnerWaiver('ridgeline', false) === null,
+     'a class without the partner\'s waiver skips it, and the partner\'s other classes still ask');
+  psql(`delete from waivers where partner_id = 'ridgeline'; update class_types set waiver_required = true where id = 'agility-drop-in'`);
+  await S().refresh();
   ok(S().activePaths.includes('calm-around-dogs') && S().activePaths.includes('loose-leash-walking'), 'traits start both training paths');
   ok(psql(`select energy || '|' || array_to_string(traits, ',') from dogs where id = '${S().dogs[0].id}'`) === 'working|pulls,nervous_dogs',
      'onboarding saves the energy key and trait ids');

@@ -39,9 +39,11 @@ export const packpassWaiver = (waivers: Waiver[]) => waivers.find((w) => w.partn
  * The waiver a booking at this partner still needs signed: the PackPass waiver first, then the partner's own,
  * which members sign once, on their first booking there (waiver_block in supabase/migrations).
  */
-export function unsignedWaiver(waivers: Waiver[], signed: Record<string, string>, partnerId: string): Waiver | null {
+export function unsignedWaiver(waivers: Waiver[], signed: Record<string, string>, partnerId: string, partnerToo = true): Waiver | null {
   const pp = packpassWaiver(waivers);
   if (pp && !signed[pp.id]) return pp;
+  // A partner can turn their waiver off for a class (class_types.waiver_required).
+  if (!partnerToo) return null;
   return waivers.find((w) => w.partnerId === partnerId && !signed[w.id]) ?? null;
 }
 

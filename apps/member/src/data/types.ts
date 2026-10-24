@@ -91,6 +91,8 @@ export interface ClassType {
   openWindow?: string;
   /** Owners leave the dog with the trainer and pick up at the end. Every other class, they stay. */
   dropOff: boolean;
+  /** False when the partner doesn't ask for their own waiver for this class (the PackPass waiver still applies). */
+  waiverRequired?: boolean;
   requirements: { icon: 'syringe' | 'cake' | 'link' | 'stethoscope' | 'shield'; text: string }[];
   // Who it's for (gates). A dog outside them can't book: src/lib/fit.ts and public.class_gate().
   minAgeMonths?: number;
