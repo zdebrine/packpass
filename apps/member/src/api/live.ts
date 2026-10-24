@@ -84,7 +84,7 @@ export async function loadCatalog() {
     c.from('partners').select('*').then(check),
     c.from('trainers').select('*').then(check),
     c.from('class_types').select('*').then(check),
-    c.from('sessions').select('id, class_id, starts_at, spots_left')
+    c.from('sessions').select('id, class_id, starts_at, spots_left, auto_promote')
       .gte('starts_at', new Date(Date.now() - 86_400_000).toISOString())
       .lte('starts_at', new Date(Date.now() + 29 * 86_400_000).toISOString())
       .order('starts_at')
@@ -118,7 +118,7 @@ export async function loadCatalog() {
       minWeightLb: k.min_weight_lb ?? undefined, maxWeightLb: k.max_weight_lb ?? undefined, requiresFixed: k.requires_fixed ?? false,
       builtFor: k.built_for ?? [], breedOnly: !!k.breed_only && k.breed_only_status === 'approved', energy: (k.energy ?? []).map((e: string) => ENERGY_KEY[e]).filter(Boolean), sociability: k.sociability ?? [],
     }])),
-    sessions: (sessions as any[]).map((s): Session => ({ id: s.id, classId: s.class_id, startsAt: new Date(s.starts_at), spotsLeft: s.spots_left })),
+    sessions: (sessions as any[]).map((s): Session => ({ id: s.id, classId: s.class_id, startsAt: new Date(s.starts_at), spotsLeft: s.spots_left, autoPromote: s.auto_promote })),
     pathSpecialties: Object.fromEntries((paths as any[]).map((p) => [p.id, p.specialties ?? []])),
     pathClasses: (pathClasses as any[]).reduce((m: Record<string, string[]>, x) => ({ ...m, [x.path_id]: [...(m[x.path_id] ?? []), x.class_id] }), {}),
     ...(clearanceTypes?.length ? {
@@ -188,7 +188,7 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     c.from('held_spots').select('session_id, dog_id, expires_at').eq('status', 'held').gt('expires_at', new Date().toISOString()).then(check),
     c.rpc('my_waitlist').then(check),
     c.from('dog_fit_overrides').select('dog_id, partner_id').in('dog_id', dogIds).then(check),
-    c.from('waivers').select('id, partner_id, title, body, pdf_path').eq('active', true).then(check),
+    c.from('waivers').select('id, partner_id, title, summary, body, pdf_path').eq('active', true).then(check),
     c.from('waiver_signatures').select('waiver_id, signed_at').then(check),
   ]) as any[][];
 
@@ -243,8 +243,8 @@ export async function loadMember(): Promise<MemberSnapshot | null> {
     })),
     readNotifications: notes.filter((n) => n.read_at).map((n) => n.id),
     area: dogs[0]?.area ?? null,
-    waitlist: waiting.map((w) => ({ sessionId: w.session_id, dogId: w.dog_id, place: w.place })),
-    waivers: waivers.map((w): Waiver => ({ id: w.id, partnerId: w.partner_id, title: w.title, body: w.body, pdfPath: w.pdf_path })),
+    waitlist: waiting.map((w) => ({ sessionId: w.session_id, dogId: w.dog_id, place: w.place, offerUntil: w.offer_until ?? undefined })),
+    waivers: waivers.map((w): Waiver => ({ id: w.id, partnerId: w.partner_id, title: w.title, summary: w.summary ?? [], body: w.body, pdfPath: w.pdf_path })),
     waiversSigned: Object.fromEntries(signatures.map((x) => [x.waiver_id, String(x.signed_at).slice(0, 10)])),
   };
 }

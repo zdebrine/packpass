@@ -77,14 +77,24 @@ test('a new member signs up, adds a dog and vaccines, books and cancels', async 
   // Book a Social assessment more than 12 hours out, then cancel it: the credits come back.
   const session = sql(`select id from sessions where class_id = 'social-assessment' and starts_at > now() + interval '2 days' and spots_left > 0
     order by starts_at limit 1`);
+  // Eastside has its own waiver, signed in the sheet on the first booking there (added before the app loads).
+  sql(`insert into waivers (partner_id, title, summary, body) select 'eastside', 'Eastside Dog Club waiver', '{"You tell the front desk about any change in health."}', 'Eastside rules.'
+       where not exists (select 1 from waivers where partner_id = 'eastside' and active)`);
   await page.goto(`/class/${session}`);
   await expect(ui.text('Social assessment')).toBeVisible();
   await ui.button('Book for 2 credits').click();
+  await expect(ui.text('First class at Eastside Dog Club. Sign their waiver.')).toBeVisible();
   await expect(ui.text('0 credits left after booking')).toBeVisible();
-  await ui.button('Confirm booking').click();
+  const signAndBook = ui.button('Sign and book');
+  await expect(signAndBook).toBeDisabled();
+  await page.getByRole('checkbox', { name: "I agree to Eastside Dog Club's waiver" }).click();
+  await signAndBook.click();
   await expect(ui.text('Booked.')).toBeVisible();
   expect(sql(`select b.status || '|' || b.credits_charged from bookings b join dogs d on d.id = b.dog_id join auth.users u on u.id = d.owner_id
     where u.email = '${email}'`)).toBe('booked|2');
+  expect(sql(`select s.signed_name from waiver_signatures s join waivers w on w.id = s.waiver_id join auth.users u on u.id = s.member_id
+    where u.email = '${email}' and w.partner_id = 'eastside'`)).toBe('Sam Rivera');
+  sql(`update waivers set active = false where partner_id = 'eastside'`);
 
   await ui.button('Done').click();
   await page.goto(`/class/${session}`);
@@ -241,5 +251,35 @@ test('a herding-breeds-only class turns a Lab away until the partner marks it As
     await expect.poll(() => Number(sql(`select count(*) from match_impressions where dog_id = '${dog}' and surface = 'list' and weights ->> 'breed' = '35' and (score_parts ->> 'breed')::numeric <= 1`))).toBeGreaterThan(0);
   } finally {
     sql(`update class_types set breed_only = false where id = 'herding-livestock'`);
+  }
+});
+
+test('a waitlist spot offered inside 12 hours is accepted from the class page', async ({ page }) => {
+  const ui = visible(page);
+  const email = `offer-${Date.now()}@example.com`;
+  const id = await account(email, 'goodpass123');
+  sql(`select public.seed_demo_member('${id}')`);
+  sql(`insert into waiver_signatures (member_id, waiver_id, signed_name) select '${id}', id, 'Sam Rivera' from waivers where partner_id is null and active`);
+  const session = sql(`select id from sessions where class_id = 'sniff-space' and starts_at > now() + interval '1 day' and cancelled_at is null order by starts_at offset 4 limit 1`);
+  const spots = sql(`select spots_left from sessions where id = '${session}'`);
+  // fill_from_waitlist's offer, as the database tests check it: the spot is out of spots_left and held for Juno.
+  sql(`update sessions set spots_left = 0 where id = '${session}'`);
+  sql(`insert into waitlist (session_id, dog_id, member_id, status, offer_expires_at)
+       select '${session}', id, owner_id, 'offered', now() + interval '2 hours' from dogs where owner_id = '${id}' and name = 'Juno'`);
+  try {
+    await page.goto('/');
+    await page.getByText('I already have an account').click();
+    await ui.boxes().nth(0).fill(email);
+    await ui.boxes().nth(1).fill('goodpass123');
+    await ui.button('Sign in').click();
+    await expect(ui.text(/Juno/)).toBeVisible();
+    await page.goto(`/class/${session}`);
+    await expect(ui.text(/^A spot opened\. Accept by /)).toBeVisible();
+    await ui.button(/^Accept for \d+ credits?$/).click();
+    await expect.poll(() => sql(`select b.status from bookings b where b.session_id = '${session}' and b.member_id = '${id}'`)).toBe('booked');
+    expect(sql(`select status from waitlist where session_id = '${session}' and member_id = '${id}'`)).toBe('booked');
+    expect(sql(`select spots_left from sessions where id = '${session}'`)).toBe('0');
+  } finally {
+    sql(`update sessions set spots_left = greatest(${Number(spots)} - 1, 0) where id = '${session}'`);
   }
 });

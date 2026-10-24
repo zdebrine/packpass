@@ -1,5 +1,5 @@
 import { catalog, clearanceName, sessionById } from '@/data/catalog';
-import type { Booking, ClassType, Partner, Session, Trainer } from '@/data/types';
+import type { Booking, ClassType, Partner, Session, Trainer, Waiver } from '@/data/types';
 import { now } from './clock';
 import { dayOffset, time } from './dates';
 import { gateFor, gateLabel, type DogFacts, type GateCode } from './fit';
@@ -30,7 +30,7 @@ export const timeLabel = (v: SessionView) => v.cls.openWindow ?? time(v.session.
 
 /** `needs_<clearance id>`: needs_social, needs_herding, or a clearance PackPass added. */
 export type BlockCode = 'started' | 'already_cleared' | GateCode | `needs_${string}` | 'records_denied' | 'vaccines';
-export type BookError = BlockCode | 'already_booked' | 'full' | 'credits' | 'not_found';
+export type BookError = BlockCode | 'waiver' | 'partner_waiver' | 'already_booked' | 'full' | 'credits' | 'not_found';
 
 /** What the rules need to know about the member and dog. */
 export interface RuleContext {
@@ -50,6 +50,8 @@ export interface RuleContext {
   vaccinesUntil: Date | null;
   credits: number;
   bookings: Booking[];
+  /** The waiver the member still has to sign to book at a partner (src/lib/ready.ts). Not a block: the sheet signs it. */
+  waiverFor?: (partnerId: string) => Waiver | null;
 }
 
 /** Classes that ask for a Social clearance: the partner set it, or a Herding group class (it needs both). */
@@ -91,6 +93,8 @@ export function bookError(sessionId: string, dogId: string, ctx: RuleContext): B
   if (!v) return 'not_found';
   const block = blockFor(v.cls, v.session, ctx);
   if (block) return block;
+  const waiver = ctx.waiverFor?.(v.cls.partnerId);
+  if (waiver) return waiver.partnerId ? 'partner_waiver' : 'waiver';
   if (ctx.bookings.some((b) => b.sessionId === sessionId && b.dogId === dogId && b.status !== 'cancelled')) return 'already_booked';
   if (v.session.spotsLeft <= 0) return 'full';
   if (ctx.credits < v.cls.credits) return 'credits';

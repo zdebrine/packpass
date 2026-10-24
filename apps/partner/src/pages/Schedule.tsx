@@ -189,7 +189,7 @@ function SessionPanel({ s, repeats, gym, trainer, location, onSaved }: { s: Sess
         {s.cancelled_at ? null : (
           <>
             <ToggleRow label="Waitlist" sub="Open when the session is full" on={wl} set={setWl} />
-            <ToggleRow label="Auto-promote" sub="Book the next dog in line when a spot opens, until 12 hours before" on={promote} set={setPromote} />
+            <ToggleRow label="Auto-promote" sub="Book the next dog in line when a spot opens. Inside 12 hours, they get 2 hours to accept." on={promote} set={setPromote} />
             <ToggleRow label="Repeats weekly" sub={`Every ${FULL_DAYS[dayIndex(s.start)]} at ${time(s.start)}`} on={rep} set={setRep} />
           </>
         )}

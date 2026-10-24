@@ -137,9 +137,13 @@ export default function Settings() {
 
         <Row
           title="Waitlist"
-          sub={s.waitlist.length ? `Waiting on ${s.waitlist.length}. A spot opening books the first one more than 12 hours out.` : 'Join a full class to try it.'}
+          sub={s.waitlist.length ? `Waiting on ${s.waitlist.length}. A spot opening books the first one more than 12 hours out, else holds it 2 hours to accept.` : 'Join a full class to try it.'}
           right={s.waitlist.length ? (
-            <Button size="sm" onPress={() => { const r = s.openWaitlistSpot(); if (r?.ok) router.dismissTo('/'); }}>Open a spot</Button>
+            <Button size="sm" onPress={() => {
+              const r = s.openWaitlistSpot();
+              if (r?.outcome === 'booked') router.dismissTo('/');
+              else if (r?.outcome === 'offered') router.push(`/class/${r.sessionId}`);
+            }}>Open a spot</Button>
           ) : null}
         />
 
