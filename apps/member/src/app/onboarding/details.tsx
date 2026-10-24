@@ -33,7 +33,7 @@ function Details() {
   const name = d.dogName.trim() || 'Your dog';
   const wide = useWide();
 
-  const intro = <Intro eyebrow="Step 2 of 5 · Details" title={`${name}'s details.`} lede="Trainers use these to set pace and group size." />;
+  const intro = <Intro eyebrow="Step 2 of 6 · Details" title={`${name}'s details.`} lede="Trainers use these to set pace and group size." />;
   // Breed search: picking from the list gives the dog canonical breeds (src/data/breeds.ts), which is what
   // classes match on. A mix holds up to three; typed text that isn't a breed is kept as is.
   const picked = d.breedIds ?? [];

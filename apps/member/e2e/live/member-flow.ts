@@ -82,6 +82,11 @@ const S = () => useApp.getState();
   ok(intruder.error, 'a member can\'t upload into someone else\'s folder');
   ok(S().credits === 10, 'a new member has 10 credits on Regular');
   ok(S().vaccines.length === 3, 'vaccines entered during onboarding are saved with the dog');
+  const ppWaiver = S().waivers.find((w) => w.partnerId === null);
+  ok(ppWaiver && !S().waiversSigned[ppWaiver.id], 'the PackPass waiver loads, unsigned');
+  await S().signWaiver(ppWaiver!.id, 'Alex Kim');
+  ok(!!S().waiversSigned[ppWaiver!.id], 'signing it from Ready to book saves the signature');
+  ok(psql(`select signed_name from waiver_signatures where member_id = '${userId}'`) === 'Alex Kim', 'with the typed name');
   ok(S().activePaths.includes('calm-around-dogs') && S().activePaths.includes('loose-leash-walking'), 'traits start both training paths');
   ok(psql(`select energy || '|' || array_to_string(traits, ',') from dogs where id = '${S().dogs[0].id}'`) === 'working|pulls,nervous_dogs',
      'onboarding saves the energy key and trait ids');

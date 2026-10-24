@@ -3,7 +3,7 @@
 
 import type { Aptitude } from './breeds';
 import type { TraitGroup } from './traits';
-import type { ClassType, Dog, Partner, PhotoKey, Session, Trainer } from './types';
+import type { ClassType, Dog, Partner, PhotoKey, Session, Trainer, Waiver } from './types';
 
 export const NOW = new Date(2026, 8, 29, 9, 41);
 
@@ -278,6 +278,15 @@ export const OTIS_VACCINES = [
   { type: 'DHPP', expires: new Date(2027, 5, 30) },
   { type: 'Bordetella', expires: new Date(2027, 2, 31) },
 ] as const;
+
+/** Sample waivers: PackPass's and three partners'. Alex signed all but Northside's (asked on the first booking there). */
+export const SAMPLE_WAIVERS: Waiver[] = [
+  { id: 'packpass', partnerId: null, title: 'PackPass waiver', pdfPath: null, body: 'Dog training and dog sports involve physical activity and contact with other dogs and people. Risks include bites, scratches, falls, strains and other injuries, illness passed between dogs, lost or escaped dogs, and, rarely, serious injury or death, to your dog or to you.\n\nBy signing, you confirm that your dog is in good health with current Rabies, DHPP and Bordetella vaccines, that you will tell the trainer about anything that affects safety, and that you are responsible for your dog\'s behavior. You choose to take part and accept these risks for yourself and your dog. To the fullest extent the law allows, you release PackPass and its team from claims arising from sessions booked through PackPass, except claims caused by gross negligence or willful misconduct.\n\nThis waiver covers every class you book through PackPass, for every dog on your account.' },
+  { id: 'ridgeline', partnerId: 'ridgeline', title: 'Ridgeline Dog Sport waiver', pdfPath: null, body: 'Livestock and agility work carries extra risk. Keep your dog leashed until the trainer calls you onto the field.' },
+  { id: 'eastside', partnerId: 'eastside', title: 'Eastside Dog Club waiver', pdfPath: null, body: 'Dogs in group play must be spayed or neutered after 9 months. Tell the front desk about any change in health.' },
+  { id: 'northside', partnerId: 'northside', title: 'Northside Canine waiver', pdfPath: null, body: 'Northside Canine runs indoor classes on rubber turf. Dogs must be on a flat collar or harness, never a prong or choke collar.' },
+];
+export const SAMPLE_WAIVERS_SIGNED: Record<string, string> = { packpass: '2026-03-12', ridgeline: '2026-03-14', eastside: '2026-03-20' };
 
 // ---- Today ---------------------------------------------------------------------------------
 

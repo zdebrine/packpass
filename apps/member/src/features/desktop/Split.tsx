@@ -10,7 +10,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 /**
  * Desktop frame for sign-up, sign-in, verify and the onboarding steps (01b to 01j in Pack Member App Desktop):
  * a photo half with the wordmark and "Make your dog a good hang.", and a form half with a 480 column that starts
- * with the back button and the 5-step progress bars. The step's buttons sit at the end of the column.
+ * with the back button and the step progress bars. The step's buttons sit at the end of the column.
  */
 export function Split({ photo, step, back = true, gap = 22, children }: { photo: PhotoSource; step?: number; back?: boolean; gap?: number; children: ReactNode }) {
   const { c } = useTheme();
