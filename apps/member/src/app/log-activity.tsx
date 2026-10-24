@@ -77,7 +77,7 @@ export default function LogActivity() {
   const { c } = useTheme();
   const wide = useWide();
   const bottom = useBottom(34);
-  const params = useLocalSearchParams<{ edit?: string; drill?: string; dur?: string; reps?: string }>();
+  const params = useLocalSearchParams<{ edit?: string; drill?: string; dur?: string; reps?: string; kind?: string }>();
   const dog = useDog();
   const dogs = useApp((s) => s.dogs);
   const homeLog = useApp((s) => s.homeLog);
@@ -88,6 +88,8 @@ export default function LogActivity() {
   const guarded = useParkGuard(dog);
   const view = useLogView(dog);
   const editing = params.edit ? homeLog.find((h) => h.id === params.edit) : undefined;
+  // ?kind=walk skips the pick step (the Log's "Log a walk"), so a walk takes two taps.
+  const preset = ACTIVITIES.find((a) => a.id === params.kind)?.id;
 
   const start = (kind: ActivityKind, extra: Partial<Form> = {}): Form => {
     const a = activityById(kind);
@@ -96,7 +98,7 @@ export default function LogActivity() {
       dogIds: [dog.id], balance: null, drillId: null, reps: null, guard: false, ...extra,
     };
   };
-  const [step, setStep] = useState<Step>(() => (editing || params.drill ? 'details' : 'pick'));
+  const [step, setStep] = useState<Step>(() => (editing || params.drill || preset ? 'details' : 'pick'));
   const [form, setForm] = useState<Form>(() => {
     if (editing) {
       return {
@@ -107,7 +109,7 @@ export default function LogActivity() {
     }
     const drill = params.drill ? drillById(params.drill) : undefined;
     if (drill) return start(drill.activity, { dur: Math.max(1, Number(params.dur) || drill.minutes), skills: [drill.skillId], drillId: drill.id, reps: params.reps ? Number(params.reps) : null });
-    return start('walk');
+    return start(preset ?? 'walk');
   });
   const [otherDur, setOtherDur] = useState(() => !DURATIONS.includes(form.dur));
   const [busy, setBusy] = useState<'save' | 'delete' | null>(null);

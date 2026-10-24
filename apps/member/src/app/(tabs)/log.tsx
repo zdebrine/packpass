@@ -10,7 +10,7 @@ import { col, Columns, Page, useWide } from '@/ds/responsive';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { useLogView } from '@/features/log/view';
-import { countLabel, monthHeader, type BalanceRow, type FeedRow } from '@/lib/log';
+import { countLabel, monthHeader, type BalanceRow, type DayMark, type FeedRow } from '@/lib/log';
 import { useDog } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -32,6 +32,8 @@ export default function Log() {
   // Milestones on desktop sit in a `repeat(auto-fill, minmax(130px, 1fr))` grid; the column width sets how many fit.
   const [msWidth, setMsWidth] = useState(0);
   const openLog = () => router.push('/log-activity' as Href);
+  const openGoal = () => router.push('/practice-goal' as Href);
+  const markColor = (b: DayMark['balance']) => (b ? balanceColor[{ physical: 'agility', mental: 'turf', social: 'pitch' }[b] as 'agility' | 'turf' | 'pitch'] : c.inkMuted);
 
   const header = (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -39,6 +41,56 @@ export default function Log() {
       <Button size="sm" icon="plus" onPress={openLog}>Log activity</Button>
     </View>
   );
+  // This week (07): practice days against the goal, and a day strip with a dot per class and a ring per time at home.
+  const { week } = view;
+  const weekCard = (
+    <View style={{ padding: 16, borderRadius: 16, backgroundColor: c.surfaceRaised }}>
+      <Text variant="title">This week</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 }}>
+        <Text variant="label">{week.practiced ? `${week.practiced} of ${week.goal} practice days` : `New week. 0 of ${week.goal} so far.`}</Text>
+        <View style={{ flex: 1, flexDirection: 'row', gap: 4 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          {Array.from({ length: week.goal }, (_, i) => (
+            <View key={i} style={{ flex: 1, height: 6, borderRadius: 9999, backgroundColor: i < week.practiced ? c.turf : c.surfaceSunken }} />
+          ))}
+        </View>
+        <Press onPress={openGoal} accessibilityRole="button" style={{ paddingVertical: 6 }}>
+          <Text variant="label" weight="600" style={{ textDecorationLine: 'underline' }}>Set goal</Text>
+        </Press>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 4, marginTop: 14 }}>
+        {week.days.map((d) => (
+          <View key={d.key} accessibilityLabel={`${d.label} ${d.date}: ${d.marks.filter((x) => !x.home).length} classes, ${d.marks.filter((x) => x.home).length} at home`}
+            style={{ flex: 1, alignItems: 'center', gap: 4, paddingTop: 8, paddingBottom: 10, borderRadius: 12, backgroundColor: d.today ? c.bg : 'transparent', boxShadow: d.today ? `inset 0 0 0 1.5px ${c.ink}` : undefined }}>
+            <Text variant="caption" muted>{d.label}</Text>
+            <Text variant="heading" num color={d.future ? c.inkFaint : c.ink}>{d.date}</Text>
+            <View style={{ gap: 3, alignItems: 'center', minHeight: 27, paddingTop: 2 }}>
+              {d.marks.map((mk, i) => (
+                <View key={i} style={{ width: 8, height: 8, borderRadius: 9999, backgroundColor: mk.home ? 'transparent' : markColor(mk.balance), borderWidth: mk.home ? 2 : 0, borderColor: markColor(mk.balance) }} />
+              ))}
+            </View>
+          </View>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, alignItems: 'center', marginTop: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 9999, backgroundColor: c.inkMuted }} />
+          <Text variant="caption" muted>Class</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 9999, borderWidth: 2, borderColor: c.inkMuted }} />
+          <Text variant="caption" muted>At home</Text>
+        </View>
+      </View>
+    </View>
+  );
+  // A member who only has classes so far: one line and a way to log the first walk.
+  const hasClasses = view.feed.some((g) => g.rows.some((r) => r.type === 'class'));
+  const firstWalk = view.noHome && hasClasses ? (
+    <View style={{ padding: 20, borderRadius: 16, backgroundColor: c.surfaceRaised, gap: 14, alignItems: 'flex-start' }}>
+      <Text variant="heading">Between classes? Log walks and outings to see the whole week.</Text>
+      <Button size="sm" icon="plus" onPress={() => router.push('/log-activity?kind=walk' as Href)}>Log a walk</Button>
+    </View>
+  ) : null;
   const balanceHead = (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: wide ? 16 : 14 }}>
       <Text variant="title">This month’s balance</Text>
@@ -102,6 +154,7 @@ export default function Log() {
             <View key={i} style={{ width: `${100 / 7}%`, paddingHorizontal: 3 }}>
               <View style={{ aspectRatio: 1, borderRadius: 9999, backgroundColor: shade[a], alignItems: 'center', justifyContent: 'center', boxShadow: today ? `0 0 0 2px ${c.surfaceRaised}, 0 0 0 3.5px ${c.ink}` : undefined }}>
                 <Text style={wide ? { fontSize: 12, lineHeight: 16 } : { fontSize: 11, lineHeight: 14 }} weight="500" color={a >= 2 ? '#fff' : c.inkMuted}>{d}</Text>
+                {month.classDays.includes(d) ? <View style={{ position: 'absolute', bottom: '12%', width: 4, height: 4, borderRadius: 9999, backgroundColor: a >= 2 ? '#fff' : c.ink }} /> : null}
               </View>
             </View>
           );
@@ -111,6 +164,8 @@ export default function Log() {
         <Text variant="caption" muted>Less</Text>
         {shade.map((s, i) => <View key={i} style={{ width: 12, height: 12, borderRadius: 9999, backgroundColor: s }} />)}
         <Text variant="caption" muted>More</Text>
+        <View style={{ width: 4, height: 4, borderRadius: 9999, backgroundColor: c.ink, marginLeft: 12 }} />
+        <Text variant="caption" muted>Class</Text>
       </View>
     </View>
   );
@@ -207,7 +262,7 @@ export default function Log() {
   );
 
   if (wide) {
-    // 07 Log, desktop: balance and stats side by side, then the calendar and milestones beside the activity feed.
+    // 07 Log, desktop: This week beside the balance, then stats, the calendar and milestones beside the activity feed.
     const raised: ViewStyle = { padding: 24, borderRadius: 16, backgroundColor: c.surfaceRaised };
     const msCols = Math.max(1, Math.floor((msWidth + 10) / 140));
     const msTile = msWidth ? (msWidth - 10 * (msCols - 1)) / msCols : 130;
@@ -215,23 +270,27 @@ export default function Log() {
       <Page top={32}>
         {header}
         <Columns gap={16} align="stretch" style={{ marginTop: 24 }}>
-          <View style={col(2, 420, raised)}>
+          <View style={col(1, 360, { gap: 16 })}>
+            {weekCard}
+            {firstWalk}
+          </View>
+          <View style={col(1, 400, raised)}>
             {balanceHead}
             {balanceRows}
             {balanceLegend}
             <Text variant="label" muted style={{ marginTop: 12 }}>{view.hint}</Text>
           </View>
-          <View style={col(1, 300, { ...raised, flexDirection: 'row', gap: 16, alignItems: 'flex-end', justifyContent: 'space-between' })}>
-            {view.stats.map(([n, l]) => (
-              <View key={l} style={{ flexShrink: 1 }}>
-                <Text variant="statNum" num>{n}</Text>
-                <Text variant="caption" muted style={{ marginTop: 4 }}>{l}</Text>
-              </View>
-            ))}
-          </View>
         </Columns>
         <Columns gap={40} style={{ marginTop: 40 }}>
           <View style={col(1, 340, { maxWidth: 440 })}>
+            <View style={{ flexDirection: 'row', gap: 16, marginBottom: 40 }}>
+              {view.stats.map(([n, l]) => (
+                <View key={l} style={{ flex: 1 }}>
+                  <Text variant="statNum" num>{n}</Text>
+                  <Text variant="caption" muted style={{ marginTop: 4 }}>{l}</Text>
+                </View>
+              ))}
+            </View>
             {monthHead}
             {calendar}
             <Text variant="title" style={{ marginTop: 40, marginBottom: 14 }}>Milestones</Text>
@@ -250,7 +309,11 @@ export default function Log() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 14, paddingBottom: 32 }}>
         <View style={{ paddingHorizontal: 20 }}>
           {header}
-          <View style={{ marginTop: 20, padding: 20, borderRadius: 16, backgroundColor: c.surfaceRaised }}>
+          <View style={{ marginTop: 20, gap: 16 }}>
+            {weekCard}
+            {firstWalk}
+          </View>
+          <View style={{ marginTop: 24, padding: 20, borderRadius: 16, backgroundColor: c.surfaceRaised }}>
             {balanceHead}
             {balanceRows}
             {balanceLegend}
