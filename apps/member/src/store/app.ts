@@ -199,6 +199,9 @@ interface AppState extends Demo {
   /** The member's plan (Settings › Plan and credits). Sample mode: Regular, no payment set up. */
   membership: Membership;
   saveName: (name: string) => Promise<void>;
+  /** Reminder emails (24 hours and 2 hours before, booking notices, trainer notes). On by default. */
+  emailReminders: boolean;
+  setEmailReminders: (on: boolean) => Promise<void>;
   changePassword: (password: string) => Promise<void>;
   /** Sends a code to the new address (and, with secure email change, the current one). */
   requestEmailChange: (email: string) => Promise<void>;
@@ -296,6 +299,7 @@ const fresh = {
   clearanceRecords: null as ClearanceRecord[] | null,
   paths: null as PathProgress[] | null,
   account: { name: 'Alex Kim', email: 'alex@kim.co' },
+  emailReminders: true,
   membership: { plan: 'regular', status: 'none', nextPlan: null, renewsOn: null, cancels: false } as Membership,
   social: 'working' as SocialStage,
   socialExpired: false,
@@ -423,6 +427,11 @@ export const useApp = create<AppState>()(
           if (isLive && id) loadPathsFor(id);
         },
         updateDraft: (patch) => set((s) => ({ draft: { ...s.draft, ...patch } })),
+        setEmailReminders: async (on) => {
+          const was = get().emailReminders;
+          set({ emailReminders: on });
+          if (isLive) await live.setEmailReminders(on).catch((e) => { set({ emailReminders: was }); throw e; });
+        },
         saveName: async (name) => {
           if (isLive) await live.saveName(name);
           set((s) => ({ account: { ...s.account, name: name.trim() } }));
@@ -667,6 +676,7 @@ export const useApp = create<AppState>()(
             log: log ? log.filter((e) => !e.missed) : get().log,
             missed: log ? log.filter((e) => e.missed) : get().missed,
             account: { name: m.name, email: m.email },
+            emailReminders: m.emailReminders,
             membership: m.membership,
             ...(adding ? {} : { paths: paths ?? get().paths }),
             waitlist: m.waitlist,
@@ -787,7 +797,7 @@ export const useApp = create<AppState>()(
           ? { appearance: s.appearance, draft: s.draft, origin: s.origin, seenRecordDenials: s.seenRecordDenials, seenMissed: s.seenMissed, activeDogId: s.activeDogId }
           : {
               dogs: s.dogs, activeDogId: s.activeDogId, dogRecords: s.dogRecords, addingDog: s.addingDog, origin: s.origin, area: s.area, appearance: s.appearance, signedIn: s.signedIn, onboarded: s.onboarded, draft: s.draft, credits: s.credits, bookings: s.bookings,
-              readNotifications: s.readNotifications, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, social: s.social, socialExpired: s.socialExpired,
+              readNotifications: s.readNotifications, emailReminders: s.emailReminders, planSwaps: s.planSwaps, pendingPlan: s.pendingPlan, waitlist: s.waitlist, social: s.social, socialExpired: s.socialExpired,
               behaviorNote: s.behaviorNote, activePaths: s.activePaths, vaccines: s.vaccines, vaccineRecord: s.vaccineRecord, waiversSigned: s.waiversSigned,
               seenRecordDenials: s.seenRecordDenials, seenMissed: s.seenMissed,
             },

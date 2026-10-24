@@ -10,6 +10,7 @@ import { useWide } from '@/ds/responsive';
 import { Press } from '@/ds/Press';
 import { Gradient, PhotoFill } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
+import { NotifActions } from '@/features/notifications/NotifActions';
 import { useApp, useDog, useNotifications } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -54,6 +55,7 @@ export default function Notifications() {
             <Text variant="caption" muted>{n.time}</Text>
           </View>
           <Text variant="caption" muted style={{ marginTop: 2 }}>{n.body}</Text>
+          <NotifActions n={n} onDone={() => markRead([n.id])} />
         </View>
         {n.isNew ? <View style={{ width: 8, height: 8, marginTop: 6, borderRadius: 9999, backgroundColor: unread ? c.ink : 'transparent' }} /> : null}
       </Press>
