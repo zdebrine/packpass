@@ -1,6 +1,6 @@
 // Everything the dashboard reads and writes. Reads of the catalog go through row level security; the
 // rest are partner functions (supabase/migrations/…_partner_dashboard.sql) that check staff access.
-import { check, db } from './supabase';
+import { check, db, SUPABASE_URL } from './supabase';
 
 export type SessionType = 'class' | 'private' | 'assessment';
 export interface Partner { id: string; name: string; short_name: string; type: string; street: string; address: string; parking: string | null; meet_at: string | null; rating: number | null; payout_status: 'none' | 'pending' | 'connected'; payout_rate_cents: number }
@@ -315,6 +315,23 @@ export async function readFeed(id: string): Promise<string | null> {
   if (error) throw new Error('read_failed');
   return (data as { error: string | null }).error;
 }
+/** A Google Calendar connection (two-way) rather than an iCal feed. */
+export const isGoogle = (f: CalendarFeed) => f.host === 'www.googleapis.com';
+/** Whether Google Calendar is set up on PackPass (the Edge Function has its Google credentials). */
+export async function googleReady(): Promise<boolean> {
+  const { data, error } = await db.functions.invoke('calendar-sync/google/status', { method: 'GET' });
+  return !error && (data as { ready?: boolean } | null)?.ready === true;
+}
+/** Sends the browser to Google's consent page, for the whole place or one trainer. Google returns to /calendar. */
+export async function connectGoogle(trainerId: string | null) {
+  const state = check(await db.rpc('partner_google_start', { p_trainer: trainerId })) as string;
+  window.location.assign(`${SUPABASE_URL}/functions/v1/calendar-sync/google/start?state=${state}`);
+}
+/** Takes PackPass's events off the Google calendar, revokes the access and removes the connection. */
+export async function disconnectGoogle(id: string) {
+  const { error } = await db.functions.invoke('calendar-sync', { body: { disconnect: id } });
+  if (error) throw new Error('disconnect_failed');
+}
 export const checkVaccines = async (dogId: string) => { check(await db.rpc('partner_check_vaccines', { p_dog: dogId })); };
 
 // ---- Earnings ----
@@ -615,6 +632,7 @@ const COPY: Record<string, string> = {
   bad_feed_url: 'Paste the feed\'s https:// or webcal:// address. It usually ends in .ics.',
   already_added: 'That feed is already connected.',
   read_failed: 'Saved. PackPass couldn\'t read it just now and will try again within 15 minutes.',
+  disconnect_failed: 'Google Calendar couldn\'t be disconnected just now. Try again in a minute.',
   no_days: 'Pick at least one day.',
   series_range: 'Pick a start from today and an end within 26 weeks.',
   no_dates: 'Every date in that range has passed or already has this class at that time.',

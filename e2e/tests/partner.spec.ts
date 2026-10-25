@@ -354,6 +354,45 @@ test('a trainer sets up intake calls, opens times and offers a 1:1 after a call'
   expect(sql(`select count(*) from notifications where member_id = '${member}' and kind = 'private_offer'`)).toBe('1');
 });
 
+test('a partner connects Google Calendar from Settings and disconnects it', async ({ page }) => {
+  // The local stack has no Edge Functions: stand in for calendar-sync's Google routes the way it answers them.
+  await page.route('**/functions/v1/calendar-sync/google/status', (r) => r.fulfill({ json: { ready: true } }));
+  await page.route('**/functions/v1/calendar-sync/google/start?**', (r) => {
+    const state = new URL(r.request().url()).searchParams.get('state');
+    sql(`set role service_role; select public.calendar_google_connect('${state}', 'e2e-dana@eastside.co', 'refresh', 'access', 3600)`);
+    return r.fulfill({ status: 302, headers: { location: 'http://127.0.0.1:8082/calendar?google=connected' } });
+  });
+  await page.route('**/functions/v1/calendar-sync', async (r) => {
+    const body = r.request().postDataJSON() as { disconnect?: string };
+    if (!body.disconnect) return r.fallback();
+    sql(`set role service_role; select public.calendar_google_disconnect('${body.disconnect}')`);
+    return r.fulfill({ json: { ok: true } });
+  });
+  try {
+    await signIn(page);
+    await page.getByRole('link', { name: 'Calendar sync' }).click();
+    await page.getByRole('button', { name: 'Connect Google Calendar' }).click();
+    await expect(page.getByText('Google Calendar is connected. Every 15 minutes PackPass reads your busy times and adds PackPass bookings to it, with the dogs\' names and a roster link.')).toBeVisible();
+    await expect(page).toHaveURL(/\/calendar$/);
+    const row = page.locator('.tbl-row').filter({ hasText: 'Google Calendar · e2e-dana@eastside.co' });
+    await expect(row.getByText('busy times and PackPass bookings · syncing now')).toBeVisible();
+    const feed = sql(`select id from calendar_feeds where kind = 'google' and name like '%e2e-dana%'`);
+    expect(sql(`select trainer_id is null from calendar_feeds where id = '${feed}'`)).toBe('t');
+
+    // What a sync stores: no busy times yet, so it's connected.
+    sql(`select public.calendar_store_busy('${feed}', '[]')`);
+    await page.reload();
+    await expect(row.getByText('Connected')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Disconnect Google Calendar · e2e-dana@eastside.co' }).click();
+    await row.getByRole('button', { name: 'Disconnect', exact: true }).click();
+    await expect(row).toHaveCount(0);
+    expect(sql(`select count(*) from calendar_feeds where id = '${feed}'`)).toBe('0');
+  } finally {
+    sql(`delete from calendar_feeds where kind = 'google' and name like '%e2e-dana%'`);
+  }
+});
+
 test('a partner connects an iCal feed, and a busy time hides PackPass spots on the schedule', async ({ page }) => {
   await signIn(page);
   await expect(page.getByRole('button', { name: 'Connect your calendar' })).toBeVisible();
@@ -368,7 +407,7 @@ test('a partner connects an iCal feed, and a busy time hides PackPass spots on t
   await page.getByRole('button', { name: 'Add feed' }).click();
   // The local stack has no Edge Functions, so the first read waits for the 15-minute job.
   await expect(page.getByText('Saved. PackPass couldn\'t read it just now and will try again within 15 minutes.')).toBeVisible();
-  await expect(page.locator('.tbl-row').filter({ hasText: 'Gingr' }).getByText('app.gingrapp.com · busy times only · reading now')).toBeVisible();
+  await expect(page.locator('.tbl-row').filter({ hasText: 'Gingr' }).getByText('app.gingrapp.com · busy times only · syncing now')).toBeVisible();
   const feed = sql(`select id from calendar_feeds where url = '${url}'`);
 
   // What the Edge Function stores after reading it: a busy time over the next Eastside session.

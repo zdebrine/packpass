@@ -4,6 +4,9 @@ const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const key = import.meta.env.VITE_SUPABASE_KEY as string | undefined;
 if (!url || !key) throw new Error('Set VITE_SUPABASE_URL and VITE_SUPABASE_KEY (see apps/partner/.env).');
 
+/** The project's address, for links that open an Edge Function in the browser (Google sign-in). */
+export const SUPABASE_URL = url.replace(/\/$/, '');
+
 export const db = createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true } });
 
 /** Throws the error message (a short code from the partner functions) or returns the data. */

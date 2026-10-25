@@ -72,6 +72,8 @@ jobs:
         run: supabase/tests/run-local.sh
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: apps/member/package-lock.json }
+      - name: Calendar sync parsing (iCal feeds, Google events)
+        run: node --test supabase/functions/calendar-sync/ics.test.ts supabase/functions/calendar-sync/google.test.ts
       - run: npm ci
         working-directory: apps/member
       - name: Member flow (the app's store and API code against PostgREST)
