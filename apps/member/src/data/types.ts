@@ -125,6 +125,8 @@ export interface Session {
   autoPromote?: boolean;
   /** A 1:1 a specialist offered this member after an intake call: theirs alone, booked from the offer (23f). */
   offered?: boolean;
+  /** Closed to new bookings: the partner's calendar shows them busy then (…_calendar_sync.sql). */
+  closed?: boolean;
 }
 
 export type BookingStatus = 'booked' | 'checked_in' | 'cancelled';

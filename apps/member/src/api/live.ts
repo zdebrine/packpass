@@ -84,7 +84,7 @@ export async function loadCatalog() {
     c.from('partners').select('*').then(check),
     c.from('trainers').select('*').then(check),
     c.from('class_types').select('*').then(check),
-    c.from('sessions').select('id, class_id, starts_at, spots_left, auto_promote, offered_member')
+    c.from('sessions').select('id, class_id, starts_at, spots_left, auto_promote, offered_member, busy_hidden')
       .gte('starts_at', new Date(Date.now() - 86_400_000).toISOString())
       .lte('starts_at', new Date(Date.now() + 29 * 86_400_000).toISOString())
       .order('starts_at')
@@ -118,7 +118,7 @@ export async function loadCatalog() {
       minWeightLb: k.min_weight_lb ?? undefined, maxWeightLb: k.max_weight_lb ?? undefined, requiresFixed: k.requires_fixed ?? false,
       builtFor: k.built_for ?? [], breedOnly: !!k.breed_only && k.breed_only_status === 'approved', energy: (k.energy ?? []).map((e: string) => ENERGY_KEY[e]).filter(Boolean), sociability: k.sociability ?? [],
     }])),
-    sessions: (sessions as any[]).map((s): Session => ({ id: s.id, classId: s.class_id, startsAt: new Date(s.starts_at), spotsLeft: s.spots_left, autoPromote: s.auto_promote, offered: !!s.offered_member })),
+    sessions: (sessions as any[]).map((s): Session => ({ id: s.id, classId: s.class_id, startsAt: new Date(s.starts_at), spotsLeft: s.spots_left, autoPromote: s.auto_promote, offered: !!s.offered_member, closed: !!s.busy_hidden })),
     pathSpecialties: Object.fromEntries((paths as any[]).map((p) => [p.id, p.specialties ?? []])),
     pathClasses: (pathClasses as any[]).reduce((m: Record<string, string[]>, x) => ({ ...m, [x.path_id]: [...(m[x.path_id] ?? []), x.class_id] }), {}),
     ...(clearanceTypes?.length ? {

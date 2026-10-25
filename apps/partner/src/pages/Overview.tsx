@@ -1,8 +1,8 @@
-import { CalendarDays, NotebookPen, Plus, QrCode, ShieldCheck, Syringe, Users, type LucideIcon } from 'lucide-react';
+import { CalendarDays, CalendarSync, NotebookPen, Plus, QrCode, ShieldCheck, Syringe, Users, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { loadAssessments, loadEarnings, loadReportCards, loadRoster, loadSessions } from '@/lib/api';
+import { loadAssessments, loadCalendar, loadEarnings, loadReportCards, loadRoster, loadSessions } from '@/lib/api';
 import { useData, usePartner } from '@/lib/partner';
 import { credits, fillLabel, statusOf, withClasses, type SessionView } from '@/lib/sessions';
 import { addDays, austin, mondayOf, money, monthDay, monthName, time, weekday, ymd } from '@/lib/time';
@@ -17,17 +17,18 @@ export function Overview() {
   const today = ymd(now);
   const mon = mondayOf(now);
   const { data } = useData(async () => {
-    const [week, notes, assess, earnings] = await Promise.all([
+    const [week, notes, assess, earnings, feeds] = await Promise.all([
       loadSessions(austin(mon, 0), austin(addDays(mon, 7), 0)), loadReportCards(2), loadAssessments(), owner ? loadEarnings(2) : Promise.resolve([]),
+      loadCalendar().catch(() => null),
     ]);
     const todays = withClasses(week, classById).filter((s) => ymd(s.start) === today && !s.cancelled_at);
     // Vaccine problems among dogs booked today.
     const rosters = await Promise.all(todays.filter((s) => s.booked > 0 && s.end > now).map(async (s) => ({ s, dogs: await loadRoster(s.id) })));
-    return { week: withClasses(week, classById), todays, notes, assess, earnings, rosters };
+    return { week: withClasses(week, classById), todays, notes, assess, earnings, rosters, feeds };
   }, [mon, owner]);
 
   if (!data) return <Loading />;
-  const { week, todays, notes, assess, earnings, rosters } = data;
+  const { week, todays, notes, assess, earnings, rosters, feeds } = data;
   const live = week.filter((s) => !s.cancelled_at);
   const dogsToday = todays.reduce((a, s) => a + s.booked, 0);
   const next = todays.find((s) => s.start > now) ?? todays.find((s) => s.end > now);
@@ -42,6 +43,11 @@ export function Overview() {
   const attention: { icon: LucideIcon; warn?: boolean; text: string; action: string; go: () => void }[] = [];
   if (notesDue.length) attention.push({ icon: NotebookPen, text: `${notesDue.length} report card${notesDue.length > 1 ? 's' : ''} due${new Set(notesDue.map((n) => n.session_id)).size === 1 ? ` from ${notesDue[0].class_title}` : ` from ${new Set(notesDue.map((n) => n.session_id)).size} sessions`}.`, action: 'Write report cards', go: () => nav(new Set(notesDue.map((n) => n.session_id)).size === 1 ? `/notes?s=${notesDue[0].session_id}` : '/notes') });
   if (assessDue.length) attention.push({ icon: ShieldCheck, text: `${assessDue.length} assessment result${assessDue.length > 1 ? 's' : ''} to record. ${listNames(assessDue.map((a) => a.dog_name))}${assessDue.length > 1 ? '’s owners are' : '’s owner is'} waiting.`, action: 'Record results', go: () => nav('/assessments') });
+  // Calendar sync (P6): a feed that stopped answering, or the setup prompt until one is connected.
+  for (const f of (feeds ?? []).filter((x) => x.id && x.status === 'error'))
+    attention.push({ icon: CalendarSync, warn: true, text: `${f.name} stopped sharing your busy times. PackPass keeps the ones it last read until it can read the feed again.`, action: 'Fix calendar sync', go: () => nav('/calendar') });
+  if (feeds && !feeds.some((x) => x.id))
+    attention.push({ icon: CalendarSync, text: 'Connect the calendar you book clients in, and PackPass hides your spots when you\'re busy.', action: 'Connect your calendar', go: () => nav('/calendar') });
   for (const s of live.filter((x) => x.spots_left <= 0 && !x.waitlist_open && x.start > now).slice(0, 2))
     attention.push({ icon: Users, text: `${s.cls.title} on ${weekday(s.start)} is full. The waitlist is closed.`, action: 'Adjust capacity', go: () => nav(`/schedule?s=${s.id}`) });
   for (const { s, dogs } of rosters)
