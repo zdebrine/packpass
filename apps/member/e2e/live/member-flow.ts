@@ -395,6 +395,34 @@ const S = () => useApp.getState();
   psql(`delete from vet_record_reviews where dog_id = '${otis}'`);
   await S().refresh();
 
+  // 23d–23f A free intake call with Sam, then the 1:1 Sam offers after it.
+  const sam = S().intake.specialists.find((x) => x.trainerId === 'sam')!;
+  ok(sam && sam.slots.length > 0 && !sam.calendly && sam.phone, 'Sam takes intake calls at open times, by video or phone');
+  ok(S().intake.specialists.find((x) => x.trainerId === 'ana')?.calendly, 'Ana takes them on Calendly');
+  const creditsBeforeIntake = S().credits;
+  threw = '';
+  try { await S().bookIntake('sam', sam.slots[0].id, juno, 'phone', '12'); } catch (e) { threw = (e as Error).message; }
+  ok(threw === 'bad_phone', 'a phone intake call needs a real number');
+  await S().bookIntake('sam', sam.slots[0].id, juno, 'video', null);
+  const intakeCall = S().intake.calls.find((x) => x.trainerId === 'sam' && x.dogId === juno && x.status === 'booked')!;
+  ok(intakeCall && intakeCall.mode === 'video' && !intakeCall.link, 'booking the intake call keeps the link back until 10 minutes before');
+  ok(!S().intake.specialists.find((x) => x.trainerId === 'sam')!.slots.some((x) => x.id === sam.slots[0].id) && S().credits === creditsBeforeIntake,
+     'the time is taken, for 0 credits');
+  // Sam's staff account offers the 1:1 from SQL; the member stays signed in.
+  await fetch('http://127.0.0.1:54399/auth/v1/signup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'sam@eastside.test', password: 'password123' }) });
+  psql(`select link_partner_staff('sam@eastside.test', 'eastside', 'trainer', 'sam')`);
+  const samUser = psql(`select id from auth.users where email = 'sam@eastside.test'`);
+  const asSam = (sql: string) => psql(`begin; set local role authenticated; set local request.jwt.claims = '{"sub":"${samUser}","role":"authenticated"}'; ${sql}; commit;`);
+  const offerId = asSam(`select partner_offer_private('${intakeCall.id}', 'calm-private', date_trunc('hour', now()) + interval '50 hours', 'Distance work first, then a calm helper dog.')`);
+  await S().refresh();
+  const offer = S().intake.offers.find((o) => o.id === offerId)!;
+  ok(offer && offer.status === 'offered' && offer.note?.startsWith('Distance work') && offer.credits === 3, 'Sam\'s 1:1 offer reaches the app');
+  ok(S().remoteNotifications!.some((x) => x.href === `/offer/${offerId}?dog=${juno}`), 'its notification opens the offer for Juno');
+  ok(catalog.sessions.find((x) => x.id === offer.sessionId)?.offered && !nextSession('calm-private', 0)?.session.offered, 'the offered time is Juno\'s alone and stays out of Book');
+  r = await S().bookSession(offer.sessionId, juno);
+  ok(r.ok && S().intake.offers.find((o) => o.id === offerId)!.status === 'booked', 'booking it through the booking sheet closes the offer');
+  ok(S().credits === creditsBeforeIntake - 3, 'for the class\'s credits');
+
   // Settings › Account: name, password, then delete the account.
   await S().saveName('Sam Rivera');
   ok(psql(`select name from profiles where id = '${userId}'`) === 'Sam Rivera' && S().account.name === 'Sam Rivera', 'the name can be changed');

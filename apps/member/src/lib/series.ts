@@ -30,7 +30,7 @@ export const ruleFor = (id: string, session: Session, dogId: string, until: stri
 /** The rule's sessions still ahead, before `end`, up to its until date. */
 export function ruleSessions(rule: SeriesRule, end: Date): Session[] {
   return catalog.sessions
-    .filter((s) => s.classId === rule.classId && s.startsAt > now() && s.startsAt < end
+    .filter((s) => s.classId === rule.classId && !s.offered && s.startsAt > now() && s.startsAt < end
       && s.startsAt.getDay() === rule.weekday && minutesOf(s.startsAt) === rule.minutes
       && (!rule.until || isoDay(s.startsAt) <= rule.until))
     .sort((a, b) => +a.startsAt - +b.startsAt);

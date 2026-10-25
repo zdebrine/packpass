@@ -316,3 +316,40 @@ test('a trainer sends one report card with homework, then the rest of the class 
   expect(sql(`select status from bookings where id = '${b}'`)).toBe('checked_in');
   expect(sql(`select count(*) from session_notes where booking_id = '${b}'`)).toBe('0');
 });
+
+test('a trainer sets up intake calls, opens times and offers a 1:1 after a call', async ({ page }) => {
+  // A call with Sam that ended an hour ago, from a member with a dog.
+  const member = await account(`intake-${Date.now()}@example.com`, 'goodpass123');
+  const dog = sql(`insert into dogs (owner_id, name, breed, energy, sociability, traits) values ('${member}', 'Pepper', 'Mutt', 'medium', 'loves_dogs', '{leash_reactive}') returning id`);
+  const call = sql(`insert into intake_calls (trainer_id, member_id, dog_id, starts_at, mode) values ('sam', '${member}', '${dog}', now() - interval '1 hour', 'video') returning id`);
+  await signIn(page);
+  await page.getByRole('link', { name: /Intake calls/ }).click();
+  await expect(page.getByRole('heading', { name: 'Intake calls' })).toBeVisible();
+
+  // How you take calls: Sam's line and a new open time.
+  await page.getByRole('group', { name: 'View' }).getByRole('button', { name: 'How you take calls' }).click();
+  const chip = page.locator('.pp-chip').filter({ hasText: /^Sam Reyes$/ });
+  if (await chip.count()) await chip.click();
+  await expect(page.getByLabel('Meeting or Calendly link')).toHaveValue('https://meet.packpass.dev/sam-reyes');
+  await page.getByLabel('Helps with').fill('reactivity, puppies');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText('Saved.')).toBeVisible();
+  expect(sql(`select focus from intake_settings where trainer_id = 'sam'`)).toBe('reactivity, puppies');
+  const day = sql(`select to_char((now() at time zone 'America/Chicago')::date + 9, 'YYYY-MM-DD')`);
+  await page.getByLabel('Day').fill(day);
+  await page.locator('.pp-chip').filter({ hasText: /^9:30 am$/ }).click();
+  await page.getByRole('button', { name: 'Add 1 time' }).click();
+  await expect(page.getByRole('button', { name: /^Remove .* 9:30 am$/ })).toBeVisible();
+  expect(sql(`select count(*) from intake_slots where trainer_id = 'sam' and starts_at = ('${day} 09:30'::timestamp at time zone 'America/Chicago')`)).toBe('1');
+
+  // Calls: Pepper's call is waiting on an offer; the profile shows before the offer.
+  await page.getByRole('group', { name: 'View' }).getByRole('button', { name: 'Calls', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Pepper · intake call' })).toBeVisible();
+  await expect(page.getByText('No trainer notes for Pepper yet.')).toBeVisible();
+  await page.getByLabel('Session').selectOption({ label: 'Calm around dogs · 40 min · 3 credits' });
+  await page.getByLabel('Note to owner').fill('Distance work first.');
+  await page.getByRole('button', { name: 'Offer for 3 credits' }).click();
+  await expect(page.getByText(/^Offered Calm around dogs, .*Waiting on /)).toBeVisible();
+  expect(sql(`select o.status || ',' || o.note || ',' || s.capacity from private_offers o join sessions s on s.id = o.session_id where o.intake_id = '${call}'`)).toBe('offered,Distance work first.,1');
+  expect(sql(`select count(*) from notifications where member_id = '${member}' and kind = 'private_offer'`)).toBe('1');
+});

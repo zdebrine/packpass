@@ -13,6 +13,7 @@ import { Text } from '@/ds/Text';
 import { BookRowView, bookRow, dogLine, HiddenLine, OpenCard, PlaceGroup, SectionHead, UnlockCard, type BookRow } from '@/features/book/parts';
 import { useFit } from '@/features/book/useFit';
 import { useImpressions } from '@/features/book/useImpressions';
+import { SpecialistGroup } from '@/features/intake/parts';
 import { centerOf, Map, useMe } from '@/features/Map';
 import { view, type SessionView } from '@/lib/booking';
 import { now } from '@/lib/clock';
@@ -126,7 +127,7 @@ export default function Book() {
   const rows = useMemo(
     () =>
       catalog.sessions
-        .filter((s) => dayOffset(s.startsAt) === day && s.startsAt > now())
+        .filter((s) => !s.offered && dayOffset(s.startsAt) === day && s.startsAt > now())
         .sort((a, b) => +a.startsAt - +b.startsAt)
         .map((s) => view(s.id)!)
         .filter(Boolean)
@@ -164,6 +165,11 @@ export default function Book() {
       .map((id) => shown.filter((r) => r.v.partner.id === id).sort(byTime))
       .sort((a, b) => a[0].v.partner.distanceMi - b[0].v.partner.distanceMi)
       .map((rs) => ({ key: rs[0].v.partner.id, title: `${rs[0].v.partner.distanceMi.toFixed(1)} mi · ${rs[0].v.partner.name}`, rows: rs }));
+  // Skills: specialists taking intake calls sit after the assessments, whenever 1:1s aren't filtered out (23a).
+  const specialistAt = groups.findIndex((g) => g.key !== 'Assessment') === -1 ? groups.length : groups.findIndex((g) => g.key !== 'Assessment');
+  const specialists = cat === 'Skills' && (!types.length || types.includes('Private')) ? (
+    <View key="specialists" style={wide ? [cell(460, 48), { marginTop: 12 }] : { width: '100%', marginTop: 20 }}><SpecialistGroup dogId={dog.id} /></View>
+  ) : null;
   const openShown = shown.filter((r) => r.access === 'open').length;
   const countLine = `${shown.length === 1 ? '1 class' : `${shown.length} classes`} · ${openShown} open to ${dog.name}`;
 
@@ -256,7 +262,8 @@ export default function Book() {
           <View key={g.key} style={wide ? [cell(460, 48), { marginTop: 12 }] : { width: '100%', marginTop: 20 }}>
             <PlaceGroup title={g.title} n={g.rows.length}>{lines(g.rows)}</PlaceGroup>
           </View>
-        ))}
+        )).flatMap((el, i) => (specialists && i === specialistAt ? [specialists, el] : [el]))}
+        {specialists && specialistAt >= groups.length ? specialists : null}
       </View>
       {shown.length ? null : <View style={{ marginTop: 16 }}>{empty}</View>}
       {hidden.length ? <View style={{ marginTop: 28 }}><HiddenLine rows={hidden} dogName={dog.name} showing={showHidden} onToggle={() => setShowHidden((x) => !x)} /></View> : null}

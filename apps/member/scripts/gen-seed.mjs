@@ -104,6 +104,14 @@ select s.class_id,
        least(c.group_size, greatest(0, case when s.d = 0 then s.spots else s.spots + ((s.d * 7 + s.spots * 3) % 5) - 1 end))
 from slots s join public.class_types c on c.id = s.class_id;
 
+-- Intake calls: Sam takes them by video or phone at three times a day for the next week; Ana books through Calendly.
+insert into public.intake_settings (trainer_id, link, focus, phone) values
+  ('sam', 'https://meet.packpass.dev/sam-reyes', 'reactivity, new dogs', true),
+  ('ana', 'https://calendly.com/ana-ruiz/intake', 'leash manners and loose-leash walking', false);
+insert into public.intake_slots (trainer_id, starts_at)
+select 'sam', ((current_date + d) + t::time) at time zone 'America/Chicago'
+from generate_series(1, 7) d cross join unnest(array['12:00', '12:30', '16:00']) t;
+
 -- Gives an existing account Juno (and Otis) as the designs show them: vaccines on file, on step 2 of
 -- Calm around dogs after a "not yet" Social assessment, Herding Fundamentals booked for Thursday.
 -- Run from the SQL editor after signing up: select public.seed_demo_member('<user id>');

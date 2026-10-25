@@ -1,8 +1,8 @@
-import { CalendarDays, ClipboardCheck, Layers, LayoutDashboard, MapPin, NotebookPen, ShieldCheck, UserRound, Users, Wallet, type LucideIcon } from 'lucide-react';
+import { CalendarDays, ClipboardCheck, Layers, LayoutDashboard, MapPin, NotebookPen, PhoneCall, ShieldCheck, UserRound, Users, Wallet, type LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
-import { loadAssessments, loadReportCards, signOut } from '@/lib/api';
+import { loadAssessments, loadIntakeCalls, loadReportCards, signOut } from '@/lib/api';
 import { usePartner } from '@/lib/partner';
 import { Avatar, Ico } from '@/ui/kit';
 import { LegalLinks } from '@/ui/LegalLinks';
@@ -15,12 +15,17 @@ export function Shell() {
   const { partner, staff, trainers, gym, admin } = usePartner();
   const loc = useLocation();
   const owner = staff.role === 'owner';
-  const [due, setDue] = useState({ notes: 0, assess: 0 });
+  const [due, setDue] = useState({ notes: 0, assess: 0, intake: 0 });
 
   useEffect(() => {
     let live = true;
-    Promise.all([loadReportCards(2), loadAssessments()]).then(([n, a]) => {
-      if (live) setDue({ notes: n.filter((x) => !x.sent_at && x.status !== 'no_show').length, assess: a.filter((x) => !x.outcome && new Date(x.starts_at) < new Date()).length });
+    Promise.all([loadReportCards(2), loadAssessments(), loadIntakeCalls()]).then(([n, a, i]) => {
+      if (live) setDue({
+        notes: n.filter((x) => !x.sent_at && x.status !== 'no_show').length,
+        assess: a.filter((x) => !x.outcome && new Date(x.starts_at) < new Date()).length,
+        // Calls that have happened with no 1:1 offered yet.
+        intake: i.filter((x) => x.status === 'booked' && !x.offer_status && x.starts_at && new Date(x.starts_at) < new Date()).length,
+      });
     }).catch(() => {});
     return () => { live = false; };
   }, [loc.pathname]);
@@ -28,6 +33,7 @@ export function Shell() {
   const all: [string, string, LucideIcon, number?][] = [
     ['/', 'Overview', LayoutDashboard], ['/schedule', 'Schedule', CalendarDays], ['/classes', 'Classes', Layers],
     ['/roster', 'Roster', ClipboardCheck], ['/notes', 'Report cards', NotebookPen, due.notes], ['/assessments', 'Assessments', ShieldCheck, due.assess],
+    ['/intake', 'Intake calls', PhoneCall, due.intake],
     ['/locations', 'Locations', MapPin], ['/earnings', 'Earnings', Wallet], ['/trainers', gym ? 'Trainers' : 'Profile', UserRound], ['/team', 'Team', Users],
   ];
   // Earnings and Team are for owners.

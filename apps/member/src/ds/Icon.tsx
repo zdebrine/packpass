@@ -1,8 +1,8 @@
 import {
   Activity, ArrowRight, Award, Ban, BatteryFull, Bell, Bookmark, Building, Cake, Calendar, CalendarCheck, CalendarPlus, CalendarSearch, CalendarX, Camera, Check, CircleDot, Coffee, DoorClosed, Eye, Footprints, Leaf, Mountain, Puzzle, Store, Target, CircleDashed, CircleCheck, OctagonAlert, Play, TrendingDown, Pencil, Shuffle, ListChecks, ArrowDown,
   ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock, Fence, FilePen, FilePlus, FileText, Flashlight, House, Link, List, Lock, LockOpen, Map, MapPin, MessageSquare,
-  Minus, Navigation, Plus, Repeat, RotateCcw, ScanLine, Search, Settings, Share, Shield, ShieldAlert, ShieldCheck, Sparkles, Star, Stethoscope, Syringe, Ticket,
-  Timer, Trees, TrendingUp, Trophy, UserRound, Users, Wallet, X, Zap, type LucideIcon,
+  Minus, Navigation, Phone, Plus, Repeat, RotateCcw, ScanLine, Search, Settings, Share, Shield, ShieldAlert, ShieldCheck, Sparkles, Star, Stethoscope, Syringe, Ticket,
+  Timer, Trees, TrendingUp, Trophy, UserRound, Users, Video, Wallet, X, Zap, type LucideIcon,
 } from 'lucide-react-native';
 
 import { useTheme } from '@/theme/ThemeProvider';
@@ -15,10 +15,10 @@ const ICONS = {
   shuffle: Shuffle, 'list-checks': ListChecks, 'arrow-down': ArrowDown,
   'chevron-down': ChevronDown, 'chevron-left': ChevronLeft, 'chevron-right': ChevronRight, 'circle-alert': CircleAlert, clock: Clock,
   fence: Fence, 'file-pen': FilePen, 'file-plus': FilePlus, 'file-text': FileText, flashlight: Flashlight, house: House, link: Link, list: List, lock: Lock, 'lock-open': LockOpen, map: Map, 'map-pin': MapPin,
-  'message-square': MessageSquare, minus: Minus, navigation: Navigation, plus: Plus, repeat: Repeat, 'rotate-ccw': RotateCcw, 'scan-line': ScanLine, search: Search, settings: Settings,
+  'message-square': MessageSquare, minus: Minus, navigation: Navigation, phone: Phone, plus: Plus, repeat: Repeat, 'rotate-ccw': RotateCcw, 'scan-line': ScanLine, search: Search, settings: Settings,
   share: Share, shield: Shield, 'shield-alert': ShieldAlert, 'shield-check': ShieldCheck, sparkles: Sparkles, star: Star,
   stethoscope: Stethoscope, syringe: Syringe, ticket: Ticket, timer: Timer, trees: Trees, 'trending-up': TrendingUp, trophy: Trophy,
-  'user-round': UserRound, users: Users, wallet: Wallet, x: X, zap: Zap,
+  'user-round': UserRound, users: Users, video: Video, wallet: Wallet, x: X, zap: Zap,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

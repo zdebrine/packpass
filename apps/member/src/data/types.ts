@@ -123,6 +123,8 @@ export interface Session {
   spotsLeft: number;
   /** Off: a spot opening tells everyone waiting instead of booking or offering it. Default on. */
   autoPromote?: boolean;
+  /** A 1:1 a specialist offered this member after an intake call: theirs alone, booked from the offer (23f). */
+  offered?: boolean;
 }
 
 export type BookingStatus = 'booked' | 'checked_in' | 'cancelled';
@@ -364,4 +366,54 @@ export interface Membership {
   renewsOn: string | null;
   /** Ends at renewsOn instead of renewing. */
   cancels: boolean;
+}
+
+/** A specialist taking 15-minute intake calls for 0 credits (23d), with open times over the next two weeks. */
+export interface IntakeSpecialist {
+  trainerId: string;
+  name: string;
+  credential: string | null;
+  photo: PhotoSource;
+  partnerId: string;
+  partner: string;
+  /** One line on what they help with ("reactivity, new dogs"). */
+  focus: string | null;
+  /** Takes phone calls as well as video. */
+  phone: boolean;
+  /** Books through Calendly instead of open times in the app. */
+  calendly: boolean;
+  slots: { id: string; startsAt: Date }[];
+}
+
+/** A booked intake call (23e), or a Calendly request (startsAt null). The link shows 10 minutes before a video call. */
+export interface IntakeCall {
+  id: string;
+  trainerId: string;
+  trainer: string;
+  trainerPhoto: PhotoSource;
+  partner: string;
+  dogId: string;
+  startsAt: Date | null;
+  mode: 'video' | 'phone' | 'calendly';
+  status: 'booked' | 'cancelled';
+  link: string | null;
+}
+
+/** A 1:1 a specialist offered after an intake call (23f): a session only this member sees, booked from the booking sheet. */
+export interface PrivateOffer {
+  id: string;
+  dogId: string;
+  sessionId: string;
+  classId: string;
+  title: string;
+  startsAt: Date;
+  durationMin: number;
+  credits: number;
+  cancelHours: number;
+  partner: string;
+  trainer: string | null;
+  trainerPhoto: PhotoSource;
+  note: string | null;
+  status: 'offered' | 'booked' | 'other_time' | 'expired';
+  expiresAt: Date;
 }
