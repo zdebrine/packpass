@@ -15,6 +15,7 @@ import { VetRecords } from '@/admin/VetRecords';
 import { PartnerProvider, useStaffSession } from '@/lib/partner';
 import { Assessments } from '@/pages/Assessments';
 import { Intake } from '@/pages/Intake';
+import { Calendar } from '@/pages/Calendar';
 import { Classes } from '@/pages/Classes';
 import { Earnings } from '@/pages/Earnings';
 import { Locations } from '@/pages/Locations';
@@ -70,6 +71,7 @@ function App() {
           <Route path="notes" element={<Notes />} />
           <Route path="assessments" element={<Assessments />} />
           <Route path="intake" element={<Intake />} />
+          <Route path="calendar" element={<Calendar />} />
           <Route path="locations" element={<Locations />} />
           {status.staff.role === 'owner' ? <Route path="earnings" element={<Earnings />} /> : null}
           <Route path="trainers" element={<Trainers />} />

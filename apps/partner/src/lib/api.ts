@@ -294,6 +294,27 @@ export const loadIntakeCalls = async () => check(await db.rpc('partner_intake_ca
 /** Offers the dog from an intake call a 1:1 on one of the partner's Private templates. Returns the offer id. */
 export const offerPrivate = async (callId: string, classId: string, startsAt: Date, note: string) =>
   check(await db.rpc('partner_offer_private', { p_call: callId, p_class: classId, p_starts_at: startsAt.toISOString(), p_note: note })) as string;
+// ---- Calendar sync (…_calendar_sync.sql and the calendar-sync Edge Function) ---------------------------------
+
+/** One row per feed (or a single row with a null id when there are none), with the partner's hide setting. */
+export interface CalendarFeed {
+  id: string | null; trainer_id: string | null; trainer_name: string | null; name: string; host: string; status: 'pending' | 'ok' | 'error';
+  error: string | null; busy_count: number; last_read_at: string | null; hide_when_busy: boolean; hidden_sessions: number;
+}
+/** A busy time from a feed, or a session it closed. */
+export interface BusyRow { kind: 'busy' | 'hidden'; id: string; trainer_id: string | null; starts_at: string; ends_at: string; title: string | null; feed_name: string | null }
+export const loadCalendar = async () => check(await db.rpc('partner_calendar')) as CalendarFeed[];
+export const addCalendarFeed = async (name: string, url: string, trainerId: string | null) =>
+  check(await db.rpc('partner_add_calendar_feed', { p_name: name, p_url: url, p_trainer: trainerId })) as string;
+export const removeCalendarFeed = async (id: string) => { check(await db.rpc('partner_remove_calendar_feed', { p_feed: id })); };
+export const setHideWhenBusy = async (on: boolean) => check(await db.rpc('partner_set_hide_when_busy', { p_on: on })) as number;
+export const loadBusy = async (from: Date, to: Date) => check(await db.rpc('partner_busy', { p_from: from.toISOString(), p_to: to.toISOString() })) as BusyRow[];
+/** Reads a feed now rather than at the next 15-minute run. Resolves with the read's error, if any. */
+export async function readFeed(id: string): Promise<string | null> {
+  const { data, error } = await db.functions.invoke('calendar-sync', { body: { feed: id } });
+  if (error) throw new Error('read_failed');
+  return (data as { error: string | null }).error;
+}
 export const checkVaccines = async (dogId: string) => { check(await db.rpc('partner_check_vaccines', { p_dog: dogId })); };
 
 // ---- Earnings ----
@@ -525,6 +546,9 @@ const COPY: Record<string, string> = {
   not_private: 'Pick one of your Private templates.',
   too_soon: 'Offer a time at least 3 hours from now.',
   already_offered: 'There\'s already an open offer from this call. Wait for an answer or for it to expire.',
+  bad_feed_url: 'Paste the feed\'s https:// or webcal:// address. It usually ends in .ics.',
+  already_added: 'That feed is already connected.',
+  read_failed: 'Saved. PackPass couldn\'t read it just now and will try again within 15 minutes.',
   no_days: 'Pick at least one day.',
   series_range: 'Pick a start from today and an end within 26 weeks.',
   no_dates: 'Every date in that range has passed or already has this class at that time.',

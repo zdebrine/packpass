@@ -127,7 +127,7 @@ export default function Book() {
   const rows = useMemo(
     () =>
       catalog.sessions
-        .filter((s) => !s.offered && dayOffset(s.startsAt) === day && s.startsAt > now())
+        .filter((s) => !s.offered && !s.closed && dayOffset(s.startsAt) === day && s.startsAt > now())
         .sort((a, b) => +a.startsAt - +b.startsAt)
         .map((s) => view(s.id)!)
         .filter(Boolean)

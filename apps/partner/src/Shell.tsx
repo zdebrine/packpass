@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardCheck, Layers, LayoutDashboard, MapPin, NotebookPen, PhoneCall, ShieldCheck, UserRound, Users, Wallet, type LucideIcon } from 'lucide-react';
+import { CalendarDays, CalendarSync, ClipboardCheck, Layers, LayoutDashboard, MapPin, NotebookPen, PhoneCall, ShieldCheck, UserRound, Users, Wallet, type LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
@@ -34,7 +34,7 @@ export function Shell() {
     ['/', 'Overview', LayoutDashboard], ['/schedule', 'Schedule', CalendarDays], ['/classes', 'Classes', Layers],
     ['/roster', 'Roster', ClipboardCheck], ['/notes', 'Report cards', NotebookPen, due.notes], ['/assessments', 'Assessments', ShieldCheck, due.assess],
     ['/intake', 'Intake calls', PhoneCall, due.intake],
-    ['/locations', 'Locations', MapPin], ['/earnings', 'Earnings', Wallet], ['/trainers', gym ? 'Trainers' : 'Profile', UserRound], ['/team', 'Team', Users],
+    ['/locations', 'Locations', MapPin], ['/calendar', 'Calendar sync', CalendarSync], ['/earnings', 'Earnings', Wallet], ['/trainers', gym ? 'Trainers' : 'Profile', UserRound], ['/team', 'Team', Users],
   ];
   // Earnings and Team are for owners.
   const nav = all.filter(([to]) => owner || (to !== '/earnings' && to !== '/team'));

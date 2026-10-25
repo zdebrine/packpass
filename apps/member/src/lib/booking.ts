@@ -140,7 +140,7 @@ const byStart = (a: Session, b: Session) => +a.startsAt - +b.startsAt;
 /** The next session of a class that hasn't started, optionally from a given day on. */
 export function nextSession(classId: string, fromDay = 0): SessionView | undefined {
   const s = catalog.sessions
-    .filter((x) => x.classId === classId && !x.offered && x.startsAt > now() && dayOffset(x.startsAt) >= fromDay)
+    .filter((x) => x.classId === classId && !x.offered && !x.closed && x.startsAt > now() && dayOffset(x.startsAt) >= fromDay)
     .sort(byStart)[0];
   return s ? view(s.id) : undefined;
 }
@@ -153,7 +153,7 @@ export function nextSessionOf(classIds: string[]): SessionView | undefined {
 
 /** The first session of a class on a given day (0 = today). */
 export function sessionOn(classId: string, day: number): SessionView | undefined {
-  const s = catalog.sessions.filter((x) => x.classId === classId && !x.offered && dayOffset(x.startsAt) === day).sort(byStart)[0];
+  const s = catalog.sessions.filter((x) => x.classId === classId && !x.offered && !x.closed && dayOffset(x.startsAt) === day).sort(byStart)[0];
   return s ? view(s.id) : undefined;
 }
 
@@ -172,7 +172,7 @@ export function sameDaySessions(v: SessionView) {
   // An offered 1:1 is that one time only.
   if (v.session.offered) return [v.session];
   const off = dayOffset(v.session.startsAt);
-  return catalog.sessions.filter((s) => s.classId === v.cls.id && !s.offered && dayOffset(s.startsAt) === off).sort(byStart);
+  return catalog.sessions.filter((s) => s.classId === v.cls.id && !s.offered && (!s.closed || s.id === v.session.id) && dayOffset(s.startsAt) === off).sort(byStart);
 }
 
 /** Sessions for Book: one category, one day. */

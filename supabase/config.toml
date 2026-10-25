@@ -70,3 +70,8 @@ verify_jwt = false
 
 [functions.stripe-checkout]
 verify_jwt = false
+
+# calendar-sync checks its own callers too: the cron job's shared secret, or the partner's session and
+# partner_owns_feed() when the dashboard reads a feed it just added.
+[functions.calendar-sync]
+verify_jwt = false

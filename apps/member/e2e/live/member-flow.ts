@@ -395,6 +395,18 @@ const S = () => useApp.getState();
   psql(`delete from vet_record_reviews where dog_id = '${otis}'`);
   await S().refresh();
 
+  // 4e A busy time in the partner's calendar closes a session: it leaves Book and booking it is refused.
+  const busyAt = nextSession('free-roam', 3)!;
+  const feed = psql(`insert into calendar_feeds (partner_id, name, url) values ('eastside', 'Gingr', 'https://app.gingrapp.com/e2e.ics') returning id`);
+  psql(`select calendar_store_busy('${feed}', jsonb_build_array(jsonb_build_object('starts_at', starts_at, 'ends_at', starts_at + interval '1 hour', 'title', 'Private client'))) from sessions where id = '${busyAt.session.id}'`);
+  await S().refresh();
+  ok(catalog.sessions.find((x) => x.id === busyAt.session.id)?.closed && nextSession('free-roam', 3)?.session.id !== busyAt.session.id,
+     'a session inside the partner\'s busy time is closed and left out of Book');
+  r = await S().bookSession(busyAt.session.id, juno);
+  ok(!r.ok && r.error === 'partner_busy' && errorCopy(r.error).startsWith('The trainer is booked'), 'booking it anyway is refused with a reason');
+  psql(`delete from calendar_feeds where id = '${feed}'; select refresh_busy_hidden('eastside')`);
+  await S().refresh();
+
   // 23d–23f A free intake call with Sam, then the 1:1 Sam offers after it.
   const sam = S().intake.specialists.find((x) => x.trainerId === 'sam')!;
   ok(sam && sam.slots.length > 0 && !sam.calendly && sam.phone, 'Sam takes intake calls at open times, by video or phone');

@@ -1,13 +1,14 @@
-import { AlertCircle, CalendarX, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { AlertCircle, CalendarX, ChevronLeft, ChevronRight, EyeOff, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { addSession, blockDates, cancelSession, errorCopy, loadEnrollment, loadSessions, runAnyway, updateSession, type Enrollment } from '@/lib/api';
+import { addSession, blockDates, cancelSession, errorCopy, loadBusy, loadCalendar, loadEnrollment, loadSessions, runAnyway, updateSession, type BusyRow, type CalendarFeed, type Enrollment } from '@/lib/api';
 import { useData, usePartner } from '@/lib/partner';
 import { credits, startHour, withClasses, type SessionView } from '@/lib/sessions';
 import { db, check } from '@/lib/supabase';
-import { addDays, austin, dayIndex, mondayOf, monthDay, shortTime, time, ymd } from '@/lib/time';
+import { addDays, austin, dayIndex, hourOf, mondayOf, monthDay, shortTime, time, ymd } from '@/lib/time';
 import { Badge, Button, Chip, ErrorLine, Field, Ico, IconButton, Modal, Page, PageHead, Row, Segmented, Stepper, Toggle } from '@/ui/kit';
+import { ago } from './Calendar';
 import { Loading } from './Overview';
 
 const HOUR_PX = 48;
@@ -17,17 +18,21 @@ const FULL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satu
 /** 02 Schedule and capacity: the week grid, a side panel for the picked session, Block dates, Add session. */
 export function Schedule() {
   const { classById, classes, partner, gym, trainerName } = usePartner();
+  const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const [week, setWeek] = useState(() => mondayOf(new Date()));
   const [modal, setModal] = useState<null | 'block' | 'add'>(() => (params.get('add') ? 'add' : null));
   const { data, reload } = useData(async () => {
-    const [sessions, slots, enrollment] = await Promise.all([
+    const [sessions, slots, enrollment, busy, feeds] = await Promise.all([
       loadSessions(austin(week, 0), austin(addDays(week, 7), 0)),
       db.from('timetable').select('class_id, weekday, starts').in('class_id', classes.map((c) => c.id)).then(check),
       loadEnrollment(austin(week, 0), austin(addDays(week, 7), 0)),
+      loadBusy(austin(week, 0), austin(addDays(week, 7), 0)).catch(() => [] as BusyRow[]),
+      loadCalendar().catch(() => [] as CalendarFeed[]),
     ]);
     return { sessions: withClasses(sessions, classById), slots: slots as { class_id: string; weekday: number | null; starts: string }[],
-             enrollment: Object.fromEntries(enrollment.map((e) => [e.session_id, e])) as Record<string, Enrollment> };
+             enrollment: Object.fromEntries(enrollment.map((e) => [e.session_id, e])) as Record<string, Enrollment>,
+             busy: busy.filter((b) => b.kind === 'busy'), hidden: new Set(busy.filter((b) => b.kind === 'hidden').map((b) => b.id)), feeds: feeds.filter((f) => f.id) };
   }, [week]);
 
   const sessions = useMemo(() => data?.sessions ?? [], [data]);
@@ -61,6 +66,7 @@ export function Schedule() {
           <IconButton icon={ChevronRight} label="Next week" variant="ghost" onClick={() => setWeek(addDays(week, 7))} style={{ width: 24, height: 24 }} />
           {`${range} · ${live.reduce((a, s) => a + s.booked, 0)} of ${live.reduce((a, s) => a + s.packpass_spots, 0)} PackPass spots booked`}
         </span>}>
+        {data.feeds.length ? <SyncStatus feeds={data.feeds} onOpen={() => nav('/calendar')} /> : null}
         <Button variant="outline" icon={CalendarX} onClick={() => setModal('block')}>Block dates</Button>
         <Button icon={Plus} onClick={() => setModal('add')}>Add session</Button>
       </PageHead>
@@ -85,6 +91,18 @@ export function Schedule() {
             </div>
             {DAYS.map((d, i) => (
               <div key={d} style={{ position: 'relative', height: hours.length * HOUR_PX, boxShadow: 'inset 1px 0 0 var(--line)', background: `repeating-linear-gradient(180deg,transparent 0 ${HOUR_PX - 1}px,var(--line) ${HOUR_PX - 1}px ${HOUR_PX}px)` }}>
+                {data.busy.filter((b) => ymd(new Date(b.starts_at)) === addDays(week, i)).map((b) => {
+                  const top = Math.max(0, (hourOf(new Date(b.starts_at)) - lo) * HOUR_PX);
+                  const end = ymd(new Date(b.ends_at)) === ymd(new Date(b.starts_at)) ? (hourOf(new Date(b.ends_at)) - lo) * HOUR_PX : hours.length * HOUR_PX;
+                  const who = gym && b.trainer_id ? `${trainerName(b.trainer_id)} · ` : '';
+                  return (
+                    <div key={b.id} title={`${who}${b.title || 'Busy'} · ${time(new Date(b.starts_at))} to ${time(new Date(b.ends_at))} · ${b.feed_name}`}
+                      style={{ position: 'absolute', left: 2, right: 2, top, height: Math.max(14, Math.min(end, hours.length * HOUR_PX) - top - 2), boxSizing: 'border-box', padding: '2px 6px', borderRadius: 6,
+                        background: 'repeating-linear-gradient(135deg,var(--surface-raised) 0 3px,transparent 3px 6px)', boxShadow: 'inset 0 0 0 1px var(--line-strong)', overflow: 'hidden', pointerEvents: 'none' }}>
+                      <span className="pp-caption pp-muted" style={{ fontSize: 11, lineHeight: '14px', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{`Busy · ${b.feed_name}`}</span>
+                    </div>
+                  );
+                })}
                 {lanes(sessions.filter((s) => ymd(s.start) === addDays(week, i))).map(({ s, lane }) => {
                   const on = s.id === sel?.id, cx = !!s.cancelled_at;
                   const low = !cx && below(s, data.enrollment[s.id]);
@@ -110,7 +128,8 @@ export function Schedule() {
             ))}
           </div>
         </div>
-        {sel ? <SessionPanel key={sel.id + sel.packpass_spots + sel.capacity + (sel.cancelled_at ?? '')} s={sel} enrollment={data.enrollment[sel.id]} repeats={repeats(sel)} gym={gym} trainer={trainerName(sel.cls.trainer_id)} location={partner.name} onSaved={reload} /> : <span />}
+        {sel ? <SessionPanel key={sel.id + sel.packpass_spots + sel.capacity + (sel.cancelled_at ?? '')} s={sel} enrollment={data.enrollment[sel.id]} repeats={repeats(sel)} gym={gym} trainer={trainerName(sel.cls.trainer_id)} location={partner.name} onSaved={reload}
+          closedBy={data.hidden.has(sel.id) ? data.busy.find((b) => new Date(b.starts_at) < sel.end && new Date(b.ends_at) > sel.start && (!b.trainer_id || b.trainer_id === sel.cls.trainer_id)) ?? null : undefined} /> : <span />}
       </div>
       {modal === 'block' ? <BlockDates onClose={() => setModal(null)} onDone={() => { setModal(null); reload(); }} /> : null}
       {modal === 'add' ? <AddSession week={week} classes={classes.filter((c) => c.status === 'live' && !c.archived_at)} sessions={sessions} onClose={() => { setModal(null); if (params.get('add')) setParams({}); }}
@@ -172,7 +191,7 @@ function EnrollmentCard({ s, e, onSaved }: { s: SessionView; e?: Enrollment; onS
 }
 
 /** The side panel: capacity, PackPass spots, waitlist switches, weekly repeat, cancel. */
-function SessionPanel({ s, enrollment, repeats, gym, trainer, location, onSaved }: { s: SessionView; enrollment?: Enrollment; repeats: boolean; gym: boolean; trainer: string; location: string; onSaved: () => void }) {
+function SessionPanel({ s, enrollment, repeats, gym, trainer, location, onSaved, closedBy }: { s: SessionView; enrollment?: Enrollment; repeats: boolean; gym: boolean; trainer: string; location: string; onSaved: () => void; closedBy?: BusyRow | null }) {
   const taken = s.packpass_spots - s.spots_left;
   const [cap, setCap] = useState(s.capacity);
   const [pp, setPp] = useState(s.packpass_spots);
@@ -206,6 +225,7 @@ function SessionPanel({ s, enrollment, repeats, gym, trainer, location, onSaved 
         <span className="pp-caption pp-muted">{s.cancelled_at ? (enrollment?.low_enrollment_at ? 'Cancelled (low enrollment)' : `Cancelled · ${s.cancel_reason}`) : `${s.booked} booked${s.waiting ? ` · ${s.waiting} on waitlist` : ''}${s.cls.premium ? ' · Premium class' : ''}`}</span>
       </div>
       <EnrollmentCard s={s} e={enrollment} onSaved={onSaved} />
+      {closedBy !== undefined && !s.cancelled_at ? <BusyCard s={s} b={closedBy} /> : null}
       {s.cancelled_at ? (enrollment?.low_enrollment_at ? null : <span className="pp-label pp-muted">Members were refunded and told. This session no longer shows on Book.</span>) : (
         <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -249,6 +269,29 @@ function SessionPanel({ s, enrollment, repeats, gym, trainer, location, onSaved 
         </div>
       )}
     </aside>
+  );
+}
+
+/** Closed to PackPass bookings by a busy time from a calendar (P6b). */
+function BusyCard({ s, b }: { s: SessionView; b: BusyRow | null }) {
+  const what = b ? `${b.feed_name} shows ${b.title ? `${b.title} ` : 'you busy '}from ${time(new Date(b.starts_at))} to ${time(new Date(b.ends_at))}` : 'Your calendar shows you busy then';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 14, borderRadius: 12, background: 'var(--surface-sunken)' }}>
+      <span style={{ alignSelf: 'flex-start' }}><Badge tone="needs" icon={EyeOff}>PackPass spots hidden</Badge></span>
+      <span className="pp-caption" style={{ textWrap: 'pretty' }}>{`${what}, so PackPass members can't book this session.${s.booked ? ` The ${s.booked === 1 ? 'dog' : `${s.booked} dogs`} already booked keep their spots.` : ''} Move the block and the spots come back within 15 minutes.`}</span>
+    </div>
+  );
+}
+
+/** "Connected · Gingr · read 4 min ago" above the grid, or the error, opening Calendar sync. */
+function SyncStatus({ feeds, onOpen }: { feeds: CalendarFeed[]; onOpen: () => void }) {
+  const err = feeds.find((f) => f.status === 'error');
+  const last = feeds.map((f) => f.last_read_at).filter(Boolean).sort().pop();
+  return (
+    <button type="button" onClick={onOpen} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, border: 0, background: 'none', padding: '0 4px', font: 'inherit', color: 'var(--ink)', cursor: 'pointer' }}>
+      {err ? <Badge tone="warning" icon={AlertCircle}>Calendar error</Badge> : <Badge tone="cleared" dot>Connected</Badge>}
+      <span className="pp-caption pp-muted">{err ? err.name : `${feeds.length === 1 ? feeds[0].name : `${feeds.length} calendars`}${last ? ` · read ${ago(last)}` : ''}`}</span>
+    </button>
   );
 }
 

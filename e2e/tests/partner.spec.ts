@@ -353,3 +353,47 @@ test('a trainer sets up intake calls, opens times and offers a 1:1 after a call'
   expect(sql(`select o.status || ',' || o.note || ',' || s.capacity from private_offers o join sessions s on s.id = o.session_id where o.intake_id = '${call}'`)).toBe('offered,Distance work first.,1');
   expect(sql(`select count(*) from notifications where member_id = '${member}' and kind = 'private_offer'`)).toBe('1');
 });
+
+test('a partner connects an iCal feed, and a busy time hides PackPass spots on the schedule', async ({ page }) => {
+  await signIn(page);
+  await expect(page.getByRole('button', { name: 'Connect your calendar' })).toBeVisible();
+  await page.getByRole('link', { name: 'Calendar sync' }).click();
+  await expect(page.getByRole('heading', { name: 'Calendar sync' })).toBeVisible();
+  await page.getByLabel('Name', { exact: true }).fill('Gingr');
+  await page.getByLabel('iCal feed URL').fill('http://app.gingrapp.com/feed.ics');
+  await page.getByRole('button', { name: 'Add feed' }).click();
+  await expect(page.getByText('Paste the feed\'s https:// or webcal:// address. It usually ends in .ics.')).toBeVisible();
+  const url = `webcal://app.gingrapp.com/ical/e2e-${Date.now()}.ics`;
+  await page.getByLabel('iCal feed URL').fill(url);
+  await page.getByRole('button', { name: 'Add feed' }).click();
+  // The local stack has no Edge Functions, so the first read waits for the 15-minute job.
+  await expect(page.getByText('Saved. PackPass couldn\'t read it just now and will try again within 15 minutes.')).toBeVisible();
+  await expect(page.locator('.tbl-row').filter({ hasText: 'Gingr' }).getByText('app.gingrapp.com · busy times only · reading now')).toBeVisible();
+  const feed = sql(`select id from calendar_feeds where url = '${url}'`);
+
+  // What the Edge Function stores after reading it: a busy time over the next Eastside session.
+  const session = sql(`select s.id from sessions s join class_types c on c.id = s.class_id
+    where c.partner_id = 'eastside' and s.starts_at > now() + interval '1 day' and s.cancelled_at is null and s.offered_member is null order by s.starts_at limit 1`);
+  try {
+    sql(`select public.calendar_store_busy('${feed}', jsonb_build_array(jsonb_build_object('starts_at', starts_at - interval '15 minutes', 'ends_at', starts_at + interval '45 minutes', 'title', 'Private client'))) from sessions where id = '${session}'`);
+    expect(sql(`select busy_hidden from sessions where id = '${session}'`)).toBe('t');
+    await page.reload();
+    const row = page.locator('.tbl-row').filter({ hasText: 'Gingr' });
+    await expect(row.getByText('Connected')).toBeVisible();
+    await expect(page.getByText(/ (is|are) closed right now\.$/)).toBeVisible();
+
+    // The schedule shows the busy time and why the session is closed.
+    await page.goto(`/schedule?s=${session}`);
+    await expect(page.getByText('Busy · Gingr').first()).toBeVisible();
+    await expect(page.getByText('PackPass spots hidden')).toBeVisible();
+    await expect(page.getByText(/^Gingr shows Private client from .*, so PackPass members can't book this session\./)).toBeVisible();
+    await expect(page.getByRole('button', { name: /Connected/ })).toBeVisible();
+
+    // Hiding off opens it again.
+    await page.getByRole('link', { name: 'Calendar sync' }).click();
+    await page.getByRole('switch', { name: 'Hide PackPass spots when you\'re busy' }).locator('..').click();
+    await expect.poll(() => sql(`select busy_hidden from sessions where id = '${session}'`)).toBe('f');
+  } finally {
+    sql(`delete from calendar_feeds where id = '${feed}'; update partners set hide_when_busy = true where id = 'eastside'; update sessions set busy_hidden = false where id = '${session}'`);
+  }
+});
