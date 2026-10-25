@@ -3,7 +3,7 @@
 // apps link here. DRAFT: have a lawyer read the waiver and liability sections before launch.
 
 export const SUPPORT_EMAIL = (import.meta.env.VITE_SUPPORT_EMAIL as string | undefined) || 'support@packpass.app';
-const UPDATED = 'October 6, 2026';
+const UPDATED = 'October 25, 2026';
 
 /** A section is a heading and paragraphs; a paragraph starting with "- " is one bullet of a list. */
 export type LegalSection = { heading: string; body: string[] };
@@ -29,6 +29,16 @@ export const PRIVACY: LegalDoc = {
       ],
     },
     {
+      heading: 'Google Calendar (partners)',
+      body: [
+        'A partner can connect a Google Calendar from Settings › Calendar sync in the partner dashboard. PackPass then asks Google for the account\'s email address and for access to its calendar events, and uses them only to:',
+        '- Read the start and end times and titles of events in the next two weeks, so classes that clash with them can be closed. Titles are shown only to that partner\'s staff, next to the busy time.',
+        '- Add, update and remove PackPass\'s own events for sessions with dogs booked: the class, the dogs\' names and a link to the roster.',
+        'We keep the Google sign-in tokens and those busy times, nothing else from the calendar. We don\'t use Google data for ads, don\'t sell it, don\'t use it to train AI models and don\'t let people read it except to fix a problem the partner asks us about, or where the law requires. PackPass\'s use of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.',
+        'Disconnecting in the dashboard removes PackPass\'s events from the calendar, revokes our access and deletes the tokens and busy times straight away. You can also remove access at myaccount.google.com/permissions.',
+      ],
+    },
+    {
       heading: 'How we use it',
       body: [
         '- To run your membership: show classes that fit your dog, book and check you in, keep your credits and bill your plan.',
@@ -42,7 +52,7 @@ export const PRIVACY: LegalDoc = {
       heading: 'Who sees it',
       body: [
         'Partners you book with see your name, your dog\'s profile, vaccine dates and vet record, clearances, and their own notes and results for your dog. Other members never see your information.',
-        'We use service providers who process data for us under contract: Supabase (database, sign-in and file storage, United States), Stripe (payments and partner payouts), Resend (email), Expo (push notifications), Vercel (website hosting) and Sanity (website copy, no member data).',
+        'We use service providers who process data for us under contract: Supabase (database, sign-in and file storage, United States), Stripe (payments and partner payouts), Resend (email), Expo (push notifications), Vercel (website hosting), Sanity (website copy, no member data) and Google (calendar sync, for partners who connect a Google Calendar).',
         'We share information with authorities only when the law requires it, or to protect someone\'s safety.',
       ],
     },
