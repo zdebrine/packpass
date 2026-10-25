@@ -7,6 +7,7 @@ import { AdminShell } from '@/admin/AdminNav';
 import { Applications } from '@/admin/Applications';
 import { Clearances } from '@/admin/Clearances';
 import { Fit } from '@/admin/Fit';
+import { Learn as AdminLearn } from '@/admin/Learn';
 import { Partners as AdminPartners } from '@/admin/Partners';
 import { Paths } from '@/admin/Paths';
 import { Review } from '@/admin/Review';
@@ -40,6 +41,7 @@ const adminRoutes = (
     <Route path="admin/partners" element={<AdminPartners />} />
     <Route path="admin/staff" element={<AdminStaff />} />
     <Route path="admin/fit" element={<Fit />} />
+    <Route path="admin/learn" element={<AdminLearn />} />
   </>
 );
 

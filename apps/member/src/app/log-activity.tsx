@@ -77,7 +77,7 @@ export default function LogActivity() {
   const { c } = useTheme();
   const wide = useWide();
   const bottom = useBottom(34);
-  const params = useLocalSearchParams<{ edit?: string; drill?: string; dur?: string; reps?: string; kind?: string }>();
+  const params = useLocalSearchParams<{ edit?: string; drill?: string; dur?: string; reps?: string; kind?: string; skills?: string }>();
   const dog = useDog();
   const dogs = useApp((s) => s.dogs);
   const homeLog = useApp((s) => s.homeLog);
@@ -109,7 +109,9 @@ export default function LogActivity() {
     }
     const drill = params.drill ? drillById(params.drill) : undefined;
     if (drill) return start(drill.activity, { dur: Math.max(1, Number(params.dur) || drill.minutes), skills: [drill.skillId], drillId: drill.id, reps: params.reps ? Number(params.reps) : null });
-    return start(preset ?? 'walk');
+    // ?skills= (Log practice from a Learn video) picks the video's skills.
+    const picked = params.skills?.split(',').filter((id) => skillById(id));
+    return start(preset ?? 'walk', picked?.length ? { skills: picked } : {});
   });
   const [otherDur, setOtherDur] = useState(() => !DURATIONS.includes(form.dur));
   const [busy, setBusy] = useState<'save' | 'delete' | null>(null);

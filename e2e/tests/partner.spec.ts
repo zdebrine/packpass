@@ -397,3 +397,52 @@ test('a partner connects an iCal feed, and a busy time hides PackPass spots on t
     sql(`delete from calendar_feeds where id = '${feed}'; update partners set hide_when_busy = true where id = 'eastside'; update sessions set busy_hidden = false where id = '${session}'`);
   }
 });
+
+test('PackPass uploads a Learn video, publishes it and turns Learn on for everyone', async ({ page }) => {
+  const email = await signIn(page);
+  sql(`insert into packpass_admins (user_id) select id from auth.users where email = '${email}'`);
+  try {
+    await page.goto('/admin/learn');
+    await expect(page.getByRole('heading', { name: 'Learn', exact: true })).toBeVisible();
+    await expect(page.getByText('No videos yet. Add the first one with New video.')).toBeVisible();
+    await page.getByRole('button', { name: 'New video' }).click();
+    // A browser that can't decode the file can't read its length, so it's typed in.
+    await page.getByLabel('Video file').setInputFiles({ name: 'muffin-tin.mp4', mimeType: 'video/mp4', buffer: Buffer.from('not really a video') });
+    await expect(page.getByText('muffin-tin.mp4 uploaded')).toBeVisible({ timeout: 15_000 });
+    await page.getByLabel('Length').fill('7:00');
+    await page.getByLabel('Title').fill('Scent games with a muffin tin');
+    await page.getByLabel('Summary').fill('A muffin tin, tennis balls and treats make a puzzle any dog can solve.');
+    await page.getByLabel('Category').fill('Enrichment');
+    await page.getByLabel('Trainer').selectOption({ index: 1 });
+    await page.locator('label.pp-check', { hasText: /^Enrichment$/ }).click();
+    await page.getByLabel('Chapters').fill('0:00 Set up\n9:00 Too late');
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByText('Each chapter needs a time inside the video and a title of up to 80 characters, one per line.')).toBeVisible();
+    await page.getByLabel('Chapters').fill('0:00 Set up\n2:30 Harder tin');
+    await page.getByLabel("You'll need").fill('A muffin tin\nTennis balls');
+    await page.getByRole('switch', { name: 'Published' }).locator('..').click();
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    const row = page.locator('.tbl-row').filter({ hasText: 'Scent games with a muffin tin' });
+    await expect(row.getByText(/^Published /)).toBeVisible();
+    await expect(row.getByText(/Enrichment · .* · 7:00 · 0 started, 0 finished/)).toBeVisible();
+    expect(sql(`select duration_s || '|' || jsonb_array_length(chapters) || '|' || array_to_string(needs, ',') || '|' || array_to_string(skills, ',') || '|' || (video_path like 'videos/%.mp4')
+      from videos where title = 'Scent games with a muffin tin'`)).toBe('420|2|A muffin tin,Tennis balls|enrichment|true');
+    expect(sql(`select count(*) from storage.objects where bucket_id = 'learn'`)).toBe('1');
+
+    // The flag: off until PackPass turns it on.
+    expect(sql(`select value from app_flags where key = 'learn'`)).toBe('off');
+    await page.getByRole('button', { name: 'Everyone', exact: true }).click();
+    await expect(page.getByText('Every member sees Learn and its published videos.')).toBeVisible();
+    expect(sql(`select value from app_flags where key = 'learn'`)).toBe('everyone');
+
+    // Deleting removes the video and its file.
+    await row.getByRole('button', { name: 'Edit' }).click();
+    await page.getByRole('button', { name: 'Delete', exact: true }).click();
+    await page.getByRole('button', { name: 'Delete video' }).click();
+    await expect(page.getByText('No videos yet. Add the first one with New video.')).toBeVisible();
+    expect(sql(`select count(*) from storage.objects where bucket_id = 'learn'`)).toBe('0');
+  } finally {
+    sql(`delete from videos; delete from storage.objects where bucket_id = 'learn'; update app_flags set value = 'off' where key = 'learn'`);
+  }
+});

@@ -438,3 +438,49 @@ test('a member books a free intake call from Book › Skills, then books the 1:1
   await expect.poll(() => sql(`select status from private_offers where id = '${offer}'`)).toBe('booked');
   expect(sql(`select credits_balance from profiles where id = '${id}'`)).toBe('17');
 });
+
+test('with Learn on, a member finds a video picked for their dog, saves it and logs practice from it', async ({ page }) => {
+  const ui = visible(page);
+  const email = `learn-${Date.now()}@example.com`;
+  const id = await account(email, 'goodpass123');
+  sql(`select public.seed_demo_member('${id}')`);
+  sql(`insert into storage.objects (bucket_id, name) values ('learn', 'videos/e2e-leash.mp4')`);
+  const video = sql(`insert into videos (title, summary, category, trainer_id, video_path, poster, duration_s, chapters, needs, skills, published_at)
+    values ('Loose-leash walking, ten minutes a day', 'Stop rewarding the pull.', 'Leash', 'dev', 'videos/e2e-leash.mp4', 'pulling_on_leash', 840,
+            '[{"at":0,"title":"Why dogs pull"},{"at":200,"title":"The seam treat"}]', '{Small treats}', '{loose_leash}', now()) returning id`);
+  sql(`insert into videos (title, category, video_path, poster, duration_s) values ('A draft nobody sees', 'Leash', 'videos/draft.mp4', 'dog_chilling', 60)`);
+  try {
+    await page.goto('/');
+    await page.getByText('I already have an account').click();
+    await ui.boxes().nth(0).fill(email);
+    await ui.boxes().nth(1).fill('goodpass123');
+    await ui.button('Sign in').click();
+    await expect(ui.text(/Juno/)).toBeVisible();
+    // Off: no Learn tab.
+    await expect(page.getByRole('tab', { name: 'Learn' })).toHaveCount(0);
+
+    sql(`update app_flags set value = 'everyone' where key = 'learn'`);
+    await page.reload();
+    await page.getByRole('tab', { name: 'Learn' }).filter({ visible: true }).click();
+    await expect(ui.text('Training videos from Pack trainers, for the days at home.')).toBeVisible();
+    await expect(ui.text('Picked for Juno')).toBeVisible();
+    await expect(ui.text(/^Based on what Juno is working on: Loose leash/)).toBeVisible();
+    await expect(ui.text('1 video')).toBeVisible();
+    await expect(page.getByText('A draft nobody sees')).toHaveCount(0);
+
+    await page.getByRole('button', { name: /^Loose-leash walking, ten minutes a day, 14 min\. Dev Patel/ }).filter({ visible: true }).first().click();
+    await expect(ui.text('Stop rewarding the pull.')).toBeVisible();
+    await expect(ui.text('The seam treat')).toBeVisible();
+    await expect(ui.text('Small treats')).toBeVisible();
+    await page.getByRole('button', { name: 'Save for later' }).filter({ visible: true }).click();
+    await expect.poll(() => sql(`select saved from video_watches where video_id = '${video}' and member_id = '${id}'`)).toBe('t');
+
+    await ui.button('Log practice for Juno').click();
+    await expect(ui.text('Training at home')).toBeVisible();
+    // The video's skill comes along with the log.
+    await ui.button(/^Log /).last().click();
+    await expect.poll(() => sql(`select array_to_string(skills, ',') from home_activities where member_id = '${id}' and kind = 'train' order by created_at desc limit 1`)).toBe('loose_leash');
+  } finally {
+    sql(`delete from videos where video_path in ('videos/e2e-leash.mp4', 'videos/draft.mp4'); delete from storage.objects where bucket_id = 'learn'; update app_flags set value = 'off' where key = 'learn'`);
+  }
+});

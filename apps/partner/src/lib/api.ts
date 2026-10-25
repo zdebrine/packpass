@@ -479,8 +479,74 @@ export const loadVetRecords = async () => check(await db.rpc('admin_vet_records'
 export const decideVetRecord = async (dogId: string, approve: boolean, reason?: string) =>
   check(await db.rpc('admin_decide_vet_record', { p_dog: dogId, p_approve: approve, p_reason: reason ?? null }));
 
+// ---- Learn (supabase/migrations/…_learn_videos.sql) ----
+/** Who sees the Learn tab: nobody, PackPass admins (to try it in the app), or every member. */
+export type LearnFlag = 'off' | 'admins' | 'everyone';
+export interface VideoChapter { at: number; title: string }
+export interface AdminVideo {
+  id: string; title: string; summary: string; category: string; trainer_id: string | null; trainer_name: string | null; partner_name: string | null;
+  video_path: string; poster: string; duration_s: number; chapters: VideoChapter[]; needs: string[]; skills: string[];
+  published_at: string | null; updated_at: string; started: number; finished: number;
+}
+export interface VideoFields {
+  title: string; summary: string; category: string; trainer_id: string | null; video_path: string; poster: string; duration_s: number;
+  chapters: VideoChapter[]; needs: string[]; skills: string[]; published: boolean;
+}
+export const VIDEO_MAX_BYTES = 2_000_000_000;
+export const loadVideos = async () => check(await db.rpc('admin_videos')) as AdminVideo[];
+export const loadLearnFlag = async () => check(await db.rpc('admin_learn_flag')) as LearnFlag;
+export const setLearnFlag = async (v: LearnFlag) => { check(await db.rpc('admin_set_learn_flag', { p_value: v })); };
+export const loadSkillOptions = async () => check(await db.from('skills').select('id, label').order('sort')) as { id: string; label: string }[];
+/** Saves a video (id null adds one) and returns its id. */
+export const saveVideo = async (id: string | null, f: VideoFields) =>
+  check(await db.rpc('admin_save_video', {
+    p_id: id, p_title: f.title, p_summary: f.summary, p_category: f.category, p_trainer: f.trainer_id, p_video_path: f.video_path, p_poster: f.poster,
+    p_duration_s: f.duration_s, p_chapters: f.chapters, p_needs: f.needs, p_skills: f.skills, p_published: f.published,
+  })) as string;
+/** Uploads an MP4 to learn/videos/… and returns its path. */
+export async function uploadVideoFile(file: File) {
+  if (file.type !== 'video/mp4') throw new Error('video_mp4');
+  if (file.size > VIDEO_MAX_BYTES) throw new Error('video_too_big');
+  const path = `videos/${crypto.randomUUID()}.mp4`;
+  check(await db.storage.from('learn').upload(path, file, { contentType: 'video/mp4', cacheControl: '31536000' }));
+  return path;
+}
+/** Crops a poster to 4:5 like the library's cards, uploads it to learn/posters/… and returns its path. */
+export async function uploadVideoPoster(file: File) {
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error('bad_photo_file');
+  if (file.size > PHOTO_MAX_BYTES) throw new Error('photo_too_big');
+  const blob = await preparePhoto(file, 4 / 5, 1600);
+  const path = `posters/${crypto.randomUUID()}.jpg`;
+  check(await db.storage.from('learn').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' }));
+  return path;
+}
+/** Removes files from the learn bucket that no video uses any more. Library keys (no slash) are left alone. */
+export async function removeLearnFiles(paths: (string | null | undefined)[]) {
+  const files = paths.filter((p): p is string => !!p?.includes('/'));
+  if (files.length) await db.storage.from('learn').remove(files);
+}
+export const deleteVideo = async (v: AdminVideo) => {
+  check(await db.rpc('admin_delete_video', { p_id: v.id }));
+  await removeLearnFiles([v.video_path, v.poster]);
+};
+export async function learnUrls(paths: string[]): Promise<Record<string, string>> {
+  const unique = Array.from(new Set(paths.filter((p) => p.includes('/'))));
+  if (!unique.length) return {};
+  const rows = check(await db.storage.from('learn').createSignedUrls(unique, 3600)) as { path: string | null; signedUrl: string }[];
+  return Object.fromEntries(rows.filter((r) => r.path && r.signedUrl).map((r) => [r.path!, r.signedUrl]));
+}
+
 /** Copy for the reason codes the partner functions raise. */
 const COPY: Record<string, string> = {
+  video_mp4: 'Upload the video as an MP4.',
+  video_too_big: 'That video is over 2 GB. Export a smaller MP4.',
+  bad_video_title: 'Give it a title of 3 to 120 characters.',
+  bad_category: 'Give it a category of 2 to 24 characters.',
+  bad_video: 'Upload the video first.',
+  bad_poster: 'Pick a poster photo.',
+  bad_chapters: 'Each chapter needs a time inside the video and a title of up to 80 characters, one per line.',
+  bad_needs: 'List up to 8 things, each up to 60 characters.',
+  bad_skills: 'One of those skills no longer exists. Reload and try again.',
   reason_required: 'Add a reason. The owner sees it.',
   not_partner: 'This account isn\'t linked to a partner yet.',
   below_booked: 'PackPass spots can\'t go below the dogs already booked. Cancel bookings from the roster first.',
@@ -567,6 +633,7 @@ export const errorCopy = (e: unknown) => {
   if (/only request this after|rate limit/i.test(m)) return 'We just sent a code. Wait a minute before asking for another.';
   if (/expired|invalid.*(token|otp)|token.*invalid/i.test(m)) return 'That code is wrong or has expired. Send a new one.';
   if (/password should be|weak/i.test(m)) return 'Use at least 8 characters for the password.';
+  if (/exceeded the maximum allowed size|payload too large/i.test(m)) return 'That file is over the project\'s upload limit (Supabase › Storage › Settings). Raise it, or export a smaller file.';
   return COPY[m] ?? (m || 'Something went wrong. Try again.');
 };
 

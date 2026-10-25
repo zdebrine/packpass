@@ -42,7 +42,7 @@ async function storage(req, res, p, url) {
   if (req.method === 'GET' && signed) {
     const key = tokens.get(url.searchParams.get('token'));
     if (key !== `${signed[1]}/${decodeURIComponent(signed[2])}` || !files.has(key)) return json(res, 400, { statusCode: '404', error: 'not_found', message: 'Object not found' });
-    res.writeHead(200, { 'content-type': 'image/jpeg' });
+    res.writeHead(200, { 'content-type': key.endsWith('.mp4') ? 'video/mp4' : key.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg' });
     return res.end(files.get(key));
   }
   if (!sub) return json(res, 400, { statusCode: '403', error: 'Unauthorized', message: 'invalid JWT' });
@@ -56,6 +56,16 @@ async function storage(req, res, p, url) {
       tokens.set(token, `${sign[1]}/${path}`);
       return { path, error: null, signedURL: `/object/sign/${sign[1]}/${path}?token=${token}` };
     }));
+  }
+  // One path (createSignedUrl): {"expiresIn": …} to {"signedURL": …}.
+  const signOne = p.match(/^\/object\/sign\/([^/]+)\/(.+)$/);
+  if (req.method === 'POST' && signOne) {
+    const path = decodeURIComponent(signOne[2]);
+    const ok = asMember(sub, `select count(*) from storage.objects where bucket_id = ${q(signOne[1])} and name = ${q(path)}`) === '1';
+    if (!ok) return json(res, 400, { statusCode: '404', error: 'not_found', message: 'Object not found' });
+    const token = crypto.randomUUID();
+    tokens.set(token, `${signOne[1]}/${path}`);
+    return json(res, 200, { signedURL: `/object/sign/${signOne[1]}/${path}?token=${token}` });
   }
   const obj = p.match(/^\/object\/([^/]+)\/(.+)$/);
   if (obj) obj[2] = decodeURIComponent(obj[2]); // stored by the decoded name, as Supabase Storage does

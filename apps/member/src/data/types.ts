@@ -419,3 +419,31 @@ export interface PrivateOffer {
   status: 'offered' | 'booked' | 'other_time' | 'expired';
   expiresAt: Date;
 }
+
+/** A Learn video (16, 17). Live posters are signed URLs; sample mode has no file to play. */
+export interface Video {
+  id: string;
+  title: string;
+  summary: string;
+  category: string;
+  trainerId: string | null;
+  trainer: string;
+  partner: string | null;
+  poster: PhotoSource;
+  /** Live mode: the MP4 in the learn bucket, signed when the player opens. Sample mode has none. */
+  videoPath: string | null;
+  durationS: number;
+  chapters: { at: number; title: string }[];
+  needs: string[];
+  skills: string[];
+  publishedAt: Date;
+}
+
+/** Where the member got to in a video, and whether they saved it. */
+export interface VideoWatch {
+  videoId: string;
+  positionS: number;
+  finished: boolean;
+  saved: boolean;
+  updatedAt: Date;
+}
