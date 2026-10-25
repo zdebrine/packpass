@@ -1,6 +1,6 @@
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { Redirect, Tabs, useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { View } from 'react-native';
 
 import { Icon, type IconName } from '@/ds/Icon';
@@ -10,12 +10,14 @@ import { useWide } from '@/ds/responsive';
 import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { useApp, useDog, useUnseenMissed, useUnseenRecordDenial } from '@/store/app';
+import { useLearn } from '@/store/learn';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const TABS: { name: string; label: string; icon?: IconName }[] = [
   { name: 'index', label: 'Today', icon: 'house' },
   { name: 'book', label: 'Book', icon: 'calendar-search' },
   { name: 'log', label: 'Log', icon: 'activity' },
+  { name: 'learn', label: 'Learn', icon: 'circle-play' },
   { name: 'dog', label: '' },
 ];
 
@@ -24,12 +26,14 @@ function TabBar({ state, navigation }: BottomTabBarProps) {
   const { c } = useTheme();
   const dog = useDog();
   const bottom = useBottom(16);
+  // Learn shows once the `learn` flag is on for this member.
+  const learn = useLearn((s) => s.enabled);
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-start', minHeight: 83, paddingTop: 8, paddingHorizontal: 8, paddingBottom: bottom, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.line }}>
       {state.routes.map((route, i) => {
         const found = TABS.find((t) => t.name === route.name);
         const tab = found && found.name === 'dog' ? { ...found, label: dog.name } : found;
-        if (!tab) return null;
+        if (!tab || (tab.name === 'learn' && !learn)) return null;
         const active = state.index === i;
         const color = active ? c.ink : c.inkFaint;
         return (
@@ -65,6 +69,8 @@ export default function TabsLayout() {
   const missed = useUnseenMissed();
   // Desktop navigates from the sidebar.
   const wide = useWide();
+  const signedIn = useApp((s) => s.signedIn);
+  useEffect(() => { if (signedIn) useLearn.getState().load().catch(() => {}); else useLearn.getState().reset(); }, [signedIn]);
   // Back on the tabs with a dog half added (backed out of 01e, or the app closed mid-way): nothing was saved.
   useFocusEffect(useCallback(() => useApp.getState().cancelAddDog(), []));
   if (!onboarded) return <Redirect href="/welcome" />;
@@ -77,6 +83,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" />
       <Tabs.Screen name="book" />
       <Tabs.Screen name="log" />
+      <Tabs.Screen name="learn" />
       <Tabs.Screen name="dog" />
     </Tabs>
   );

@@ -8,14 +8,16 @@ import { Photo } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
 import { monthHeader } from '@/lib/log';
 import { useAllowance, useApp, useDog, useNotifications } from '@/store/app';
+import { useLearn } from '@/store/learn';
 import { useTheme } from '@/theme/ThemeProvider';
 
-type Section = 'today' | 'book' | 'log' | 'dog';
+type Section = 'today' | 'book' | 'log' | 'learn' | 'dog';
 
 const NAV: { key: Section; href: string; label: string; icon?: IconName }[] = [
   { key: 'today', href: '/', label: 'Today', icon: 'house' },
   { key: 'book', href: '/book', label: 'Book', icon: 'calendar-search' },
   { key: 'log', href: '/log', label: 'Log', icon: 'activity' },
+  { key: 'learn', href: '/learn', label: 'Learn', icon: 'circle-play' },
   { key: 'dog', href: '/dog', label: '' },
 ];
 
@@ -24,6 +26,7 @@ function sectionOf(path: string): Section | null {
   if (path === '/') return 'today';
   if (path.startsWith('/book') || path.startsWith('/class')) return 'book';
   if (path.startsWith('/log') || path.startsWith('/assessment')) return 'log';
+  if (path.startsWith('/learn') || path.startsWith('/video')) return 'learn';
   if (path.startsWith('/dog') || path.startsWith('/goal') || path.startsWith('/passport') || path.startsWith('/vaccines') || path.startsWith('/ready') || path.startsWith('/waiver')) return 'dog';
   return null;
 }
@@ -61,6 +64,7 @@ export function Sidebar() {
   const read = useApp((s) => s.readNotifications);
   const unread = useNotifications().filter((n) => n.isNew && !read.includes(n.id)).length;
   const section = sectionOf(path);
+  const learn = useLearn((s) => s.enabled);
   const bars = Math.max(allowance ?? credits, credits);
 
   return (
@@ -68,7 +72,7 @@ export function Sidebar() {
       <View style={{ paddingTop: 4, paddingHorizontal: 10, paddingBottom: 20 }}>
         <Text variant="wide" weight="700" style={{ fontSize: 15, lineHeight: 20 }}>PackPass</Text>
       </View>
-      {NAV.map((n) => {
+      {NAV.filter((n) => n.key !== 'learn' || learn).map((n) => {
         const active = section === n.key;
         const color = active ? c.ink : c.inkMuted;
         return (

@@ -4,7 +4,7 @@ import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { errorCopy } from '@/api/errors';
 import { drillById } from '@/data/practice';
-import type { ReportCard } from '@/data/types';
+import type { ReportCard, Video } from '@/data/types';
 import { Icon } from '@/ds/Icon';
 import { Press } from '@/ds/Press';
 import { Photo } from '@/ds/Surface';
@@ -12,7 +12,11 @@ import { Text } from '@/ds/Text';
 import { now } from '@/lib/clock';
 import { weekday } from '@/lib/dates';
 import { useApp } from '@/store/app';
+import { minutes, useLearn } from '@/store/learn';
 import { useTheme } from '@/theme/ThemeProvider';
+
+// A stable empty list, so the store selector doesn't hand back a new array each render.
+const noVideos: Video[] = [];
 
 /** The dog's newest report card with homework still open (until its next class starts). */
 export const useOpenHomework = (dogId: string) =>
@@ -30,6 +34,7 @@ export const firstName = (name: string | null) => (name ? name.split(' ')[0] : '
 export function HomeworkList({ card, style }: { card: ReportCard; style?: StyleProp<ViewStyle> }) {
   const { c } = useTheme();
   const tick = useApp((s) => s.tickHomework);
+  const learn = useLearn((s) => (s.enabled ? s.videos : noVideos));
   const [error, setError] = useState<string | null>(null);
   const toggle = (i: number) => {
     setError(null);
@@ -40,6 +45,8 @@ export function HomeworkList({ card, style }: { card: ReportCard; style?: StyleP
       {card.homework.map((h, i) => {
         const done = card.done.includes(i);
         const drill = h.drill ? drillById(h.drill) : undefined;
+        // A Learn video on the drill's skill, while Learn is on.
+        const video = drill ? learn.find((v) => v.skills.includes(drill.skillId)) : undefined;
         return (
           <View key={`${i}-${h.text}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, boxShadow: i ? `inset 0 1px 0 ${c.line}` : undefined }}>
             <Press onPress={() => toggle(i)} scale={false} accessibilityRole="checkbox" accessibilityState={{ checked: done }} accessibilityLabel={h.text}
@@ -51,6 +58,13 @@ export function HomeworkList({ card, style }: { card: ReportCard; style?: StyleP
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                 <Text variant="label" color={done ? c.inkMuted : c.ink} style={done ? { textDecorationLine: 'line-through' } : null}>{h.text}</Text>
                 {drill ? <Text variant="caption" muted>{`${drill.setting} · ${drill.minutes} min`}</Text> : null}
+                {video ? (
+                  <Press onPress={() => router.push(`/video/${video.id}`)} scale={false} accessibilityRole="link" accessibilityLabel={`Watch ${video.title}, ${minutes(video.durationS)}`}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, alignSelf: 'flex-start' }}>
+                    <Icon name="circle-play" size={14} color={c.inkMuted} />
+                    <Text variant="caption" weight="600" muted numberOfLines={1}>{`Watch: ${video.title} · ${minutes(video.durationS)}`}</Text>
+                  </Press>
+                ) : null}
               </View>
             </Press>
             {drill ? (

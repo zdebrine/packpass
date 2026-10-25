@@ -6,7 +6,7 @@ import { setCatalog } from '@/data/catalog';
 import { photoKey, type Energy } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
-import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, FocusSkill, HomeActivity, HomeActivityInput, IntakeCall, IntakeSpecialist, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, PracticeRemind, PrivateOffer, ReportCard, Series, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, FocusSkill, HomeActivity, HomeActivityInput, IntakeCall, IntakeSpecialist, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, PracticeRemind, PrivateOffer, ReportCard, Series, Session, Trainer, VaccineRecord, Video, VideoWatch, WaitEntry, Waiver } from '@/data/types';
 import type { DogRecord, OnboardingDraft } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { setWeights, type Weights } from '@/lib/fit';
@@ -635,4 +635,52 @@ export interface Impression { session_id: string; surface: 'list' | 'map' | 'det
 /** Which classes Book showed the dog, with their fit (each part's signal and the weights used), so the weights can be tuned from what gets booked. */
 export async function logImpressions(dogId: string, rows: Impression[]) {
   if (rows.length) check(await db().rpc('log_impressions', { p_dog: dogId, p: rows }));
+}
+
+// ---- Learn (supabase/migrations/…_learn_videos.sql) -------------------------------------------
+
+/** Whether Learn is on for this member, and if so the published videos (posters signed) and their progress. */
+export async function loadLearn(): Promise<{ enabled: boolean; videos: Video[]; watches: VideoWatch[] }> {
+  const c = db();
+  const enabled = check(await c.rpc('learn_enabled')) === true;
+  if (!enabled) return { enabled, videos: [], watches: [] };
+  const [rows, watches, trainers, partners] = await Promise.all([
+    c.from('videos').select('id, title, summary, category, trainer_id, video_path, poster, duration_s, chapters, needs, skills, published_at')
+      .not('published_at', 'is', null).order('published_at', { ascending: false }).then(check),
+    c.from('video_watches').select('video_id, position_s, finished_at, saved, updated_at').then(check),
+    c.from('trainers').select('id, name, partner_id').then(check),
+    c.from('partners').select('id, name').then(check),
+  ]);
+  const uploads = (rows as any[]).map((v) => v.poster as string).filter((p) => p.includes('/'));
+  const signed = uploads.length ? check(await c.storage.from('learn').createSignedUrls(uploads, 6 * 3600)) as { path: string | null; signedUrl: string }[] : [];
+  const url = Object.fromEntries(signed.filter((r) => r.path && r.signedUrl).map((r) => [r.path!, r.signedUrl]));
+  const trainer = Object.fromEntries((trainers as any[]).map((t) => [t.id, t]));
+  const partner = Object.fromEntries((partners as any[]).map((p) => [p.id, p.name as string]));
+  return {
+    enabled,
+    videos: (rows as any[]).map((v): Video => ({
+      id: v.id, title: v.title, summary: v.summary ?? '', category: v.category, trainerId: v.trainer_id,
+      trainer: trainer[v.trainer_id]?.name ?? 'PackPass', partner: partner[trainer[v.trainer_id]?.partner_id] ?? null,
+      poster: v.poster.includes('/') ? (url[v.poster] ? { uri: url[v.poster], cacheKey: v.poster } : 'dog_and_owner_chilling') : photoKey(v.poster) ?? 'dog_and_owner_chilling',
+      durationS: v.duration_s, chapters: v.chapters ?? [], needs: v.needs ?? [], skills: v.skills ?? [], publishedAt: new Date(v.published_at),
+      videoPath: v.video_path,
+    })),
+    watches: (watches as any[]).map((w): VideoWatch => ({
+      videoId: w.video_id, positionS: w.position_s, finished: !!w.finished_at, saved: w.saved, updatedAt: new Date(w.updated_at),
+    })),
+  };
+}
+
+/** A signed URL to play one video, good for six hours. */
+export async function videoUrl(path: string) {
+  const r = check(await db().storage.from('learn').createSignedUrl(path, 6 * 3600)) as { signedUrl: string };
+  return r.signedUrl;
+}
+
+export async function watchVideo(id: string, positionS: number, finished: boolean) {
+  check(await db().rpc('watch_video', { p_video: id, p_position: Math.round(positionS), p_finished: finished }));
+}
+
+export async function saveVideo(id: string, saved: boolean) {
+  check(await db().rpc('save_video', { p_video: id, p_saved: saved }));
 }

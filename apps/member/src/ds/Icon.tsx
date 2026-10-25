@@ -1,5 +1,5 @@
 import {
-  Activity, ArrowRight, Award, Ban, BatteryFull, Bell, Bookmark, Building, Cake, Calendar, CalendarCheck, CalendarPlus, CalendarSearch, CalendarX, Camera, Check, CircleDot, Coffee, DoorClosed, Eye, Footprints, Leaf, Mountain, Puzzle, Store, Target, CircleDashed, CircleCheck, OctagonAlert, Play, TrendingDown, Pencil, Shuffle, ListChecks, ArrowDown,
+  Activity, ArrowRight, Award, Ban, BatteryFull, Bell, Bookmark, BookmarkCheck, Building, CirclePlay, Cake, Calendar, CalendarCheck, CalendarPlus, CalendarSearch, CalendarX, Camera, Check, CircleDot, Coffee, DoorClosed, Eye, Footprints, Leaf, Mountain, Puzzle, Store, Target, CircleDashed, CircleCheck, OctagonAlert, Play, TrendingDown, Pencil, Shuffle, ListChecks, ArrowDown,
   ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock, Fence, FilePen, FilePlus, FileText, Flashlight, House, Link, List, Lock, LockOpen, Map, MapPin, MessageSquare,
   Minus, Navigation, Phone, Plus, Repeat, RotateCcw, ScanLine, Search, Settings, Share, Shield, ShieldAlert, ShieldCheck, Sparkles, Star, Stethoscope, Syringe, Ticket,
   Timer, Trees, TrendingUp, Trophy, UserRound, Users, Video, Wallet, X, Zap, type LucideIcon,
@@ -8,7 +8,7 @@ import {
 import { useTheme } from '@/theme/ThemeProvider';
 
 const ICONS = {
-  activity: Activity, 'arrow-right': ArrowRight, award: Award, ban: Ban, 'battery-full': BatteryFull, bell: Bell, bookmark: Bookmark, building: Building,
+  activity: Activity, 'arrow-right': ArrowRight, award: Award, ban: Ban, 'battery-full': BatteryFull, bell: Bell, bookmark: Bookmark, 'bookmark-check': BookmarkCheck, building: Building, 'circle-play': CirclePlay,
   cake: Cake, calendar: Calendar, 'calendar-check': CalendarCheck, 'calendar-plus': CalendarPlus, 'calendar-search': CalendarSearch, 'calendar-x': CalendarX, camera: Camera,
   check: Check, 'circle-dot': CircleDot, coffee: Coffee, 'door-closed': DoorClosed, eye: Eye, footprints: Footprints, leaf: Leaf, mountain: Mountain, puzzle: Puzzle, store: Store, target: Target,
   'circle-dashed': CircleDashed, 'circle-check': CircleCheck, 'octagon-alert': OctagonAlert, play: Play, 'trending-down': TrendingDown, pencil: Pencil,
