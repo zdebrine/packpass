@@ -12,7 +12,8 @@ import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, typ
 import { SAMPLE_HOME_LOG } from '@/data/homeLog';
 import { planOf } from '@/data/plans';
 import { activityById, defaultFocus } from '@/data/practice';
-import type { Booking, ClearanceRecord, Dog, FocusSkill, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, PracticeRemind, ReportCard, Series, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import type { Booking, ClearanceRecord, Dog, FocusSkill, HomeActivity, HomeActivityInput, IntakeCall, IntakeSpecialist, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, PracticeRemind, PrivateOffer, ReportCard, Series, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import { sampleIntake } from '@/data/intake';
 import { sampleReportCards } from '@/data/reportCards';
 import { now } from '@/lib/clock';
 import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
@@ -203,6 +204,16 @@ interface AppState extends Demo {
   reportCards: ReportCard[];
   /** Ticks a homework item off (logged to the dog's Log) or unticks it. */
   tickHomework: (bookingId: string, item: number, done: boolean) => Promise<void>;
+  /** Specialists taking intake calls, the member's calls and the 1:1s offered after them (23d to 23f). */
+  intake: { specialists: IntakeSpecialist[]; calls: IntakeCall[]; offers: PrivateOffer[] };
+  loadIntake: () => Promise<void>;
+  /** Books an open time; rejects with the server's code. */
+  bookIntake: (trainerId: string, slotId: string, dogId: string, mode: 'video' | 'phone', phone: string | null) => Promise<void>;
+  /** A Calendly specialist: shares the dog's profile and resolves with the Calendly link. */
+  requestIntake: (trainerId: string, dogId: string) => Promise<string>;
+  cancelIntake: (id: string) => Promise<void>;
+  /** Asks for another time than the 1:1 offered. */
+  declineOffer: (id: string) => Promise<void>;
   /** What each dog is working on, by dog id. Live: dog_focus_skills. Sample: only dogs the owner edited (others follow traits and paths). */
   focus: Record<string, FocusSkill[]>;
   setFocusSkills: (dogId: string, skills: string[]) => Promise<void>;
@@ -326,6 +337,7 @@ const fresh = {
   missed: [] as LogEntry[],
   homeLog: (isLive ? [] : SAMPLE_HOME_LOG) as HomeActivity[],
   reportCards: (isLive ? [] : sampleReportCards(now())) as ReportCard[],
+  intake: (isLive ? { specialists: [], calls: [], offers: [] } : sampleIntake(now())) as { specialists: IntakeSpecialist[]; calls: IntakeCall[]; offers: PrivateOffer[] },
   focus: {} as Record<string, FocusSkill[]>,
   seenMissed: [] as string[],
   clearanceRecords: null as ClearanceRecord[] | null,
@@ -341,7 +353,7 @@ const fresh = {
 // Live mode starts empty and fills from Supabase on sign-in.
 if (isLive) {
   Object.assign(fresh, {
-    dogs: [], dogRecords: {}, credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], waivers: [], waiversSigned: {}, remoteNotifications: [], remoteSeries: [], seriesRules: [], log: [], missed: [], homeLog: [], reportCards: [], focus: {}, clearanceRecords: [], paths: [], account: { name: '', email: '' },
+    dogs: [], dogRecords: {}, credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], waivers: [], waiversSigned: {}, remoteNotifications: [], remoteSeries: [], seriesRules: [], log: [], missed: [], homeLog: [], reportCards: [], intake: { specialists: [], calls: [], offers: [] }, focus: {}, clearanceRecords: [], paths: [], account: { name: '', email: '' },
   });
 }
 
@@ -645,7 +657,7 @@ export const useApp = create<AppState>()(
         },
         signOut: async () => {
           if (isLive) await live.signOut(get().pushToken);
-          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [], missed: [], homeLog: [], reportCards: [], focus: {}, clearanceRecords: [], paths: [] } : {}) });
+          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [], missed: [], homeLog: [], reportCards: [], intake: { specialists: [], calls: [], offers: [] }, focus: {}, clearanceRecords: [], paths: [] } : {}) });
         },
         setDogPhoto: async (dogId, dataUri) => {
           if (isLive) {
@@ -683,9 +695,9 @@ export const useApp = create<AppState>()(
             return;
           }
           await live.loadCatalog();
-          const [m, log, homeLog, focus, reportCards] = await Promise.all([
+          const [m, log, homeLog, focus, reportCards, intake] = await Promise.all([
             live.loadMember(), live.loadLog().catch(() => null), live.loadHomeLog().catch(() => null), live.loadFocus().catch(() => null),
-            live.loadReportCards().catch(() => null),
+            live.loadReportCards().catch(() => null), live.loadIntake().catch(() => null),
           ]);
           if (!m) {
             set({ ready: true, signedIn: false, onboarded: false });
@@ -712,6 +724,7 @@ export const useApp = create<AppState>()(
             missed: log ? log.filter((e) => e.missed) : get().missed,
             homeLog: homeLog ?? get().homeLog,
             reportCards: reportCards ?? get().reportCards,
+            intake: intake ?? get().intake,
             focus: focus ?? get().focus,
             account: { name: m.name, email: m.email },
             emailReminders: m.emailReminders,
@@ -727,7 +740,12 @@ export const useApp = create<AppState>()(
         },
 
         bookSession: async (sessionId, dogId) => {
-          if (!isLive) return bookLocal(sessionId, dogId);
+          if (!isLive) {
+            const r = bookLocal(sessionId, dogId);
+            // As bookings_close_offer does: booking an offered 1:1 closes the offer.
+            if (r.ok) set((s) => ({ intake: { ...s.intake, offers: s.intake.offers.map((o) => (o.sessionId === sessionId && o.status === 'offered' ? { ...o, status: 'booked' as const } : o)) } }));
+            return r;
+          }
           try {
             const bookingId = await thenRefresh(() => live.book(sessionId, dogId));
             return { ok: true, bookingId };
@@ -842,6 +860,57 @@ export const useApp = create<AppState>()(
           }
           const [homeLog, reportCards] = await Promise.all([live.loadHomeLog(), live.loadReportCards()]);
           set({ homeLog, reportCards });
+        },
+        loadIntake: async () => {
+          if (isLive) set({ intake: await live.loadIntake() });
+        },
+        bookIntake: async (trainerId, slotId, dogId, mode, phone) => {
+          if (isLive) {
+            await live.bookIntake(slotId, dogId, mode, phone);
+            set({ intake: await live.loadIntake() });
+            return;
+          }
+          set((s) => {
+            const sp = s.intake.specialists.find((x) => x.trainerId === trainerId)!;
+            const slot = sp.slots.find((x) => x.id === slotId)!;
+            return { intake: {
+              ...s.intake,
+              specialists: s.intake.specialists.map((x) => (x === sp ? { ...x, slots: x.slots.filter((y) => y.id !== slotId) } : x)),
+              calls: [{ id: `call.${slotId}`, trainerId, trainer: sp.name, trainerPhoto: sp.photo, partner: sp.partner, dogId, startsAt: slot.startsAt, mode, status: 'booked', link: null }, ...s.intake.calls],
+            } };
+          });
+        },
+        requestIntake: async (trainerId, dogId) => {
+          if (isLive) {
+            const link = await live.requestIntake(trainerId, dogId);
+            set({ intake: await live.loadIntake() });
+            return link;
+          }
+          return 'https://calendly.com/';
+        },
+        cancelIntake: async (id) => {
+          if (isLive) {
+            await live.cancelIntake(id);
+            set({ intake: await live.loadIntake() });
+            return;
+          }
+          set((s) => {
+            const call = s.intake.calls.find((x) => x.id === id);
+            return { intake: {
+              ...s.intake,
+              calls: s.intake.calls.map((x) => (x.id === id ? { ...x, status: 'cancelled' as const } : x)),
+              specialists: s.intake.specialists.map((x) => (call?.startsAt && x.trainerId === call.trainerId
+                ? { ...x, slots: [...x.slots, { id: id.replace(/^call\./, ''), startsAt: call.startsAt }].sort((a, b) => +a.startsAt - +b.startsAt) } : x)),
+            } };
+          });
+        },
+        declineOffer: async (id) => {
+          if (isLive) {
+            await live.declineOffer(id);
+            set({ intake: await live.loadIntake() });
+            return;
+          }
+          set((s) => ({ intake: { ...s.intake, offers: s.intake.offers.map((o) => (o.id === id ? { ...o, status: 'other_time' as const } : o)) } }));
         },
         deleteHome: async (id) => {
           if (isLive) await live.deleteHome(id);

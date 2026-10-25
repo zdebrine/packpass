@@ -6,7 +6,7 @@ import { setCatalog } from '@/data/catalog';
 import { photoKey, type Energy } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
-import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, FocusSkill, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, PracticeRemind, ReportCard, Series, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, FocusSkill, HomeActivity, HomeActivityInput, IntakeCall, IntakeSpecialist, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, PracticeRemind, PrivateOffer, ReportCard, Series, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
 import type { DogRecord, OnboardingDraft } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { setWeights, type Weights } from '@/lib/fit';
@@ -84,7 +84,7 @@ export async function loadCatalog() {
     c.from('partners').select('*').then(check),
     c.from('trainers').select('*').then(check),
     c.from('class_types').select('*').then(check),
-    c.from('sessions').select('id, class_id, starts_at, spots_left, auto_promote')
+    c.from('sessions').select('id, class_id, starts_at, spots_left, auto_promote, offered_member')
       .gte('starts_at', new Date(Date.now() - 86_400_000).toISOString())
       .lte('starts_at', new Date(Date.now() + 29 * 86_400_000).toISOString())
       .order('starts_at')
@@ -118,7 +118,7 @@ export async function loadCatalog() {
       minWeightLb: k.min_weight_lb ?? undefined, maxWeightLb: k.max_weight_lb ?? undefined, requiresFixed: k.requires_fixed ?? false,
       builtFor: k.built_for ?? [], breedOnly: !!k.breed_only && k.breed_only_status === 'approved', energy: (k.energy ?? []).map((e: string) => ENERGY_KEY[e]).filter(Boolean), sociability: k.sociability ?? [],
     }])),
-    sessions: (sessions as any[]).map((s): Session => ({ id: s.id, classId: s.class_id, startsAt: new Date(s.starts_at), spotsLeft: s.spots_left, autoPromote: s.auto_promote })),
+    sessions: (sessions as any[]).map((s): Session => ({ id: s.id, classId: s.class_id, startsAt: new Date(s.starts_at), spotsLeft: s.spots_left, autoPromote: s.auto_promote, offered: !!s.offered_member })),
     pathSpecialties: Object.fromEntries((paths as any[]).map((p) => [p.id, p.specialties ?? []])),
     pathClasses: (pathClasses as any[]).reduce((m: Record<string, string[]>, x) => ({ ...m, [x.path_id]: [...(m[x.path_id] ?? []), x.class_id] }), {}),
     ...(clearanceTypes?.length ? {
@@ -165,7 +165,7 @@ export const ageOf = (year?: number | null, month?: number | null) => {
 const NOTIF_ICON: Record<string, Notif['icon']> = {
   records_denied: 'shield-alert', reassessment: 'shield-alert', class_missed: 'calendar-x', path_step: 'check', clearance_earned: 'shield-check',
   booked: 'calendar-check', waitlist_booked: 'calendar-check', waitlist_offer: 'timer', reminder_24h: 'bell', reminder_2h: 'navigation', nudge_10d: 'calendar-plus',
-  series_booked: 'repeat', series_short: 'calendar-x',
+  series_booked: 'repeat', series_short: 'calendar-x', intake_link: 'video', private_offer: 'user-round',
 };
 
 function relTime(iso: string) {
@@ -374,6 +374,45 @@ export async function loadReportCards(): Promise<ReportCard[]> {
 /** Ticks a homework item off (it's logged as practice) or unticks it (the practice comes back out of the Log). */
 export async function tickHomework(bookingId: string, item: number, done: boolean) {
   check(await db().rpc('tick_homework', { p_booking: bookingId, p_item: item, p_done: done }));
+}
+
+/** Specialists taking intake calls, their calls with the member's dogs, and the 1:1s they offered (…_intake_calls.sql). */
+export async function loadIntake(): Promise<{ specialists: IntakeSpecialist[]; calls: IntakeCall[]; offers: PrivateOffer[] }> {
+  const c = db();
+  const [sp, calls, offers] = await Promise.all([c.rpc('intake_specialists').then(check), c.rpc('my_intake_calls').then(check), c.rpc('my_private_offers').then(check)]) as any[][];
+  return {
+    specialists: sp.map((r) => ({
+      trainerId: r.trainer_id, name: r.name, credential: r.credential, photo: photo(r.photo_url, 'dog_sleeping_while_owner_reads'), partnerId: r.partner_id,
+      partner: r.partner_name, focus: r.focus, phone: r.phone, calendly: r.calendly,
+      slots: (r.slots ?? []).map((x: any) => ({ id: x.id, startsAt: new Date(x.starts_at) })),
+    })),
+    calls: calls.map((r) => ({
+      id: r.id, trainerId: r.trainer_id, trainer: r.trainer_name, trainerPhoto: photo(r.trainer_photo, 'dog_sleeping_while_owner_reads'), partner: r.partner_name,
+      dogId: r.dog_id, startsAt: r.starts_at ? new Date(r.starts_at) : null, mode: r.mode, status: r.status, link: r.link,
+    })),
+    offers: offers.map((r) => ({
+      id: r.id, dogId: r.dog_id, sessionId: r.session_id, classId: r.class_id, title: r.title, startsAt: new Date(r.starts_at), durationMin: r.duration_min,
+      credits: r.credits, cancelHours: r.cancel_hours, partner: r.partner_name, trainer: r.trainer_name, trainerPhoto: photo(r.trainer_photo, 'dog_sleeping_while_owner_reads'),
+      note: r.note, status: r.status, expiresAt: new Date(r.expires_at),
+    })),
+  };
+}
+
+/** Books an intake call at an open time, by video or phone (a phone call needs the member's number). */
+export async function bookIntake(slotId: string, dogId: string, mode: 'video' | 'phone', phone: string | null) {
+  check(await db().rpc('book_intake', { p_slot: slotId, p_dog: dogId, p_mode: mode, p_phone: phone }));
+}
+
+/** A Calendly specialist: shares the dog's profile with them and returns the Calendly link. */
+export const requestIntake = async (trainerId: string, dogId: string) => check(await db().rpc('request_intake', { p_trainer: trainerId, p_dog: dogId })) as string;
+
+export async function cancelIntake(id: string) {
+  check(await db().rpc('cancel_intake', { p_call: id }));
+}
+
+/** Asks for another time than the 1:1 offered (booking it goes through the booking sheet). */
+export async function declineOffer(id: string) {
+  check(await db().rpc('answer_private_offer', { p_offer: id, p_book: false }));
 }
 
 /** Activities logged between classes, newest first (Log at home). */

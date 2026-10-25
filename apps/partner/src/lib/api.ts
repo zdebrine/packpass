@@ -54,6 +54,16 @@ export interface AssessmentRow {
   booking_id: string; starts_at: string; class_title: string; grants: string; duration_min: number; dog_id: string; dog_name: string; breed: string | null;
   owner_name: string; photo_path: string | null; traits: string[]; clearances: string[]; outcome: 'cleared' | 'not_yet' | null; strengths: string[]; working_on: string[]; quote: string | null;
 }
+/** How a trainer takes intake calls (…_intake_calls.sql). link null: not set up yet. */
+export interface IntakeSetting { trainer_id: string; name: string; link: string | null; focus: string | null; phone: boolean; active: boolean; calendly: boolean }
+export interface IntakeSlot { id: string; trainer_id: string; starts_at: string; booked: boolean }
+/** A booked intake call, or a Calendly request (starts_at null), with the dog's profile and the latest 1:1 offered after it. */
+export interface IntakeCall {
+  id: string; trainer_id: string; trainer_name: string; starts_at: string | null; mode: 'video' | 'phone' | 'calendly'; phone: string | null;
+  status: 'booked' | 'cancelled'; created_at: string; dog_id: string; dog_name: string; breed: string | null; photo_path: string | null;
+  energy: string | null; sociability: string | null; traits: string[]; owner_name: string; notes: string[];
+  offer_id: string | null; offer_status: 'offered' | 'booked' | 'other_time' | 'expired' | null; offer_title: string | null; offer_starts_at: string | null;
+}
 export interface EarningsMonth { month: string; sessions: number; dogs: number; credits: number; amount_cents: number }
 export interface EarningsClass { class_id: string; title: string; dogs: number; credits: number; amount_cents: number }
 
@@ -271,6 +281,19 @@ export const loadAssessments = async () => check(await db.rpc('partner_assessmen
 export const recordResult = async (bookingId: string, outcome: 'cleared' | 'not_yet', strengths: string[], working: string[], quote: string, goal: boolean) => {
   check(await db.rpc('partner_record_result', { p_booking: bookingId, p_outcome: outcome, p_strengths: strengths, p_working: working, p_quote: quote, p_goal: goal }));
 };
+// ---- Intake calls and 1:1 offers ----
+export const loadIntakeSettings = async () => check(await db.rpc('partner_intake_settings')) as IntakeSetting[];
+export const saveIntake = async (trainerId: string, link: string, focus: string, phone: boolean, active: boolean) => {
+  check(await db.rpc('partner_save_intake', { p_trainer: trainerId, p_link: link, p_focus: focus, p_phone: phone, p_active: active }));
+};
+export const loadIntakeSlots = async () => check(await db.rpc('partner_intake_slots')) as IntakeSlot[];
+export const addIntakeSlots = async (trainerId: string, starts: Date[]) =>
+  check(await db.rpc('partner_add_intake_slots', { p_trainer: trainerId, p_starts: starts.map((d) => d.toISOString()) })) as number;
+export const removeIntakeSlot = async (id: string) => { check(await db.rpc('partner_remove_intake_slot', { p_slot: id })); };
+export const loadIntakeCalls = async () => check(await db.rpc('partner_intake_calls')) as IntakeCall[];
+/** Offers the dog from an intake call a 1:1 on one of the partner's Private templates. Returns the offer id. */
+export const offerPrivate = async (callId: string, classId: string, startsAt: Date, note: string) =>
+  check(await db.rpc('partner_offer_private', { p_call: callId, p_class: classId, p_starts_at: startsAt.toISOString(), p_note: note })) as string;
 export const checkVaccines = async (dogId: string) => { check(await db.rpc('partner_check_vaccines', { p_dog: dogId })); };
 
 // ---- Earnings ----
@@ -495,6 +518,13 @@ const COPY: Record<string, string> = {
   bad_summary: 'Keep it to three points of up to 140 characters each.',
   waiver_pdf: 'Upload the waiver as a PDF.',
   archived: 'This template is archived. Restore it to schedule it.',
+  bad_link: 'Paste the full link, starting with https://.',
+  bad_focus: 'Keep it to one short line.',
+  too_many: 'Add up to 40 times at once.',
+  booked: 'Someone booked that time. Cancel the call with them first.',
+  not_private: 'Pick one of your Private templates.',
+  too_soon: 'Offer a time at least 3 hours from now.',
+  already_offered: 'There\'s already an open offer from this call. Wait for an answer or for it to expire.',
   no_days: 'Pick at least one day.',
   series_range: 'Pick a start from today and an end within 26 weeks.',
   no_dates: 'Every date in that range has passed or already has this class at that time.',

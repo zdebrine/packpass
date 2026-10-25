@@ -178,7 +178,7 @@ export default function BookingSheet() {
             {waiver ? <WaiverBlocker waiver={waiver} partnerName={partner.name} name={signName} setName={setSignName} agree={agree} setAgree={setAgree} />
               : session.spotsLeft === 0 ? <FullBlocker v={v} />
                 : short ? <CreditsBlocker v={v} credits={credits} /> : null}
-            {session.spotsLeft === 0 || short ? null : <RepeatToggle v={v} on={repeat} setOn={setRepeat} until={until} setUntil={setUntil} />}
+            {session.spotsLeft === 0 || short || session.offered ? null : <RepeatToggle v={v} on={repeat} setOn={setRepeat} until={until} setUntil={setUntil} />}
             {session.spotsLeft === 0 ? null : (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 18, borderRadius: 12, backgroundColor: c.surfaceRaised }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

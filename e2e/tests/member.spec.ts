@@ -391,3 +391,50 @@ test('after class, the trainer\'s report card shows with its homework, ticked of
   await page.getByRole('checkbox', { name: 'Mat at home' }).filter({ visible: true }).click();
   await expect.poll(() => sql(`select count(*) from homework_ticks where booking_id = '${booking}'`)).toBe('1');
 });
+
+test('a member books a free intake call from Book › Skills, then books the 1:1 the specialist offers', async ({ page }) => {
+  const ui = visible(page);
+  const email = `intake-${Date.now()}@example.com`;
+  const id = await account(email, 'goodpass123');
+  sql(`select public.seed_demo_member('${id}')`);
+  sql(`insert into waiver_signatures (member_id, waiver_id, signed_name) select '${id}', id, 'Sam Rivera' from waivers where active`);
+  sql(`update profiles set credits_balance = 20 where id = '${id}'`);
+
+  await page.goto('/');
+  await page.getByText('I already have an account').click();
+  await ui.boxes().nth(0).fill(email);
+  await ui.boxes().nth(1).fill('goodpass123');
+  await ui.button('Sign in').click();
+  await expect(ui.text(/Juno/)).toBeVisible();
+
+  // 23a to 23e: Skills lists Sam for 0 credits; the call books at Sam's first open time.
+  await page.goto('/book');
+  await page.getByLabel('See all Skills').filter({ visible: true }).click();
+  await expect(ui.text('1:1 with a specialist')).toBeVisible();
+  await page.getByRole('button', { name: 'Intake call with Sam Reyes' }).filter({ visible: true }).click();
+  await expect(ui.text('Intake call with Sam Reyes')).toBeVisible();
+  await expect(ui.text('Sam sees Juno\'s profile before the call.')).toBeVisible();
+  await ui.button('Book intake call').click();
+  await expect(ui.text('Booked.')).toBeVisible();
+  await expect(ui.text('Video call. Pack sends the link 10 minutes before. Free cancel any time.')).toBeVisible();
+  const call = sql(`select id from intake_calls where member_id = '${id}' and status = 'booked'`);
+  expect(sql(`select credits_balance from profiles where id = '${id}'`)).toBe('20');
+
+  // After the call, Sam offers a 1:1 (the partner test drives this screen; here it's the same function).
+  const staff = await account(`sam-${Date.now()}@eastside.test`, 'goodpass123');
+  sql(`insert into partner_staff (user_id, partner_id, role, trainer_id) values ('${staff}', 'eastside', 'trainer', 'sam')`);
+  sql(`update intake_calls set starts_at = now() - interval '1 hour' where id = '${call}'`);
+  const offer = sql(`set role authenticated; select set_config('request.jwt.claim.sub', '${staff}', false);
+       select public.partner_offer_private('${call}', 'calm-private', date_trunc('hour', now()) + interval '52 hours', 'Distance work first.')`).split('\n').pop()!;
+
+  // 23f: the offer, then the booking sheet for its credits.
+  await page.goto(`/offer/${offer}`);
+  await expect(ui.text('1:1 · Calm around dogs')).toBeVisible();
+  await expect(ui.text('“Distance work first.”')).toBeVisible();
+  await ui.button('Book for 3 credits').click();
+  await expect(ui.text('Calm around dogs')).toBeVisible();
+  await ui.button('Confirm booking').click();
+  await expect(ui.text('Booked.')).toBeVisible();
+  await expect.poll(() => sql(`select status from private_offers where id = '${offer}'`)).toBe('booked');
+  expect(sql(`select credits_balance from profiles where id = '${id}'`)).toBe('17');
+});
