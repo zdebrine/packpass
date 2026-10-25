@@ -236,6 +236,31 @@ export interface HomeActivityInput {
   reps?: number | null;
 }
 
+/** A homework item on a report card: a drill from the practice catalog, or the trainer's own words (drill null). */
+export interface HomeworkItem { text: string; drill: string | null }
+
+/** The trainer's report card after class (22a): ratings 1 to 3, a note and up to three homework items to tick off. */
+export interface ReportCard {
+  bookingId: string;
+  dogId: string;
+  sessionId: string;
+  classId: string;
+  title: string;
+  startsAt: Date;
+  partner: string;
+  trainer: string | null;
+  trainerRole: string | null;
+  trainerPhoto: PhotoSource;
+  discipline: string;
+  note: string | null;
+  ratings: { focus: number; sociability: number; skill: number };
+  homework: HomeworkItem[];
+  /** Homework items ticked off, by index. */
+  done: number[];
+  /** Homework is open until the dog's next class starts. */
+  openUntil: Date;
+}
+
 export interface LogEntry {
   bookingId: string;
   dogId: string;

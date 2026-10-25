@@ -15,6 +15,7 @@ import { Text } from '@/ds/Text';
 import { useFit } from '@/features/book/useFit';
 import { Map, useMe } from '@/features/Map';
 import { HeldPlan } from '@/features/today/HeldPlan';
+import { HomeworkSection } from '@/features/today/Homework';
 import { activeBookings, bookError, bookingFor, checkInClosesAt, credits as creditsLabel, nextSession, timeLabel } from '@/lib/booking';
 import { now } from '@/lib/clock';
 import { monthDay, relativeDay, time, weekday } from '@/lib/dates';
@@ -250,6 +251,7 @@ export default function Today() {
               {upNextCard}
             </View>
             <HeldPlan dogId={juno.id} style={{ marginTop: 0, paddingHorizontal: 0 }} />
+            <HomeworkSection dogId={juno.id} dogName={juno.name} style={{ gap: 4 }} />
             <View>{monthSection}</View>
             <View>{recommendedSection}</View>
           </View>
@@ -285,6 +287,8 @@ export default function Today() {
             <Text variant="title">Up next</Text>
             {upNextCard}
           </View>
+
+          <HomeworkSection dogId={juno.id} dogName={juno.name} style={{ paddingHorizontal: 20, gap: 4 }} />
 
           <View style={{ paddingHorizontal: 20 }}>{athlete}</View>
 

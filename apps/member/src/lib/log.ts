@@ -195,8 +195,11 @@ function feedOf(classes: { session: LogSession; at: Date }[], home: HomeActivity
 
 const activeDayCount = (dates: Date[], at: Date) => new Set(dates.filter((d) => sameMonth(d, at)).map((d) => d.getDate())).size;
 
-/** all: sessions the dog went to. missed: no-shows, which show in the list but don't count towards anything. */
-export function liveLog(all: LogEntry[], missed: LogEntry[], homeAll: HomeActivity[], dogId: string | undefined, dogName: string, social: SocialStage, goal = 3, at = clock()): LogView {
+/**
+ * all: sessions the dog went to. missed: no-shows, which show in the list but don't count towards anything. reportCards: bookings
+ * with a trainer's report card, which open it (22a).
+ */
+export function liveLog(all: LogEntry[], missed: LogEntry[], homeAll: HomeActivity[], dogId: string | undefined, dogName: string, social: SocialStage, goal = 3, at = clock(), reportCards: string[] = []): LogView {
   const entries = all.filter((e) => e.dogId === dogId);
   const home = homeAll.filter((h) => h.dogId === dogId);
   const listed = [...entries, ...missed.filter((e) => e.dogId === dogId)];
@@ -218,7 +221,7 @@ export function liveLog(all: LogEntry[], missed: LogEntry[], homeAll: HomeActivi
       note: a?.quote ?? e.note,
       assessment: a ? `${a.outcome === 'cleared' ? 'Cleared' : 'Not yet'} · ${clearanceName(a.type)}` : null,
       cleared: a?.outcome === 'cleared',
-      href: e.missed ? `/missed/${e.bookingId}` : a ? `/assessment/${e.bookingId}` : null,
+      href: e.missed ? `/missed/${e.bookingId}` : a ? `/assessment/${e.bookingId}` : reportCards.includes(e.bookingId) ? `/after-class/${e.bookingId}` : null,
       missed: e.missed,
     };
     return { session, at: e.startsAt };

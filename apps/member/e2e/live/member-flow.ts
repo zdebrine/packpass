@@ -272,6 +272,20 @@ const S = () => useApp.getState();
   await S().deleteHome(walkId);
   await S().refresh();
   ok(S().homeLog.length === 0, 'and deleting removes it');
+
+  // Report card (22a): the trainer rates the dog and sets homework; ticking an item logs it, unticking takes it out.
+  psql(`insert into report_cards (booking_id, trainer_id, focus, sociability, skill, homework)
+        values ('${ran.id}', 'dev', 3, 1, 2, '[{"text":"Mat at home","drill":"mat-at-home"},{"text":"Hand target before meals","drill":null}]')`);
+  await S().refresh();
+  const card = S().reportCards.find((r) => r.bookingId === ran.id);
+  ok(card?.trainer === 'Dev Patel' && card.note === 'Fast on the recall. Needs a longer warm-up.' && card.ratings.focus === 3 && card.ratings.sociability === 1
+     && card.homework.length === 2 && card.homework[1].drill === null && card.done.length === 0 && card.openUntil > card.startsAt, 'a report card comes with its ratings, note and homework');
+  ok(liveLog(S().log!, S().missed, S().homeLog, dog, 'Juno', S().social, 3, undefined, S().reportCards.map((r) => r.bookingId))
+    .feed.some((g) => g.rows.some((x) => x.type === 'class' && x.href === `/after-class/${ran.id}`)), 'and the Log opens it');
+  await S().tickHomework(ran.id, 0, true);
+  ok(S().reportCards.find((r) => r.bookingId === ran.id)!.done.join() === '0' && S().homeLog.length === 1 && S().homeLog[0].drillId === 'mat-at-home', 'ticking homework logs the drill');
+  await S().tickHomework(ran.id, 0, false);
+  ok(S().reportCards.find((r) => r.bookingId === ran.id)!.done.length === 0 && S().homeLog.length === 0, 'unticking takes it back out of the Log');
   const stats = statsOf(S().log!.filter((e) => e.dogId === dog));
   ok(stats.sessions === S().log!.length && stats.disciplines >= 1 && stats.levels[0].level === 1, 'the Athlete Card counts sessions and disciplines from the Log');
 

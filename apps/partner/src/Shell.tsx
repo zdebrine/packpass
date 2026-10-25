@@ -2,7 +2,7 @@ import { CalendarDays, ClipboardCheck, Layers, LayoutDashboard, MapPin, Notebook
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
-import { loadAssessments, loadNotes, signOut } from '@/lib/api';
+import { loadAssessments, loadReportCards, signOut } from '@/lib/api';
 import { usePartner } from '@/lib/partner';
 import { Avatar, Ico } from '@/ui/kit';
 import { LegalLinks } from '@/ui/LegalLinks';
@@ -19,15 +19,15 @@ export function Shell() {
 
   useEffect(() => {
     let live = true;
-    Promise.all([loadNotes(2), loadAssessments()]).then(([n, a]) => {
-      if (live) setDue({ notes: n.filter((x) => !x.note).length, assess: a.filter((x) => !x.outcome && new Date(x.starts_at) < new Date()).length });
+    Promise.all([loadReportCards(2), loadAssessments()]).then(([n, a]) => {
+      if (live) setDue({ notes: n.filter((x) => !x.sent_at && x.status !== 'no_show').length, assess: a.filter((x) => !x.outcome && new Date(x.starts_at) < new Date()).length });
     }).catch(() => {});
     return () => { live = false; };
   }, [loc.pathname]);
 
   const all: [string, string, LucideIcon, number?][] = [
     ['/', 'Overview', LayoutDashboard], ['/schedule', 'Schedule', CalendarDays], ['/classes', 'Classes', Layers],
-    ['/roster', 'Roster', ClipboardCheck], ['/notes', 'Session notes', NotebookPen, due.notes], ['/assessments', 'Assessments', ShieldCheck, due.assess],
+    ['/roster', 'Roster', ClipboardCheck], ['/notes', 'Report cards', NotebookPen, due.notes], ['/assessments', 'Assessments', ShieldCheck, due.assess],
     ['/locations', 'Locations', MapPin], ['/earnings', 'Earnings', Wallet], ['/trainers', gym ? 'Trainers' : 'Profile', UserRound], ['/team', 'Team', Users],
   ];
   // Earnings and Team are for owners.

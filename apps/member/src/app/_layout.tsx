@@ -122,6 +122,7 @@ function RootLayout() {
             <Stack.Screen name="check-in/done" options={fade} />
             <Stack.Screen name="notifications" options={page} />
             <Stack.Screen name="missed/[id]" options={page} />
+            <Stack.Screen name="after-class/[id]" options={page} />
             <Stack.Screen name="month" options={page} />
             <Stack.Screen name="series-date/[bookingId]" options={sheet} />
             <Stack.Screen name="log-activity" options={sheet} />

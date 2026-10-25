@@ -94,11 +94,14 @@ select sb.ok(public.book_series_ahead() = 0, 'running it again books nothing');
 -- 5. Ending the series cancels the dates still free to cancel, and stops the job.
 set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000005b', false);
-select sb.ok(public.end_series((select id from s1)) = 3, 'ending cancels the three booked dates');
+-- The dates still free to cancel: all three, unless the first starts inside its class's window when the test runs.
+create temp table free_dates as select count(*)::int n from public.bookings b join public.sessions s on s.id = b.session_id
+  where b.series_id = (select id from s1) and b.status = 'booked' and public.free_cancel_until(s.id) > now();
+select sb.ok(public.end_series((select id from s1)) = (select n from free_dates) and (select n from free_dates) >= 2, 'ending cancels the booked dates still free to cancel');
 select sb.ok(not exists (select 1 from public.my_series()), 'and the series is gone from my_series');
 select sb.expect_error($$select public.end_series((select id from s1))$$, 'not_found');
 reset role;
-select sb.ok((select credits_balance from profiles where id = '00000000-0000-0000-0000-00000000005b') = 3 * (select cost from sb.ids), 'with every credit back');
+select sb.ok((select credits_balance from profiles where id = '00000000-0000-0000-0000-00000000005b') = (select n from free_dates) * (select cost from sb.ids), 'with their credits back');
 
 -- 6. Someone else's series is out of reach, and the jobs are not callable by members.
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000005c', 'other@me.co');

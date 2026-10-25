@@ -6,7 +6,7 @@ import { setCatalog } from '@/data/catalog';
 import { photoKey, type Energy } from '@/data/fixtures';
 import type { Goal, Notif } from '@/data/passport';
 import { loadTraits, pathsFor } from '@/data/traits';
-import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, FocusSkill, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, PracticeRemind, Series, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import type { Booking, ClassType, ClearanceInfo, ClearanceRecord, Dog, FocusSkill, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, Partner, PhotoKey, PhotoSource, PickedDoc, PlanKey, PracticeRemind, ReportCard, Series, Session, Trainer, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
 import type { DogRecord, OnboardingDraft } from '@/store/app';
 import { base64ToBytes } from '@/lib/base64';
 import { setWeights, type Weights } from '@/lib/fit';
@@ -358,6 +358,22 @@ export async function loadLog(): Promise<LogEntry[]> {
       ? { type: r.assessed, outcome: r.outcome, quote: r.quote, strengths: r.strengths ?? [], workingOn: r.working_on ?? [], assessor: r.assessor }
       : null,
   }));
+}
+
+/** Report cards from the last 60 days, newest first (22a, supabase/migrations/…_report_cards.sql). */
+export async function loadReportCards(): Promise<ReportCard[]> {
+  const rows = check(await db().rpc('my_report_cards')) as any[];
+  return rows.map((r) => ({
+    bookingId: r.booking_id, dogId: r.dog_id, sessionId: r.session_id, classId: r.class_id, title: r.title, startsAt: new Date(r.starts_at),
+    partner: r.partner_name, trainer: r.trainer_name, trainerRole: r.trainer_role, trainerPhoto: photo(r.trainer_photo, 'dog_sleeping_while_owner_reads'), discipline: r.discipline,
+    note: r.note, ratings: { focus: r.focus, sociability: r.sociability, skill: r.skill }, homework: r.homework ?? [], done: r.done ?? [],
+    openUntil: new Date(r.open_until),
+  }));
+}
+
+/** Ticks a homework item off (it's logged as practice) or unticks it (the practice comes back out of the Log). */
+export async function tickHomework(bookingId: string, item: number, done: boolean) {
+  check(await db().rpc('tick_homework', { p_booking: bookingId, p_item: item, p_done: done }));
 }
 
 /** Activities logged between classes, newest first (Log at home). */
