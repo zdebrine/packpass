@@ -6,7 +6,7 @@ import { errorCopy } from '@/api/errors';
 import { catalog } from '@/data/catalog';
 import { payoff } from '@/data/payoffs';
 import { FALLBACK_TRAITS, loadTraits, pathsFor, traitLabel } from '@/data/traits';
-import { bookError, nextSession } from '@/lib/booking';
+import { bookError, cancelRefund, nextSession } from '@/lib/booking';
 import { setLiveClock } from '@/lib/clock';
 import { liveHerding, liveSocial } from '@/lib/clearances';
 import { skillTiles, todaysPractice } from '@/lib/focus';
@@ -95,7 +95,13 @@ const S = () => useApp.getState();
   const partnerWaiver = ruleContextFor(S(), S().dogs[0].id).waiverFor!;
   ok(catalog.classes['agility-drop-in']?.waiverRequired === false && partnerWaiver('ridgeline', true)?.partnerId === 'ridgeline' && partnerWaiver('ridgeline', false) === null,
      'a class without the partner\'s waiver skips it, and the partner\'s other classes still ask');
-  psql(`delete from waivers where partner_id = 'ridgeline'; update class_types set waiver_required = true where id = 'agility-drop-in'`);
+  psql(`delete from waivers where partner_id = 'ridgeline'; update class_types set waiver_required = true, cancel_hours = 48, min_dogs = 3 where id = 'agility-drop-in'`);
+  await S().refresh();
+  const agilityCls = catalog.classes['agility-drop-in'];
+  ok(agilityCls?.cancelHours === 48 && agilityCls.minDogs === 3 && agilityCls.minCutoffHours === 12, 'a class brings its free cancel window and minimum');
+  ok(cancelRefund(new Date(Date.now() + 30 * 3_600_000), 2, agilityCls!.cancelHours) === 0 && cancelRefund(new Date(Date.now() + 30 * 3_600_000), 2) === 2,
+     'and cancelling inside its own window keeps the credits used');
+  psql(`update class_types set cancel_hours = 12, min_dogs = null where id = 'agility-drop-in'`);
   await S().refresh();
   ok(S().activePaths.includes('calm-around-dogs') && S().activePaths.includes('loose-leash-walking'), 'traits start both training paths');
   ok(psql(`select energy || '|' || array_to_string(traits, ',') from dogs where id = '${S().dogs[0].id}'`) === 'working|pulls,nervous_dogs',

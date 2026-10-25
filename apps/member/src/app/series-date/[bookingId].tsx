@@ -10,7 +10,7 @@ import { useWide } from '@/ds/responsive';
 import { ModalSheet } from '@/ds/sheet';
 import { Text } from '@/ds/Text';
 import { Notice } from '@/features/ready/parts';
-import { cancelRefund, credits as creditsLabel, view } from '@/lib/booking';
+import { cancelHoursOf, cancelRefund, credits as creditsLabel, freeCancelUntil, view } from '@/lib/booking';
 import { dayTimeInline, monthDay, time, weekday } from '@/lib/dates';
 import { useApp } from '@/store/app';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -33,8 +33,8 @@ export default function SeriesDate() {
 
   const at = v.session.startsAt;
   const day = weekday(at);
-  const refund = cancelRefund(at, booking.credits);
-  const deadline = new Date(at.getTime() - 12 * 3_600_000);
+  const refund = cancelRefund(at, booking.credits, cancelHoursOf(v.cls));
+  const deadline = freeCancelUntil(v);
   const run = async (which: 'one' | 'all') => {
     setBusy(which);
     setError(null);
@@ -55,7 +55,7 @@ export default function SeriesDate() {
       <View style={{ marginTop: 20, gap: 12 }}>
         <Notice icon="repeat" title="Part of a weekly series." body={`Cancel this ${day} only. The series keeps going.`} />
         <View style={{ borderRadius: 12, backgroundColor: c.surfaceRaised, paddingHorizontal: 18 }}>
-          {[['Time', time(at)], ['Credits back', refund ? String(refund) : `None, inside 12 hours`], ['Free cancel until', dayTimeInline(deadline)]].map(([k, val], i) => (
+          {[['Time', time(at)], ['Credits back', refund ? String(refund) : `None, inside ${cancelHoursOf(v.cls)} hours`], ['Free cancel until', dayTimeInline(deadline)]].map(([k, val], i) => (
             <View key={k} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 14, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
               <Text variant="label" muted>{k}</Text>
               <Text variant="label" weight="600">{val}</Text>

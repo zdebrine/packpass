@@ -16,7 +16,7 @@ import { isoDay, RepeatToggle, repeatCaption, SeriesBooked, untilDate, type Unti
 import { WaitlistActions } from '@/features/book/Waitlist';
 import { Photo, PhotoFill, Scrim } from '@/ds/Surface';
 import { Text } from '@/ds/Text';
-import { credits as creditsLabel, eligibility, sameDaySessions, view } from '@/lib/booking';
+import { cancelHoursOf, credits as creditsLabel, eligibility, sameDaySessions, view } from '@/lib/booking';
 import { addToCalendar } from '@/lib/calendar';
 import { cancelCopy, dayTimeInline, monthDay, relativeDay, time, weekday } from '@/lib/dates';
 import { pay, settle } from '@/lib/checkout';
@@ -139,7 +139,7 @@ export default function BookingSheet() {
         {repeat ? (
           <SeriesBooked v={v} series={allSeries.find((x) => x.dogId === dogId && x.dates.some((d) => d.sessionId === session.id))} dogName={dogName} />
         ) : (
-          <Text variant="caption" muted style={{ marginTop: 14, marginHorizontal: 4 }}>{`${partner.name} · ${partner.address}. ${cancelCopy(session.startsAt)}.${cls.grants ? ` If ${dogName} is cleared, PackPass shows the classes it opens.` : ''}`}</Text>
+          <Text variant="caption" muted style={{ marginTop: 14, marginHorizontal: 4 }}>{`${partner.name} · ${partner.address}. ${cancelCopy(session.startsAt, cancelHoursOf(cls))}.${cls.grants ? ` If ${dogName} is cleared, PackPass shows the classes it opens.` : ''}`}</Text>
         )}
         <View style={{ flexDirection: 'row', gap: 8, marginTop: wide ? 18 : 16 }}>
           {repeat
@@ -229,7 +229,7 @@ export default function BookingSheet() {
           ) : (
             <Button block disabled={busy} onPress={confirm}>{busy ? 'Booking…' : repeat ? `Book every ${weekday(session.startsAt)}` : 'Confirm booking'}</Button>
           )}
-          {(wide || waiver || repeat) && el.ok && !already && session.spotsLeft > 0 && !short ? <Text variant="caption" muted center style={{ marginTop: 2 }}>{repeat ? repeatCaption(v) : cancelCopy(session.startsAt)}</Text> : null}
+          {(wide || waiver || repeat) && el.ok && !already && session.spotsLeft > 0 && !short ? <Text variant="caption" muted center style={{ marginTop: 2 }}>{repeat ? repeatCaption(v) : cancelCopy(session.startsAt, cancelHoursOf(cls))}</Text> : null}
         </View>
       </>
     )

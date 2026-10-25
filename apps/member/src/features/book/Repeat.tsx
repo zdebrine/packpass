@@ -6,7 +6,7 @@ import { Chip } from '@/ds/controls';
 import { Row, Toggle } from '@/ds/layout';
 import { Icon } from '@/ds/Icon';
 import { Text } from '@/ds/Text';
-import { credits as creditsLabel, type SessionView } from '@/lib/booking';
+import { cancelHoursOf, credits as creditsLabel, type SessionView } from '@/lib/booking';
 import { dayTimeInline, monthDay, time, weekday } from '@/lib/dates';
 import { everyLabel } from '@/lib/series';
 import type { Series } from '@/data/types';
@@ -49,7 +49,7 @@ export function RepeatToggle({ v, on, setOn, until, setUntil }: { v: SessionView
 
 /** The sheet's caption under the button while Repeat weekly is on. */
 export const repeatCaption = (v: SessionView) =>
-  `Each ${weekday(v.session.startsAt)} has its own free cancel window, until 12 hours before`;
+  `Each ${weekday(v.session.startsAt)} has its own free cancel window, until ${cancelHoursOf(v.cls)} hours before`;
 
 /** booked-repeat: the dates the series booked this credit month, and what it means for each. */
 export function SeriesBooked({ v, series, dogName }: { v: SessionView; series?: Series; dogName: string }) {

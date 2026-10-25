@@ -39,13 +39,16 @@ export const dayTime = (d: Date) => `${relativeDay(d)} ${time(d)}`;
 /** Same, for use mid-sentence: "until tomorrow 7:30 pm". */
 export const dayTimeInline = (d: Date) => dayTime(d).replace(/^(Today|Tomorrow)/, (m) => m.toLowerCase());
 
+/** Free cancellation ends this many hours before the start unless the class sets its own (ClassType.cancelHours). */
+export const FREE_CANCEL_HOURS = 12;
+
 /**
- * Cancellation copy for a session, using the 12-hour free-cancel rule.
+ * Cancellation copy for a session, using the class's free-cancel window.
  * "Free cancellation until Wednesday 7:30 pm"
  */
-export function cancelCopy(startsAt: Date, now = clock()) {
-  const deadline = new Date(startsAt.getTime() - 12 * 3_600_000);
-  if (deadline <= now) return 'Inside 12 hours, so cancelling now uses the credits';
+export function cancelCopy(startsAt: Date, hours = FREE_CANCEL_HOURS, now = clock()) {
+  const deadline = new Date(startsAt.getTime() - hours * 3_600_000);
+  if (deadline <= now) return `Inside ${hours} hours, so cancelling now uses the credits`;
   return `Free cancellation until ${dayTimeInline(deadline)}`;
 }
 

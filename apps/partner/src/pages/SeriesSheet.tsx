@@ -17,7 +17,9 @@ export const rulesLine = (cls: ClassType, capacity: number, packpass: number) =>
   `${packpass} of ${capacity} spots on PackPass`,
   cls.waiver_required ? 'your waiver' : 'no waiver',
   cls.waitlist_auto ? 'waitlist auto-books' : 'waitlist offers the spot',
-].join(', ');
+  cls.min_dogs != null ? `runs with ${cls.min_dogs}+ dogs (checked ${cls.min_cutoff_hours} hours before)` : null,
+  `free cancel until ${cls.cancel_hours} hours before`,
+].filter(Boolean).join(', ');
 
 /**
  * Schedule series (11a): a template on some weekdays at one time, from a start date for N weeks or to an end date.

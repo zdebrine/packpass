@@ -121,7 +121,7 @@ function SessionRoster({ s, meta, onQr }: { s: SessionView; meta: string; onQr: 
               </div>
             ))}
           </div>
-          <span className="pp-caption pp-muted">{s.auto_promote ? 'When a spot opens more than 12 hours ahead, the first dog in line is booked automatically. Inside 12 hours, the owner gets 2 hours to accept, then it moves to the next dog. Raise PackPass spots on Schedule to open one.' : 'Auto-promote is off: when a spot opens, everyone waiting is told and the first to book gets it.'}</span>
+          <span className="pp-caption pp-muted">{s.auto_promote ? `When a spot opens more than ${s.cls.cancel_hours} hours ahead, the first dog in line is booked automatically. Inside ${s.cls.cancel_hours} hours, the owner gets 2 hours to accept, then it moves to the next dog. Raise PackPass spots on Schedule to open one.` : 'Auto-promote is off: when a spot opens, everyone waiting is told and the first to book gets it.'}</span>
         </section>
       ) : null}
     </>
