@@ -12,7 +12,8 @@ import { INITIALLY_READ, notifications as sampleNotifications, PATH_CLASSES, typ
 import { SAMPLE_HOME_LOG } from '@/data/homeLog';
 import { planOf } from '@/data/plans';
 import { activityById, defaultFocus } from '@/data/practice';
-import type { Booking, ClearanceRecord, Dog, FocusSkill, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, PracticeRemind, Series, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import type { Booking, ClearanceRecord, Dog, FocusSkill, HomeActivity, HomeActivityInput, LogEntry, Membership, PathProgress, PhotoSource, PickedDoc, PracticeRemind, ReportCard, Series, VaccineRecord, WaitEntry, Waiver } from '@/data/types';
+import { sampleReportCards } from '@/data/reportCards';
 import { now } from '@/lib/clock';
 import { applyDistances, areaNamed, DEFAULT_AREA, type Origin } from '@/lib/location';
 import { bookError, cancelHoursOf, cancelRefund, view, type BookError, type RuleContext } from '@/lib/booking';
@@ -198,6 +199,10 @@ interface AppState extends Demo {
   missed: LogEntry[];
   /** Walks, park trips and practice logged between classes, every dog, newest first (Log at home). */
   homeLog: HomeActivity[];
+  /** Trainers' report cards after class (22a), every dog, newest first. */
+  reportCards: ReportCard[];
+  /** Ticks a homework item off (logged to the dog's Log) or unticks it. */
+  tickHomework: (bookingId: string, item: number, done: boolean) => Promise<void>;
   /** What each dog is working on, by dog id. Live: dog_focus_skills. Sample: only dogs the owner edited (others follow traits and paths). */
   focus: Record<string, FocusSkill[]>;
   setFocusSkills: (dogId: string, skills: string[]) => Promise<void>;
@@ -320,6 +325,7 @@ const fresh = {
   log: null as LogEntry[] | null,
   missed: [] as LogEntry[],
   homeLog: (isLive ? [] : SAMPLE_HOME_LOG) as HomeActivity[],
+  reportCards: (isLive ? [] : sampleReportCards(now())) as ReportCard[],
   focus: {} as Record<string, FocusSkill[]>,
   seenMissed: [] as string[],
   clearanceRecords: null as ClearanceRecord[] | null,
@@ -335,7 +341,7 @@ const fresh = {
 // Live mode starts empty and fills from Supabase on sign-in.
 if (isLive) {
   Object.assign(fresh, {
-    dogs: [], dogRecords: {}, credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], waivers: [], waiversSigned: {}, remoteNotifications: [], remoteSeries: [], seriesRules: [], log: [], missed: [], homeLog: [], focus: {}, clearanceRecords: [], paths: [], account: { name: '', email: '' },
+    dogs: [], dogRecords: {}, credits: 0, bookings: [], readNotifications: [], activePaths: [], vaccines: [], waivers: [], waiversSigned: {}, remoteNotifications: [], remoteSeries: [], seriesRules: [], log: [], missed: [], homeLog: [], reportCards: [], focus: {}, clearanceRecords: [], paths: [], account: { name: '', email: '' },
   });
 }
 
@@ -639,7 +645,7 @@ export const useApp = create<AppState>()(
         },
         signOut: async () => {
           if (isLive) await live.signOut(get().pushToken);
-          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [], missed: [], homeLog: [], focus: {}, clearanceRecords: [], paths: [] } : {}) });
+          set({ signedIn: false, onboarded: false, pushToken: null, ...(isLive ? { log: [], missed: [], homeLog: [], reportCards: [], focus: {}, clearanceRecords: [], paths: [] } : {}) });
         },
         setDogPhoto: async (dogId, dataUri) => {
           if (isLive) {
@@ -677,8 +683,9 @@ export const useApp = create<AppState>()(
             return;
           }
           await live.loadCatalog();
-          const [m, log, homeLog, focus] = await Promise.all([
+          const [m, log, homeLog, focus, reportCards] = await Promise.all([
             live.loadMember(), live.loadLog().catch(() => null), live.loadHomeLog().catch(() => null), live.loadFocus().catch(() => null),
+            live.loadReportCards().catch(() => null),
           ]);
           if (!m) {
             set({ ready: true, signedIn: false, onboarded: false });
@@ -704,6 +711,7 @@ export const useApp = create<AppState>()(
             log: log ? log.filter((e) => !e.missed) : get().log,
             missed: log ? log.filter((e) => e.missed) : get().missed,
             homeLog: homeLog ?? get().homeLog,
+            reportCards: reportCards ?? get().reportCards,
             focus: focus ?? get().focus,
             account: { name: m.name, email: m.email },
             emailReminders: m.emailReminders,
@@ -818,6 +826,22 @@ export const useApp = create<AppState>()(
               skills: input.skills, rating: input.rating, note: input.note.trim() || null,
             } : h)).sort((a, b) => +b.doneAt - +a.doneAt),
           }));
+        },
+        tickHomework: async (bookingId, item, done) => {
+          const mark = (on: boolean) => set((s) => ({
+            reportCards: s.reportCards.map((r) => (r.bookingId === bookingId
+              ? { ...r, done: on ? [...new Set([...r.done, item])].sort((a, b) => a - b) : r.done.filter((x) => x !== item) } : r)),
+          }));
+          mark(done);
+          if (!isLive) return;
+          try {
+            await live.tickHomework(bookingId, item, done);
+          } catch (e) {
+            mark(!done);
+            throw e;
+          }
+          const [homeLog, reportCards] = await Promise.all([live.loadHomeLog(), live.loadReportCards()]);
+          set({ homeLog, reportCards });
         },
         deleteHome: async (id) => {
           if (isLive) await live.deleteHome(id);

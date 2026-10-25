@@ -41,7 +41,15 @@ export interface RosterDog {
   birth_year: number | null; birth_month: number | null; energy: string | null; sociability: string | null; traits: string[]; photo_path: string | null;
   owner_name: string; vaccine_line: string; record_path: string | null; record_verified: boolean; clearances: string[]; last_note: string | null;
 }
-export interface NoteRow { booking_id: string; session_id: string; starts_at: string; class_title: string; dog_name: string; breed: string | null; owner_name: string; photo_path: string | null; note: string | null; skills: string[]; sent_at: string | null }
+/** One dog on a session that has run, with its report card once sent (partner_report_cards). */
+export interface ReportRow {
+  booking_id: string; session_id: string; starts_at: string; class_id: string; class_title: string; discipline: string;
+  status: 'booked' | 'checked_in' | 'no_show'; dog_id: string; dog_name: string; breed: string | null; owner_name: string; photo_path: string | null;
+  note: string | null; skills: string[]; focus: number | null; sociability: number | null; skill: number | null; homework: Homework[]; sent_at: string | null;
+}
+/** A homework item: a drill from the practice catalog, or the trainer's own words (drill null). */
+export interface Homework { text: string; drill: string | null }
+export interface HomeworkOption { drill_id: string; title: string; minutes: number; skill: string }
 export interface AssessmentRow {
   booking_id: string; starts_at: string; class_title: string; grants: string; duration_min: number; dog_id: string; dog_name: string; breed: string | null;
   owner_name: string; photo_path: string | null; traits: string[]; clearances: string[]; outcome: 'cleared' | 'not_yet' | null; strengths: string[]; working_on: string[]; quote: string | null;
@@ -232,6 +240,8 @@ export const loadRoster = async (sessionId: string) => check(await db.rpc('partn
 export const loadWaitlist = async (sessionId: string) =>
   check(await db.rpc('partner_waitlist', { p_session: sessionId })) as { dog_name: string; breed: string | null; joined_at: string; place: number; offer_until: string | null }[];
 export const checkIn = async (bookingId: string, undo = false) => { check(await db.rpc('partner_check_in', { p_booking: bookingId, p_undo: undo })); };
+/** Marks a dog who didn't come, once the session has started (or undoes it). */
+export const markNoShow = async (bookingId: string, undo = false) => { check(await db.rpc('partner_mark_no_show', { p_booking: bookingId, p_undo: undo })); };
 export const updateSession = async (id: string, capacity: number, packpass: number, waitlistOpen: boolean, autoPromote: boolean) => {
   check(await db.rpc('partner_update_session', { p_session: id, p_capacity: capacity, p_packpass: packpass, p_waitlist_open: waitlistOpen, p_auto_promote: autoPromote }));
 };
@@ -249,9 +259,13 @@ export const blockDates = async (from: string, to: string, reason: string, messa
   (check(await db.rpc('partner_block_dates', { p_from: from, p_to: to, p_reason: reason, p_message: message })) as { sessions: number; dogs: number }[])[0];
 
 // ---- Notes, assessments, vaccines ----
-export const loadNotes = async (days = 7) => check(await db.rpc('partner_notes', { p_days: days })) as NoteRow[];
-export const sendNote = async (bookingId: string, note: string, skills: string[]) => {
-  check(await db.rpc('partner_send_note', { p_booking: bookingId, p_note: note, p_skills: skills }));
+export const loadReportCards = async (days = 7) => check(await db.rpc('partner_report_cards', { p_days: days })) as ReportRow[];
+export const loadHomeworkOptions = async (sessionId: string) => check(await db.rpc('partner_homework_options', { p_session: sessionId })) as HomeworkOption[];
+/** Sends (or updates) one dog's report card: ratings 1 to 3, an optional note, up to three homework items. */
+export const sendReportCard = async (bookingId: string, r: { focus: number; sociability: number; skill: number; note: string; homework: Homework[]; skills: string[] }) => {
+  check(await db.rpc('partner_send_report_card', {
+    p_booking: bookingId, p_focus: r.focus, p_sociability: r.sociability, p_skill: r.skill, p_note: r.note, p_homework: r.homework, p_skills: r.skills,
+  }));
 };
 export const loadAssessments = async () => check(await db.rpc('partner_assessments')) as AssessmentRow[];
 export const recordResult = async (bookingId: string, outcome: 'cleared' | 'not_yet', strengths: string[], working: string[], quote: string, goal: boolean) => {
@@ -487,6 +501,11 @@ const COPY: Record<string, string> = {
   bad_min: 'The minimum can be from 1 up to the group size.',
   bad_hours: 'Pick between 1 and 72 hours.',
   not_low_enrollment: 'Only a session cancelled for low enrollment can be brought back.',
+  bad_rating: 'Rate each one from 1 to 3.',
+  bad_homework: 'Homework is up to three short items.',
+  bad_note: 'Keep the note to 280 characters.',
+  not_booked: 'That dog isn\'t booked on this session any more. Refresh and try again.',
+  not_no_show: 'That dog isn\'t marked as a no-show.',
 };
 export const errorCopy = (e: unknown) => {
   const m = e instanceof Error ? e.message : String(e);

@@ -2,7 +2,7 @@ import { CalendarDays, NotebookPen, Plus, QrCode, ShieldCheck, Syringe, Users, t
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { loadAssessments, loadEarnings, loadNotes, loadRoster, loadSessions } from '@/lib/api';
+import { loadAssessments, loadEarnings, loadReportCards, loadRoster, loadSessions } from '@/lib/api';
 import { useData, usePartner } from '@/lib/partner';
 import { credits, fillLabel, statusOf, withClasses, type SessionView } from '@/lib/sessions';
 import { addDays, austin, mondayOf, money, monthDay, monthName, time, weekday, ymd } from '@/lib/time';
@@ -18,7 +18,7 @@ export function Overview() {
   const mon = mondayOf(now);
   const { data } = useData(async () => {
     const [week, notes, assess, earnings] = await Promise.all([
-      loadSessions(austin(mon, 0), austin(addDays(mon, 7), 0)), loadNotes(2), loadAssessments(), owner ? loadEarnings(2) : Promise.resolve([]),
+      loadSessions(austin(mon, 0), austin(addDays(mon, 7), 0)), loadReportCards(2), loadAssessments(), owner ? loadEarnings(2) : Promise.resolve([]),
     ]);
     const todays = withClasses(week, classById).filter((s) => ymd(s.start) === today && !s.cancelled_at);
     // Vaccine problems among dogs booked today.
@@ -37,10 +37,10 @@ export function Overview() {
   const thisMonth = earnings[0];
   const ratings = trainers.map((t) => Number(t.rating)).filter(Boolean);
 
-  const notesDue = notes.filter((n) => !n.note);
+  const notesDue = notes.filter((n) => !n.sent_at && n.status !== 'no_show');
   const assessDue = assess.filter((a) => !a.outcome && new Date(a.starts_at) < now);
   const attention: { icon: LucideIcon; warn?: boolean; text: string; action: string; go: () => void }[] = [];
-  if (notesDue.length) attention.push({ icon: NotebookPen, text: `${notesDue.length} session note${notesDue.length > 1 ? 's' : ''} due${new Set(notesDue.map((n) => n.session_id)).size === 1 ? ` from ${notesDue[0].class_title}` : ` from ${new Set(notesDue.map((n) => n.session_id)).size} sessions`}.`, action: 'Write notes', go: () => nav('/notes') });
+  if (notesDue.length) attention.push({ icon: NotebookPen, text: `${notesDue.length} report card${notesDue.length > 1 ? 's' : ''} due${new Set(notesDue.map((n) => n.session_id)).size === 1 ? ` from ${notesDue[0].class_title}` : ` from ${new Set(notesDue.map((n) => n.session_id)).size} sessions`}.`, action: 'Write report cards', go: () => nav(new Set(notesDue.map((n) => n.session_id)).size === 1 ? `/notes?s=${notesDue[0].session_id}` : '/notes') });
   if (assessDue.length) attention.push({ icon: ShieldCheck, text: `${assessDue.length} assessment result${assessDue.length > 1 ? 's' : ''} to record. ${listNames(assessDue.map((a) => a.dog_name))}${assessDue.length > 1 ? '’s owners are' : '’s owner is'} waiting.`, action: 'Record results', go: () => nav('/assessments') });
   for (const s of live.filter((x) => x.spots_left <= 0 && !x.waitlist_open && x.start > now).slice(0, 2))
     attention.push({ icon: Users, text: `${s.cls.title} on ${weekday(s.start)} is full. The waitlist is closed.`, action: 'Adjust capacity', go: () => nav(`/schedule?s=${s.id}`) });

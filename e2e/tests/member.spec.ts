@@ -354,3 +354,40 @@ test('a member repeats a class weekly, sees the series on the month and cancels 
   await expect.poll(() => sql(`select count(*) from bookings where member_id = '${id}' and series_id is not null and status = 'cancelled'`)).toBe('1');
   expect(sql(`select count(*) from booking_series where member_id = '${id}' and ended_at is null`)).toBe('1');
 });
+
+test('after class, the trainer\'s report card shows with its homework, ticked off on Today and logged', async ({ page }) => {
+  const ui = visible(page);
+  const email = `report-${Date.now()}@example.com`;
+  const id = await account(email, 'goodpass123');
+  sql(`select public.seed_demo_member('${id}')`);
+  const booking = sql(`select b.id from bookings b join dogs d on d.id = b.dog_id where b.member_id = '${id}' and d.name = 'Juno' and b.status = 'booked' order by b.created_at limit 1`);
+  sql(`update sessions set starts_at = now() - interval '3 hours' where id = (select session_id from bookings where id = '${booking}')`);
+  sql(`update bookings set status = 'checked_in' where id = '${booking}'`);
+  sql(`insert into session_notes (booking_id, trainer_id, note) values ('${booking}', 'dev', 'Great focus through the tunnel.')`);
+  sql(`insert into report_cards (booking_id, trainer_id, focus, sociability, skill, homework)
+       values ('${booking}', 'dev', 3, 1, 2, '[{"text":"Mat at home","drill":"mat-at-home"},{"text":"Hand target before meals","drill":null}]')`);
+
+  await page.goto('/');
+  await page.getByText('I already have an account').click();
+  await ui.boxes().nth(0).fill(email);
+  await ui.boxes().nth(1).fill('goodpass123');
+  await ui.button('Sign in').click();
+  await expect(ui.text(/Juno/)).toBeVisible();
+
+  // Today: the homework from Dev until the next class.
+  await expect(ui.text('Homework from Dev')).toBeVisible();
+  await expect(ui.text('0 of 2 done')).toBeVisible();
+  await page.getByRole('checkbox', { name: 'Hand target before meals' }).filter({ visible: true }).click();
+  await expect(ui.text('1 of 2 done')).toBeVisible();
+  await expect.poll(() => sql(`select count(*) from home_activities a join homework_ticks t on t.activity_id = a.id where t.booking_id = '${booking}' and a.kind = 'train'`)).toBe('1');
+
+  // After class: the note, the ratings and the same checklist.
+  await page.goto(`/after-class/${booking}`);
+  await expect(ui.text('Great focus through the tunnel.')).toBeVisible();
+  await expect(page.getByLabel('Focus: 3 of 3, Strong').filter({ visible: true })).toBeVisible();
+  await expect(page.getByLabel('Sociability: 1 of 3, Working on it').filter({ visible: true })).toBeVisible();
+  await page.getByRole('checkbox', { name: 'Mat at home' }).filter({ visible: true }).click();
+  await expect.poll(() => sql(`select drill_id from home_activities a join homework_ticks t on t.activity_id = a.id where t.booking_id = '${booking}' and t.item = 0`)).toBe('mat-at-home');
+  await page.getByRole('checkbox', { name: 'Mat at home' }).filter({ visible: true }).click();
+  await expect.poll(() => sql(`select count(*) from homework_ticks where booking_id = '${booking}'`)).toBe('1');
+});

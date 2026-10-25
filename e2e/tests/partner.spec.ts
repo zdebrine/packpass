@@ -45,8 +45,9 @@ test('a partner checks a dog in from the roster and undoes it', async ({ page })
   await page.getByRole('button', { name: 'Check in' }).click();
   await expect(page.getByText('1 of 1 checked in')).toBeVisible();
   expect(sql(`select status from bookings where id = '${booking}'`)).toBe('checked_in');
-  // Tapping Checked in again undoes it, for a dog checked in by mistake.
-  await page.getByRole('button', { name: 'Checked in' }).click();
+  await expect(page.getByText(/^Checked in \d/)).toBeVisible();
+  // Undo, for a dog checked in by mistake.
+  await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.getByText('0 of 1 checked in')).toBeVisible();
   expect(sql(`select status from bookings where id = '${booking}'`)).toBe('booked');
 });
@@ -243,4 +244,75 @@ test('an owner sets a template\'s minimum, cutoff and free cancel window', async
   await expect(page.getByText('Saved. Members see the changes on Book now.')).toBeVisible();
   expect(sql(`select min_dogs || '|' || min_cutoff_hours || '|' || cancel_hours || '|' || credit_review from class_types where id = '${id}'`)).toBe('4|24|48|false');
   sql(`update class_types set min_dogs = null, min_cutoff_hours = 12, cancel_hours = 12 where id = '${id}'`);
+});
+
+/** Two dogs on an Eastside group class (no one else booked) that started half an hour ago. Returns the session and both bookings. */
+async function startedClass() {
+  const member = await account(`ran-${Date.now()}@example.com`, 'goodpass123');
+  const session = sql(`select s.id from sessions s join class_types c on c.id = s.class_id
+    where c.partner_id = 'eastside' and c.session_type = 'class' and s.starts_at > now() and s.cancelled_at is null
+      and not exists (select 1 from bookings b where b.session_id = s.id) order by s.starts_at limit 1`);
+  sql(`update sessions set starts_at = now() - interval '30 minutes' where id = '${session}'`);
+  const book = (name: string) => {
+    const dog = sql(`insert into dogs (owner_id, name, breed, energy, sociability) values ('${member}', '${name}', 'Beagle', 'medium', 'loves_dogs') returning id`);
+    return sql(`insert into bookings (session_id, dog_id, member_id, credits_charged) values ('${session}', '${dog}', '${member}', 1) returning id`);
+  };
+  return { session, a: book('Biscuit'), b: book('Maple') };
+}
+
+test('once a class has started, the roster marks a no-show, undoes it and checks a dog in late', async ({ page }) => {
+  const { session, a, b } = await startedClass();
+  await signIn(page);
+  await page.goto(`/roster?s=${session}`);
+  await expect(page.getByText(/^Started \d+ min ago\. Mark dogs who didn't come as no-shows\./)).toBeVisible();
+  const biscuit = page.locator('.tbl-row').filter({ hasText: 'Biscuit' });
+  await biscuit.getByRole('button', { name: 'Mark no-show' }).click();
+  await expect(biscuit.getByText('No-show', { exact: true })).toBeVisible();
+  expect(sql(`select status from bookings where id = '${a}'`)).toBe('no_show');
+  expect(sql(`select count(*) from notifications where kind = 'class_missed' and href like '/missed/${a}%'`)).toBe('1');
+  await expect(page.getByText(/· 1 no-show$/)).toBeVisible();
+  await biscuit.getByRole('button', { name: 'Undo' }).click();
+  await expect(biscuit.getByText('Not checked in')).toBeVisible();
+  expect(sql(`select count(*) from notifications where kind = 'class_missed' and href like '/missed/${a}%'`)).toBe('0');
+  const maple = page.locator('.tbl-row').filter({ hasText: 'Maple' });
+  await maple.getByRole('button', { name: 'Check in late' }).click();
+  await expect(maple.getByText(/^Checked in \d/)).toBeVisible();
+  expect(sql(`select status from bookings where id = '${b}'`)).toBe('checked_in');
+  await expect(page.getByRole('button', { name: 'Start report cards' })).toBeVisible();
+});
+
+test('a trainer sends one report card with homework, then the rest of the class at once', async ({ page }) => {
+  const { session, a, b } = await startedClass();
+  await signIn(page);
+  await page.goto(`/roster?s=${session}`);
+  await page.getByRole('button', { name: 'Start report cards' }).click();
+  await expect(page.getByText('Owners see this as the trainer note after class. 0 of 2 sent.')).toBeVisible();
+
+  // One dog: ratings, a note, a drill and the trainer's own homework line, previewed as the owner sees it.
+  await page.locator('[role=button]').filter({ hasText: 'Biscuit' }).click();
+  await page.getByRole('group', { name: 'Focus' }).getByRole('button', { name: '3' }).click();
+  await page.getByRole('group', { name: 'Sociability' }).getByRole('button', { name: '1' }).click();
+  await page.getByLabel('Note', { exact: true }).fill('Great focus through the tunnel.');
+  await expect(page.getByText('Great focus through the tunnel.', { exact: true }).last()).toBeVisible();
+  const drill = page.locator('.pp-chip:has(svg)').first();
+  const drillName = (await drill.textContent())!.trim();
+  await drill.click();
+  await page.getByLabel('Or type your own').fill('Hand target before meals');
+  await expect(page.getByText('Homework · 2 of 3')).toBeVisible();
+  await page.getByRole('button', { name: /^Send to / }).click();
+  await expect(page.getByText('1 of 2 sent.', { exact: false })).toBeVisible();
+  expect(sql(`select focus || ',' || sociability || ',' || skill from report_cards where booking_id = '${a}'`)).toBe('3,1,2');
+  expect(sql(`select string_agg(h->>'text', '|') from report_cards, jsonb_array_elements(homework) h where booking_id = '${a}'`)).toBe(`${drillName}|Hand target before meals`);
+  expect(sql(`select note from session_notes where booking_id = '${a}'`)).toBe('Great focus through the tunnel.');
+  expect(sql(`select title from notifications where kind = 'session_note' and href like '/after-class/${a}%'`)).toMatch(/ left a note for Biscuit\.$/);
+
+  // Whole class: the same homework for every dog not sent yet; a dog without a note gets ratings and homework only.
+  await page.getByRole('group', { name: 'Mode' }).getByRole('button', { name: 'Whole class' }).click();
+  await page.locator('.pp-chip:has(svg)').nth(1).click();
+  await expect(page.getByText('1 without a note. They\'ll get ratings and homework only.')).toBeVisible();
+  await page.getByRole('button', { name: 'Send 1 report card' }).click();
+  await expect(page.getByRole('button', { name: 'All sent' })).toBeVisible();
+  expect(sql(`select jsonb_array_length(homework) from report_cards where booking_id = '${b}'`)).toBe('1');
+  expect(sql(`select status from bookings where id = '${b}'`)).toBe('checked_in');
+  expect(sql(`select count(*) from session_notes where booking_id = '${b}'`)).toBe('0');
 });

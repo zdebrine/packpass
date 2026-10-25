@@ -18,12 +18,13 @@ export function useLogView(dog: Dog) {
   const entries = useApp((s) => s.log);
   const missed = useApp((s) => s.missed);
   const homeLog = useApp((s) => s.homeLog);
+  const cards = useApp((s) => s.reportCards);
   const goal = dog.practiceDays ?? 3;
   // Sample mode's log is the designs' Juno; another sample dog's is empty until it books.
   return useMemo(
-    () => (isLive && entries ? liveLog(entries, missed, homeLog, dog.id, dog.name, social, goal)
+    () => (isLive && entries ? liveLog(entries, missed, homeLog, dog.id, dog.name, social, goal, undefined, cards.map((r) => r.bookingId))
       : dog.id === 'juno' ? sampleLog(dog.name, social, homeLog, dog.id, goal) : liveLog([], [], homeLog, dog.id, dog.name, social, goal)),
-    [entries, missed, homeLog, dog.id, dog.name, social, goal],
+    [entries, missed, homeLog, cards, dog.id, dog.name, social, goal],
   );
 }
 

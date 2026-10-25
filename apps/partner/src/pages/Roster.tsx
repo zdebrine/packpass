@@ -1,8 +1,8 @@
-import { Check, Maximize2, Printer, QrCode, ShieldAlert, ShieldCheck, Syringe } from 'lucide-react';
+import { Check, Maximize2, NotebookPen, Printer, ScanLine, ShieldAlert, ShieldCheck, Syringe, Zap } from 'lucide-react';
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { checkIn, checkVaccines, errorCopy, loadRoster, loadSessions, loadWaitlist, type RosterDog } from '@/lib/api';
+import { checkIn, checkVaccines, errorCopy, loadRoster, loadSessions, loadWaitlist, markNoShow, type RosterDog } from '@/lib/api';
 import { useData, usePartner } from '@/lib/partner';
 import { credits, withClasses, type SessionView } from '@/lib/sessions';
 import { db } from '@/lib/supabase';
@@ -18,7 +18,7 @@ import { clearanceFromLabel, clearanceName } from '@/lib/clearances';
 const ENERGY: Record<string, string> = { couch: 'Couch', medium: 'Medium', high: 'High', working: 'Working dog' };
 const SOCIAL: Record<string, string> = { loves_dogs: 'Loves dogs', selective: 'Selective', prefers_solo: 'Prefers solo' };
 
-/** 04 Roster: who's booked for a session, check-in by hand or by QR, vaccine status, waitlist. */
+/** 04 Roster (v3 Roster · check-in): who's booked, check-in by hand or by QR, no-shows once it has started, vaccines, waitlist. */
 export function Roster() {
   const { classById, gym, trainerName } = usePartner();
   const [params, setParams] = useSearchParams();
@@ -62,13 +62,16 @@ export function Roster() {
 }
 
 function SessionRoster({ s, meta, onQr }: { s: SessionView; meta: string; onQr: () => void }) {
+  const nav = useNavigate();
   const { data, reload } = useData(async () => ({ dogs: await loadRoster(s.id), waiting: await loadWaitlist(s.id) }), [s.id]);
   const photos = useSigned('dog-photos', data?.dogs.map((d) => d.photo_path) ?? []);
   const records = useSigned('vaccine-docs', data?.dogs.map((d) => d.record_path) ?? []);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [flagging, setFlagging] = useState<{ d: RosterDog; types: Kind[] } | null>(null);
-  const today = ymd(s.start) === ymd(new Date());
+  const now = new Date();
+  const started = s.start <= now;
+  const today = ymd(s.start) === ymd(now);
   const act = async (id: string, fn: () => Promise<void>) => {
     setBusy(id); setError(null);
     try { await fn(); reload(); } catch (e) { setError(errorCopy(e)); } finally { setBusy(null); }
@@ -76,38 +79,55 @@ function SessionRoster({ s, meta, onQr }: { s: SessionView; meta: string; onQr: 
   useTraits(); // re-renders the rows once the trait catalog loads
   const dogs = data?.dogs ?? [];
   const nIn = dogs.filter((d) => d.status === 'checked_in').length;
+  const nNo = dogs.filter((d) => d.status === 'no_show').length;
+  const mins = Math.round((s.start.getTime() - now.getTime()) / 60_000);
+  const status = !started
+    ? (mins <= 90 ? `Starts in ${mins} min` : `${nIn} of ${dogs.length} checked in`)
+    : `${nIn} of ${dogs.length} checked in${nNo ? ` · ${nNo} no-show` : ''}`;
+  const ago = Math.round((now.getTime() - s.start.getTime()) / 60_000);
 
   return (
     <>
       <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span className="pp-caption pp-muted">{`${today ? 'Today' : `${weekday(s.start)} ${monthDay(s.start)}`} · ${time(s.start)} · ${s.cls.duration_min} min`}</span>
+          <span className="pp-caption pp-muted">{`${today ? 'Today' : `${weekday(s.start).slice(0, 3)} ${monthDay(s.start)}`} · ${time(s.start)}`}</span>
           <h1 className="pp-page-title">{s.cls.title}</h1>
-          <span className="pp-caption pp-muted">{meta}</span>
+          <span className="pp-caption pp-muted">{`${meta} · ${s.cls.drop_off ? 'Drop-off' : 'Owners stay'} · ${dogs.length} booked of ${s.capacity}`}</span>
         </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span className="pp-label pp-num">{`${nIn} of ${dogs.length} checked in`}</span>
-          <Button variant="outline" icon={QrCode} onClick={onQr}>Show check-in QR</Button>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span className="pp-label pp-num">{status}</span>
+          <Button variant="outline" icon={ScanLine} onClick={onQr}>Scan code</Button>
+          {started && dogs.length ? <Button icon={NotebookPen} onClick={() => nav(`/notes?s=${s.id}`)}>Start report cards</Button> : null}
         </div>
       </header>
+      {started && dogs.some((d) => d.status === 'booked') ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 12, background: 'var(--surface-raised)' }}>
+          <span style={{ width: 8, height: 8, borderRadius: 9999, background: 'var(--signal)', flex: 'none' }} />
+          <span className="pp-label">{`Started ${ago < 90 ? `${ago} min ago` : `at ${time(s.start)}`}. Mark dogs who didn't come as no-shows. No-shows are still paid and show in Earnings.`}</span>
+        </div>
+      ) : null}
       <ErrorLine>{error}</ErrorLine>
       {!data ? <Loading /> : dogs.length ? (
         <div className="tbl">
-          <div className="tbl-head" style={{ gridTemplateColumns: ROSTER_COLS, minWidth: 930 }}>
-            <span /><span>Dog</span><span>Energy</span><span>With dogs</span><span>Clearances</span><span>Trainer note</span><span>Vaccines</span><span />
+          <div className="tbl-head" style={{ gridTemplateColumns: ROSTER_COLS, minWidth: TABLE_MIN }}>
+            <span /><span>Dog</span><span>Owner</span><span>Traits</span><span>Clearances</span><span>Vaccines</span><span>Check-in</span><span />
           </div>
-          {dogs.map((d) => <DogRow key={d.booking_id} d={d} photo={d.photo_path ? photos[d.photo_path] : undefined} record={d.record_path ? records[d.record_path] : undefined}
+          {dogs.map((d) => <DogRow key={d.booking_id} d={d} started={started} photo={d.photo_path ? photos[d.photo_path] : undefined} record={d.record_path ? records[d.record_path] : undefined}
             busy={busy === d.booking_id || busy === d.dog_id}
-            onToggle={() => act(d.booking_id, () => checkIn(d.booking_id, d.status === 'checked_in'))}
+            onCheckIn={(undo) => act(d.booking_id, () => checkIn(d.booking_id, undo))}
+            onNoShow={(undo) => act(d.booking_id, () => markNoShow(d.booking_id, undo))}
             onVerify={() => act(d.dog_id, () => checkVaccines(d.dog_id))}
             onReassess={(types) => setFlagging({ d, types })}
             onUndo={(type) => act(d.dog_id, () => undoReassessment(d.dog_id, type))} />)}
         </div>
       ) : <Empty>No PackPass dogs booked yet.</Empty>}
       {flagging ? <ReassessModal dogId={flagging.d.dog_id} dogName={flagging.d.dog_name} types={flagging.types} onClose={() => setFlagging(null)} onDone={reload} /> : null}
-      {data?.waiting.length ? (
+      {!started && data?.waiting.length ? (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 8 }}>
-          <h2 className="pp-title">{`Waitlist · ${data.waiting.length}`}</h2>
+          <Row gap={10} style={{ alignItems: 'center' }}>
+            <h2 className="pp-title">{`Waitlist · ${data.waiting.length}`}</h2>
+            <Badge icon={Zap}>{s.auto_promote ? 'Auto-book on' : 'Auto-book off'}</Badge>
+          </Row>
           <div className="tbl">
             {data.waiting.map((w) => (
               <div key={w.place} className="tbl-row" style={{ gridTemplateColumns: '36px minmax(0,1fr)', minHeight: 48 }}>
@@ -121,37 +141,40 @@ function SessionRoster({ s, meta, onQr }: { s: SessionView; meta: string; onQr: 
               </div>
             ))}
           </div>
-          <span className="pp-caption pp-muted">{s.auto_promote ? `When a spot opens more than ${s.cls.cancel_hours} hours ahead, the first dog in line is booked automatically. Inside ${s.cls.cancel_hours} hours, the owner gets 2 hours to accept, then it moves to the next dog. Raise PackPass spots on Schedule to open one.` : 'Auto-promote is off: when a spot opens, everyone waiting is told and the first to book gets it.'}</span>
+          <span className="pp-caption pp-muted">{s.auto_promote ? `If a spot opens, PackPass books the first dog and holds their credits. Inside your ${s.cls.cancel_hours}-hour window, the owner gets 2 hours to accept, then it moves to the next dog.` : 'Auto-book is off: when a spot opens, everyone waiting is told and the first to book gets it.'}</span>
         </section>
       ) : null}
     </>
   );
 }
 
-const ROSTER_COLS = '36px minmax(0,1.3fr) 88px 88px 150px minmax(0,1.4fr) 136px 108px';
+const ROSTER_COLS = '36px minmax(0,1.1fr) minmax(0,0.8fr) minmax(0,1.2fr) 130px 180px 140px 210px';
+const TABLE_MIN = 1060;
 
 type Kind = string;
 
-function DogRow({ d, photo, record, busy, onToggle, onVerify, onReassess, onUndo }: {
-  d: RosterDog; photo?: string; record?: string; busy: boolean; onToggle: () => void; onVerify: () => void;
-  onReassess: (types: Kind[]) => void; onUndo: (type: Kind) => void;
+function DogRow({ d, started, photo, record, busy, onCheckIn, onNoShow, onVerify, onReassess, onUndo }: {
+  d: RosterDog; started: boolean; photo?: string; record?: string; busy: boolean; onCheckIn: (undo: boolean) => void; onNoShow: (undo: boolean) => void;
+  onVerify: () => void; onReassess: (types: Kind[]) => void; onUndo: (type: Kind) => void;
 }) {
-  const on = d.status === 'checked_in';
   // "Herding" is current; "Herding · re-assess" was flagged and waits on a new assessment.
   const kind = (k: string) => clearanceFromLabel(k);
   const current = d.clearances.filter((k) => !k.includes('re-assess')).map(kind);
   const flagged = d.clearances.filter((k) => k.includes('re-assess')).map(kind);
-  const traits = partnerTraits(d.traits);
+  const traits = [d.energy ? ENERGY[d.energy] ?? d.energy : null, d.sociability ? SOCIAL[d.sociability] ?? d.sociability : null, ...partnerTraits(d.traits)].filter(Boolean).join(' · ');
   const warn = /expire|missing/i.test(d.vaccine_line);
+  const inAt = d.status === 'checked_in' && d.checked_in_at ? new Date(d.checked_in_at) : null;
+  const [label, tone] = d.status === 'checked_in' ? [inAt ? `Checked in ${time(inAt)}` : 'Checked in', 'cleared' as const]
+    : d.status === 'no_show' ? ['No-show', 'warning' as const] : started ? ['Not checked in', 'needs' as const] : ['Booked', 'neutral' as const];
   return (
-    <div className="tbl-row" style={{ gridTemplateColumns: ROSTER_COLS, minWidth: 930, minHeight: 48 }}>
+    <div className="tbl-row" style={{ gridTemplateColumns: ROSTER_COLS, minWidth: TABLE_MIN, minHeight: 48 }}>
       <Avatar name={d.dog_name} photo={photo} size={36} radius={8} />
       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <span className="pp-heading">{d.dog_name}</span>
-        <span className="pp-caption pp-muted ellipsis">{[d.mixed ? 'Mixed breed' : d.breed, ageOf(d.birth_year, d.birth_month), d.owner_name].filter(Boolean).join(' · ')}</span>
+        <span className="pp-caption pp-muted ellipsis">{[d.mixed ? 'Mixed breed' : d.breed, ageOf(d.birth_year, d.birth_month)].filter(Boolean).join(' · ')}</span>
       </div>
-      <span className="pp-caption">{d.energy ? ENERGY[d.energy] ?? d.energy : '–'}</span>
-      <span className="pp-caption">{d.sociability ? SOCIAL[d.sociability] ?? d.sociability : '–'}</span>
+      <span className="pp-caption ellipsis">{d.owner_name || '–'}</span>
+      <span className="pp-caption ellipsis" title={traits}>{traits || '–'}</span>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
         {d.clearances.length ? d.clearances.map((k) => k.includes('re-assess')
           ? <Badge key={k} tone="warning" icon={ShieldAlert}>{k}</Badge>
@@ -159,16 +182,20 @@ function DogRow({ d, photo, record, busy, onToggle, onVerify, onReassess, onUndo
         {current.length ? <button className="link pp-caption" disabled={busy} onClick={() => onReassess(current)}>Re-assess</button> : null}
         {flagged.map((t) => <button key={t} className="link pp-caption" disabled={busy} onClick={() => onUndo(t)}>{`Undo ${clearanceName(t)}`}</button>)}
       </div>
-      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <span className="pp-caption ellipsis" title={d.last_note ?? undefined}>{d.last_note || '–'}</span>
-        {traits.length ? <span className="pp-caption pp-muted ellipsis" title={traits.join(' · ')}>{`From owner · ${traits.join(' · ')}`}</span> : null}
-      </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, minWidth: 0 }}>
-        {warn ? <Badge tone="warning" icon={Syringe}>{d.vaccine_line}</Badge> : <span className="pp-caption pp-muted">{d.vaccine_line}</span>}
+        {warn ? <Badge tone="warning" icon={Syringe}>{d.vaccine_line}</Badge> : <Badge icon={Check}>{d.vaccine_line}</Badge>}
         {record ? <a className="pp-caption" href={record} target="_blank" rel="noreferrer" style={{ fontWeight: 500 }}>Vet record</a> : null}
         {d.record_path && !d.record_verified && !warn ? <button className="link" disabled={busy} onClick={onVerify}>Mark checked</button> : null}
       </div>
-      <Button variant={on ? 'quiet' : 'primary'} size="sm" icon={on ? Check : undefined} block disabled={busy} onClick={onToggle}>{on ? 'Checked in' : 'Check in'}</Button>
+      <div><Badge tone={tone} dot={d.status === 'checked_in'}>{label}</Badge></div>
+      <Row gap={6} wrap={false} style={{ justifyContent: 'flex-end' }}>
+        {d.status === 'checked_in' ? <Button variant="ghost" size="sm" disabled={busy} onClick={() => onCheckIn(true)}>Undo</Button>
+          : d.status === 'no_show' ? <Button variant="ghost" size="sm" disabled={busy} onClick={() => onNoShow(true)}>Undo</Button>
+          : started ? <>
+            <Button variant="outline" size="sm" disabled={busy} onClick={() => onCheckIn(false)}>Check in late</Button>
+            <Button variant="ghost" size="sm" disabled={busy} onClick={() => onNoShow(false)}>Mark no-show</Button>
+          </> : <Button variant="outline" size="sm" disabled={busy} onClick={() => onCheckIn(false)}>Check in</Button>}
+      </Row>
     </div>
   );
 }
