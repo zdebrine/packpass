@@ -15,11 +15,12 @@ async function signIn(page: Page, role: 'owner' | 'trainer' = 'owner') {
   return email;
 }
 
-/** A member with one dog booked on the next Eastside group class. Returns the session and booking ids. */
+/** A member with one dog booked on the next Eastside group class more than 90 minutes out (closer than that, the
+ * roster counts down to the start instead of counting check-ins). Returns the session and booking ids. */
 async function bookedDog() {
   const member = await account(`member-${Date.now()}@example.com`, 'goodpass123');
   const session = sql(`select s.id from sessions s join class_types c on c.id = s.class_id
-    where c.partner_id = 'eastside' and c.session_type = 'class' and s.starts_at > now() order by s.starts_at limit 1`);
+    where c.partner_id = 'eastside' and c.session_type = 'class' and s.starts_at > now() + interval '2 hours' order by s.starts_at limit 1`);
   const dog = sql(`insert into dogs (owner_id, name, breed, energy, sociability) values ('${member}', 'Biscuit', 'Beagle', 'medium', 'loves_dogs') returning id`);
   const booking = sql(`insert into bookings (session_id, dog_id, member_id, credits_charged) values ('${session}', '${dog}', '${member}', 1) returning id`);
   return { session, booking };
@@ -221,6 +222,11 @@ test('a session below its minimum is cancelled at the cutoff, and Run it anyway 
   expect(sql(`select public.enforce_minimums()`)).toBe('1');
 
   await page.goto(`/schedule?s=${session}`);
+  // Ten hours from now can be next week (a Sunday evening in Austin). The Schedule can't look up a cancelled session
+  // to jump to its week, so step there.
+  if (sql(`select date_trunc('week', starts_at at time zone 'America/Chicago') > date_trunc('week', now() at time zone 'America/Chicago') from sessions where id = '${session}'`) === 't') {
+    await page.getByRole('button', { name: 'Next week' }).click();
+  }
   await expect(page.getByText('Cancelled (low enrollment)')).toBeVisible();
   await expect(page.getByText('Below the minimum of 3 at the 12-hour cutoff.')).toBeVisible();
   await page.getByRole('button', { name: 'Run it anyway' }).click();

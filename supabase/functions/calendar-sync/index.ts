@@ -13,7 +13,8 @@
 // calendar_store_busy(), which closes PackPass spots at those times. A Google sync reads the same 15 days of events,
 // then writes, rewrites or removes PackPass's own events for the next 30 days (google.ts).
 // Env: SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY (provided by Supabase); for Google,
-// GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and PARTNER_URL (the dashboard's address, for the roster link and the way back).
+// GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and PARTNER_URL (the dashboard's address, for the roster link and the way back),
+// and optionally GOOGLE_REDIRECT_URI (the callback on the dashboard's domain).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { authUrl, busyFromEvents, emailFromIdToken, plan, type ExportRow, type GoogleEvent } from './google.ts';
@@ -30,7 +31,9 @@ const GOOGLE_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
 const PARTNER_URL = (Deno.env.get('PARTNER_URL') ?? '').replace(/\/$/, '');
 const googleReady = () => !!(GOOGLE_ID && GOOGLE_SECRET && PARTNER_URL);
 const CALENDAR = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
-const REDIRECT = `${url.replace(/\/$/, '')}/functions/v1/calendar-sync/google/callback`;
+// Google returns here. GOOGLE_REDIRECT_URI puts it on PackPass's own domain (the partner dashboard proxies
+// /google/callback to this function, see apps/partner/vercel.json), which Google's verification asks for.
+const REDIRECT = Deno.env.get('GOOGLE_REDIRECT_URI') || `${url.replace(/\/$/, '')}/functions/v1/calendar-sync/google/callback`;
 
 /** One iCal feed: fetch, parse, store. Returns the error stored, if any. */
 async function read(id: string, raw: string): Promise<string | null> {

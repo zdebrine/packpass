@@ -3,5 +3,11 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/google/callback",
+      "destination": "https://qovbpxvpnslsjzunxutk.supabase.co/functions/v1/calendar-sync/google/callback"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
